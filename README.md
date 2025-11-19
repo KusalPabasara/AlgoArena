@@ -429,8 +429,3 @@ For issues or questions, please open an issue on the repository.
 - Mobile app performance optimization
 - Multi-language support
 
----
-
-**Built with ❤️ for Leo Club members**
-"# AlgoArena" 
-"# AlgoArena" 
