@@ -1,0 +1,353 @@
+var view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 0.973, green: 0.973, blue: 0.973, alpha: 0.98).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 0.843, blue: 0, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 0.843, blue: 0, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 875)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 875)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 875)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 875)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 875)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 875)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 875)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 875)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 875)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
+
+
+view = UIView()
+view.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
+view.layer.backgroundColor = UIColor(red: 1, green: 1, blue: 1, alpha: 1).cgColor
