@@ -167,14 +167,14 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
           // Bubble 04 - Large Bottom Yellow (Static with rotation)
           Positioned(
             left: MediaQuery.of(context).size.width * 0.3,
-            bottom: 0,
+            bottom: -250,
             child: Transform.rotate(
               angle: 0 * 3.14159 / 180, // 0 degrees for Login screen
               child: ClipPath(
                 clipper: _Bubble04Clipper(),
                 child: Container(
                   width: 500,
-                  height: 650,
+                  height: MediaQuery.of(context).size.height + 250, // Extend to screen bottom
                   color: const Color(0xFFFFD700),
                 ),
               ),
