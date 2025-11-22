@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
@@ -14,6 +15,7 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
@@ -26,26 +28,161 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
   bool _agreeToTerms = false;
   File? _profileImage;
   final _picker = ImagePicker();
+  bool _showSuccess = false; // Track if showing success view
+  
+  // Country selection
+  String _selectedCountryCode = '+94';
+  String _selectedCountryFlag = '🇱🇰';
+  String _countrySearchQuery = '';
+  
+  final List<Map<String, String>> _countries = [
+    {'name': 'Afghanistan', 'code': '+93', 'flag': '🇦🇫'},
+    {'name': 'Albania', 'code': '+355', 'flag': '🇦🇱'},
+    {'name': 'Algeria', 'code': '+213', 'flag': '🇩🇿'},
+    {'name': 'Andorra', 'code': '+376', 'flag': '🇦🇩'},
+    {'name': 'Angola', 'code': '+244', 'flag': '🇦🇴'},
+    {'name': 'Argentina', 'code': '+54', 'flag': '🇦🇷'},
+    {'name': 'Armenia', 'code': '+374', 'flag': '🇦🇲'},
+    {'name': 'Australia', 'code': '+61', 'flag': '🇦🇺'},
+    {'name': 'Austria', 'code': '+43', 'flag': '🇦🇹'},
+    {'name': 'Azerbaijan', 'code': '+994', 'flag': '🇦🇿'},
+    {'name': 'Bahrain', 'code': '+973', 'flag': '🇧🇭'},
+    {'name': 'Bangladesh', 'code': '+880', 'flag': '🇧🇩'},
+    {'name': 'Belarus', 'code': '+375', 'flag': '🇧🇾'},
+    {'name': 'Belgium', 'code': '+32', 'flag': '🇧🇪'},
+    {'name': 'Bhutan', 'code': '+975', 'flag': '🇧🇹'},
+    {'name': 'Bolivia', 'code': '+591', 'flag': '🇧🇴'},
+    {'name': 'Brazil', 'code': '+55', 'flag': '🇧🇷'},
+    {'name': 'Brunei', 'code': '+673', 'flag': '🇧🇳'},
+    {'name': 'Bulgaria', 'code': '+359', 'flag': '🇧🇬'},
+    {'name': 'Cambodia', 'code': '+855', 'flag': '🇰🇭'},
+    {'name': 'Canada', 'code': '+1', 'flag': '🇨🇦'},
+    {'name': 'Chile', 'code': '+56', 'flag': '🇨🇱'},
+    {'name': 'China', 'code': '+86', 'flag': '🇨🇳'},
+    {'name': 'Colombia', 'code': '+57', 'flag': '🇨🇴'},
+    {'name': 'Croatia', 'code': '+385', 'flag': '🇭🇷'},
+    {'name': 'Cuba', 'code': '+53', 'flag': '🇨🇺'},
+    {'name': 'Cyprus', 'code': '+357', 'flag': '🇨🇾'},
+    {'name': 'Czech Republic', 'code': '+420', 'flag': '🇨🇿'},
+    {'name': 'Denmark', 'code': '+45', 'flag': '🇩🇰'},
+    {'name': 'Egypt', 'code': '+20', 'flag': '🇪🇬'},
+    {'name': 'Estonia', 'code': '+372', 'flag': '🇪🇪'},
+    {'name': 'Ethiopia', 'code': '+251', 'flag': '🇪🇹'},
+    {'name': 'Finland', 'code': '+358', 'flag': '🇫🇮'},
+    {'name': 'France', 'code': '+33', 'flag': '🇫🇷'},
+    {'name': 'Georgia', 'code': '+995', 'flag': '🇬🇪'},
+    {'name': 'Germany', 'code': '+49', 'flag': '🇩🇪'},
+    {'name': 'Ghana', 'code': '+233', 'flag': '🇬🇭'},
+    {'name': 'Greece', 'code': '+30', 'flag': '🇬🇷'},
+    {'name': 'Hong Kong', 'code': '+852', 'flag': '🇭🇰'},
+    {'name': 'Hungary', 'code': '+36', 'flag': '🇭🇺'},
+    {'name': 'Iceland', 'code': '+354', 'flag': '🇮🇸'},
+    {'name': 'India', 'code': '+91', 'flag': '🇮🇳'},
+    {'name': 'Indonesia', 'code': '+62', 'flag': '🇮🇩'},
+    {'name': 'Iran', 'code': '+98', 'flag': '🇮🇷'},
+    {'name': 'Iraq', 'code': '+964', 'flag': '🇮🇶'},
+    {'name': 'Ireland', 'code': '+353', 'flag': '🇮🇪'},
+    {'name': 'Israel', 'code': '+972', 'flag': '🇮🇱'},
+    {'name': 'Italy', 'code': '+39', 'flag': '🇮🇹'},
+    {'name': 'Japan', 'code': '+81', 'flag': '🇯🇵'},
+    {'name': 'Jordan', 'code': '+962', 'flag': '🇯🇴'},
+    {'name': 'Kazakhstan', 'code': '+7', 'flag': '🇰🇿'},
+    {'name': 'Kenya', 'code': '+254', 'flag': '🇰🇪'},
+    {'name': 'Kuwait', 'code': '+965', 'flag': '🇰🇼'},
+    {'name': 'Laos', 'code': '+856', 'flag': '🇱🇦'},
+    {'name': 'Latvia', 'code': '+371', 'flag': '🇱🇻'},
+    {'name': 'Lebanon', 'code': '+961', 'flag': '🇱🇧'},
+    {'name': 'Libya', 'code': '+218', 'flag': '🇱🇾'},
+    {'name': 'Lithuania', 'code': '+370', 'flag': '🇱🇹'},
+    {'name': 'Luxembourg', 'code': '+352', 'flag': '🇱🇺'},
+    {'name': 'Malaysia', 'code': '+60', 'flag': '🇲🇾'},
+    {'name': 'Maldives', 'code': '+960', 'flag': '🇲🇻'},
+    {'name': 'Mexico', 'code': '+52', 'flag': '🇲🇽'},
+    {'name': 'Morocco', 'code': '+212', 'flag': '🇲🇦'},
+    {'name': 'Myanmar', 'code': '+95', 'flag': '🇲🇲'},
+    {'name': 'Nepal', 'code': '+977', 'flag': '🇳🇵'},
+    {'name': 'Netherlands', 'code': '+31', 'flag': '🇳🇱'},
+    {'name': 'New Zealand', 'code': '+64', 'flag': '🇳🇿'},
+    {'name': 'Nigeria', 'code': '+234', 'flag': '🇳🇬'},
+    {'name': 'Norway', 'code': '+47', 'flag': '🇳🇴'},
+    {'name': 'Oman', 'code': '+968', 'flag': '🇴🇲'},
+    {'name': 'Pakistan', 'code': '+92', 'flag': '🇵🇰'},
+    {'name': 'Palestine', 'code': '+970', 'flag': '🇵🇸'},
+    {'name': 'Peru', 'code': '+51', 'flag': '🇵🇪'},
+    {'name': 'Philippines', 'code': '+63', 'flag': '🇵🇭'},
+    {'name': 'Poland', 'code': '+48', 'flag': '🇵🇱'},
+    {'name': 'Portugal', 'code': '+351', 'flag': '🇵🇹'},
+    {'name': 'Qatar', 'code': '+974', 'flag': '🇶🇦'},
+    {'name': 'Romania', 'code': '+40', 'flag': '🇷🇴'},
+    {'name': 'Russia', 'code': '+7', 'flag': '🇷🇺'},
+    {'name': 'Saudi Arabia', 'code': '+966', 'flag': '🇸🇦'},
+    {'name': 'Serbia', 'code': '+381', 'flag': '🇷🇸'},
+    {'name': 'Singapore', 'code': '+65', 'flag': '🇸🇬'},
+    {'name': 'Slovakia', 'code': '+421', 'flag': '🇸🇰'},
+    {'name': 'Slovenia', 'code': '+386', 'flag': '🇸🇮'},
+    {'name': 'South Africa', 'code': '+27', 'flag': '🇿🇦'},
+    {'name': 'South Korea', 'code': '+82', 'flag': '🇰🇷'},
+    {'name': 'Spain', 'code': '+34', 'flag': '🇪🇸'},
+    {'name': 'Sri Lanka', 'code': '+94', 'flag': '🇱🇰'},
+    {'name': 'Sweden', 'code': '+46', 'flag': '🇸🇪'},
+    {'name': 'Switzerland', 'code': '+41', 'flag': '🇨🇭'},
+    {'name': 'Syria', 'code': '+963', 'flag': '🇸🇾'},
+    {'name': 'Taiwan', 'code': '+886', 'flag': '🇹🇼'},
+    {'name': 'Thailand', 'code': '+66', 'flag': '🇹🇭'},
+    {'name': 'Turkey', 'code': '+90', 'flag': '🇹🇷'},
+    {'name': 'Ukraine', 'code': '+380', 'flag': '🇺🇦'},
+    {'name': 'United Arab Emirates', 'code': '+971', 'flag': '🇦🇪'},
+    {'name': 'United Kingdom', 'code': '+44', 'flag': '🇬🇧'},
+    {'name': 'United States', 'code': '+1', 'flag': '🇺🇸'},
+    {'name': 'Uruguay', 'code': '+598', 'flag': '🇺🇾'},
+    {'name': 'Uzbekistan', 'code': '+998', 'flag': '🇺🇿'},
+    {'name': 'Venezuela', 'code': '+58', 'flag': '🇻🇪'},
+    {'name': 'Vietnam', 'code': '+84', 'flag': '🇻🇳'},
+    {'name': 'Yemen', 'code': '+967', 'flag': '🇾🇪'},
+    {'name': 'Zimbabwe', 'code': '+263', 'flag': '🇿🇼'},
+  ];
   
   // Animation controllers
-  late AnimationController _bubbleController;
   late AnimationController _contentController;
   late AnimationController _photoController;
   late AnimationController _buttonController;
+  late AnimationController _bubbleRotationController;
+  late AnimationController _contentSlideController;
+  late AnimationController _contentFadeController;
+  late AnimationController _successIconController;
+  late AnimationController _successTextController;
+  late AnimationController _successCheckController;
+  late AnimationController _successBubbleRotationController;
+  late AnimationController _successTitleController;
+  late AnimationController _successGlowController;
   
-  late Animation<double> _bubble1Animation;
-  late Animation<double> _bubble2Animation;
+  late Animation<double> _bubble1RotationAnimation;
+  late Animation<double> _bubble2RotationAnimation;
   late Animation<double> _titleFadeAnimation;
-  late Animation<Offset> _titleSlideAnimation;
   late Animation<double> _photoScaleAnimation;
   late Animation<double> _photoFadeAnimation;
+  late Animation<double> _field0FadeAnimation; // Name field
   late Animation<double> _field1FadeAnimation;
   late Animation<double> _field2FadeAnimation;
   late Animation<double> _field3FadeAnimation;
   late Animation<double> _field4FadeAnimation;
-  late Animation<Offset> _fieldSlideAnimation;
   late Animation<double> _checkboxFadeAnimation;
   late Animation<double> _buttonScaleAnimation;
+  late Animation<Offset> _contentSlideAnimation;
+  late Animation<double> _contentFadeAnimation;
+  late Animation<Offset> _successIconSlideAnimation;
+  late Animation<double> _successTextFadeAnimation;
+  late Animation<double> _successCheckScaleAnimation;
+  late Animation<double> _successCheckFadeAnimation;
+  late Animation<double> _successCheckRotationAnimation;
+  late Animation<Offset> _successCardSlideAnimation;
+  late Animation<double> _successCardScaleAnimation;
+  late Animation<double> _successTitleFadeAnimation;
+  late Animation<Offset> _successTitleSlideAnimation;
+  late Animation<double> _successSubtitleFadeAnimation;
+  late Animation<double> _successGlowAnimation;
+  late Animation<double> _successBubble1RotationAnimation;
+  late Animation<double> _successBubble2RotationAnimation;
 
   @override
   void initState() {
@@ -55,20 +192,6 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
   }
   
   void _setupAnimations() {
-    // Bubble float animation
-    _bubbleController = AnimationController(
-      duration: const Duration(seconds: 5),
-      vsync: this,
-    )..repeat(reverse: true);
-    
-    _bubble1Animation = Tween<double>(begin: -25, end: 25).animate(
-      CurvedAnimation(parent: _bubbleController, curve: Curves.easeInOut),
-    );
-    
-    _bubble2Animation = Tween<double>(begin: 20, end: -20).animate(
-      CurvedAnimation(parent: _bubbleController, curve: Curves.easeInOut),
-    );
-    
     // Content animations
     _contentController = AnimationController(
       duration: const Duration(milliseconds: 1500),
@@ -76,20 +199,10 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
     );
     
     // Title animations
-    _titleFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+    _titleFadeAnimation = Tween<double>(begin: 0.0, end: 3.0).animate(
       CurvedAnimation(
         parent: _contentController,
         curve: const Interval(0.0, 0.3, curve: Curves.easeIn),
-      ),
-    );
-    
-    _titleSlideAnimation = Tween<Offset>(
-      begin: const Offset(-0.3, 0),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _contentController,
-        curve: const Interval(0.0, 0.3, curve: Curves.easeOut),
       ),
     );
     
@@ -111,46 +224,43 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
     );
     
     // Staggered field animations
-    _field1FadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+    _field0FadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _contentController,
         curve: const Interval(0.3, 0.5, curve: Curves.easeIn),
       ),
     );
     
-    _field2FadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+    _field1FadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _contentController,
         curve: const Interval(0.4, 0.6, curve: Curves.easeIn),
       ),
     );
     
-    _field3FadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+    _field2FadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _contentController,
         curve: const Interval(0.5, 0.7, curve: Curves.easeIn),
       ),
     );
     
-    _field4FadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+    _field3FadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _contentController,
         curve: const Interval(0.6, 0.8, curve: Curves.easeIn),
       ),
     );
     
-    _fieldSlideAnimation = Tween<Offset>(
-      begin: const Offset(0.2, 0),
-      end: Offset.zero,
-    ).animate(
+    _field4FadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _contentController,
-        curve: const Interval(0.3, 0.8, curve: Curves.easeOut),
+        curve: const Interval(0.7, 0.9, curve: Curves.easeIn),
       ),
     );
     
     // Checkbox animation
-    _checkboxFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+    _checkboxFadeAnimation = Tween<double>(begin: 0.0, end: 3.0).animate(
       CurvedAnimation(
         parent: _contentController,
         curve: const Interval(0.7, 0.9, curve: Curves.easeIn),
@@ -166,23 +276,217 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
     _buttonScaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
       CurvedAnimation(parent: _buttonController, curve: Curves.easeInOut),
     );
+    
+    // Bubble rotation animation (for page entry and success transition)
+    _bubbleRotationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    
+    _bubble1RotationAnimation = Tween<double>(begin: -15, end: 45).animate(
+      CurvedAnimation(parent: _bubbleRotationController, curve: Curves.easeInOutCubic),
+    );
+    
+    _bubble2RotationAnimation = Tween<double>(begin: 15, end: -30).animate(
+      CurvedAnimation(parent: _bubbleRotationController, curve: Curves.easeInOutCubic),
+    );
+    
+    // Content slide up animation (entire content as one unit)
+    _contentSlideController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    );
+    
+    _contentSlideAnimation = Tween<Offset>(
+      begin: const Offset(0, 1.0), // Start from bottom
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(parent: _contentSlideController, curve: Curves.easeOutCubic),
+    );
+    
+    // Content fade out animation
+    _contentFadeController = AnimationController(
+      duration: const Duration(milliseconds: 400),
+      vsync: this,
+    );
+    
+    _contentFadeAnimation = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(parent: _contentFadeController, curve: Curves.easeOut),
+    );
+    
+    // Success content staggered slide up animations
+    _successIconController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+    
+    _successIconSlideAnimation = Tween<Offset>(
+      begin: const Offset(0, 1.5), // Slide up from bottom
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(parent: _successIconController, curve: Curves.easeOutCubic),
+    );
+    
+    _successTextController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+    
+    _successTextFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _successTextController, curve: Curves.easeIn),
+    );
+    
+    // Success check mark animation (modern with bounce)
+    _successCheckController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    
+    _successCheckScaleAnimation = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.0, end: 1.15)
+            .chain(CurveTween(curve: Curves.easeOut)),
+        weight: 60,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.15, end: 1.0)
+            .chain(CurveTween(curve: Curves.easeIn)),
+        weight: 40,
+      ),
+    ]).animate(_successCheckController);
+    
+    _successCheckFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _successCheckController,
+        curve: const Interval(0.0, 0.5, curve: Curves.easeIn),
+      ),
+    );
+    
+    _successCheckRotationAnimation = Tween<double>(begin: -0.2, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _successCheckController,
+        curve: Curves.easeOut,
+      ),
+    );
+    
+    // Success glow animation
+    _successGlowController = AnimationController(
+      duration: const Duration(milliseconds: 2000),
+      vsync: this,
+    )..repeat(reverse: true);
+    
+    _successGlowAnimation = Tween<double>(begin: 0.4, end: 0.8).animate(
+      CurvedAnimation(parent: _successGlowController, curve: Curves.easeInOut),
+    );
+    
+    // Success title animation
+    _successTitleController = AnimationController(
+      duration: const Duration(milliseconds: 700),
+      vsync: this,
+    );
+    
+    _successTitleFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _successTitleController,
+        curve: const Interval(0.0, 0.6, curve: Curves.easeIn),
+      ),
+    );
+    
+    _successTitleSlideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(
+        parent: _successTitleController,
+        curve: Curves.easeOutCubic,
+      ),
+    );
+    
+    _successSubtitleFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _successTitleController,
+        curve: const Interval(0.4, 1.0, curve: Curves.easeIn),
+      ),
+    );
+    
+    // Success bubble rotation animation (continues from register bubbles)
+    _successBubbleRotationController = AnimationController(
+      duration: const Duration(milliseconds: 1200),
+      vsync: this,
+    );
+    
+    // Success bubbles start at current position (45° and -30°) and rotate just a little bit
+    _successBubble1RotationAnimation = Tween<double>(begin: 45, end: 55).animate(
+      CurvedAnimation(parent: _successBubbleRotationController, curve: Curves.easeInOutCubic),
+    );
+    
+    _successBubble2RotationAnimation = Tween<double>(begin: -30, end: -40).animate(
+      CurvedAnimation(parent: _successBubbleRotationController, curve: Curves.easeInOutCubic),
+    );
+    
+    // Success card slide animation with scale
+    _successCardSlideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.15),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(
+        parent: _successTextController,
+        curve: Curves.easeOutCubic,
+      ),
+    );
+    
+    _successCardScaleAnimation = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.95, end: 1.02)
+            .chain(CurveTween(curve: Curves.easeOut)),
+        weight: 50,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.02, end: 1.0)
+            .chain(CurveTween(curve: Curves.easeIn)),
+        weight: 50,
+      ),
+    ]).animate(_successTextController);
   }
   
   void _startAnimations() {
+    // Start bubble rotation to resting position (value 0.25) and content slide simultaneously on page entry
+    _bubbleRotationController.animateTo(0.25);
+    _contentSlideController.forward();
     _contentController.forward();
   }
   
   @override
   void dispose() {
+    _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     _phoneController.dispose();
-    _bubbleController.dispose();
     _contentController.dispose();
     _photoController.dispose();
     _buttonController.dispose();
+    _bubbleRotationController.dispose();
+    _contentSlideController.dispose();
+    _contentFadeController.dispose();
+    _successIconController.dispose();
+    _successTextController.dispose();
+    _successCheckController.dispose();
+    _successBubbleRotationController.dispose();
+    _successTitleController.dispose();
+    _successGlowController.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleBack() async {
+    // Animate content sliding down and bubbles rotating back to initial position
+    await Future.wait([
+      _contentSlideController.reverse(),
+      _bubbleRotationController.animateTo(0.0),
+    ]);
+    if (mounted) {
+      Navigator.pop(context);
+    }
   }
 
   Future<void> _pickImage() async {
@@ -218,7 +522,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
 
     try {
       await _authRepository.register(
-        fullName: 'User', // Default name for now
+        fullName: _nameController.text.trim(),
         email: _emailController.text.trim(),
         password: _passwordController.text,
         phoneNumber: _phoneController.text.trim().isNotEmpty 
@@ -227,7 +531,37 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
       );
 
       if (mounted) {
-        _showSuccessDialog();
+        // Fade out current content
+        await _contentFadeController.forward();
+        
+        // Continue bubble rotation to success position (from 0.25 to 1.0)
+        // Wait for this animation to complete before showing success
+        await _bubbleRotationController.animateTo(1.0);
+        
+        // Show success view (this will hide register bubbles and show success bubbles)
+        setState(() {
+          _showSuccess = true;
+        });
+        
+        // Start success bubble rotation from current position (45° and -30°)
+        // with a small additional rotation
+        _successBubbleRotationController.forward();
+        
+        // Modern staggered animations
+        _successIconController.forward();
+        _successCheckController.forward();
+        _successTextController.forward();
+        _successTitleController.forward();
+        _successGlowController.repeat();
+        await Future.delayed(const Duration(milliseconds: 200));
+        _successTextController.forward();
+        
+        // Wait 2 seconds before navigating to login
+        await Future.delayed(const Duration(seconds: 2));
+        
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/login');
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -249,12 +583,160 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
     Navigator.pop(context);
   }
 
-  void _showSuccessDialog() {
-    showDialog(
+  void _showCountryPicker() {
+    showModalBottomSheet(
       context: context,
-      barrierDismissible: false,
-      barrierColor: Colors.transparent,
-      builder: (context) => const _SuccessDialog(),
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setModalState) {
+            // Filter countries based on search query
+            final filteredCountries = _countries.where((country) {
+              final searchLower = _countrySearchQuery.toLowerCase();
+              return country['name']!.toLowerCase().contains(searchLower) ||
+                     country['code']!.contains(searchLower);
+            }).toList();
+
+            return DraggableScrollableSheet(
+              initialChildSize: 0.9,
+              minChildSize: 0.5,
+              maxChildSize: 0.95,
+              expand: false,
+              builder: (context, scrollController) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  child: Column(
+                    children: [
+                      // Header
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                        child: Text(
+                          'Select Country',
+                          style: TextStyle(
+                            fontFamily: 'Raleway',
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF202020),
+                          ),
+                        ),
+                      ),
+                      
+                      // Search Bar
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                        child: TextField(
+                          onChanged: (value) {
+                            setModalState(() {
+                              _countrySearchQuery = value;
+                            });
+                          },
+                          decoration: InputDecoration(
+                            hintText: 'Search country...',
+                            hintStyle: const TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 14,
+                              color: Color(0xFF999999),
+                            ),
+                            prefixIcon: const Icon(Icons.search, color: Color(0xFF999999)),
+                            suffixIcon: _countrySearchQuery.isNotEmpty
+                                ? IconButton(
+                                    icon: const Icon(Icons.clear, size: 20),
+                                    onPressed: () {
+                                      setModalState(() {
+                                        _countrySearchQuery = '';
+                                      });
+                                    },
+                                  )
+                                : null,
+                            filled: true,
+                            fillColor: const Color(0xFFF5F5F5),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(30),
+                              borderSide: BorderSide.none,
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(30),
+                              borderSide: BorderSide.none,
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(30),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                        ),
+                      ),
+                      
+                      const Divider(),
+                      
+                      // Country List
+                      Expanded(
+                        child: filteredCountries.isEmpty
+                            ? const Center(
+                                child: Text(
+                                  'No countries found',
+                                  style: TextStyle(
+                                    fontFamily: 'Poppins',
+                                    fontSize: 16,
+                                    color: Color(0xFF999999),
+                                  ),
+                                ),
+                              )
+                            : ListView.builder(
+                                controller: scrollController,
+                                itemCount: filteredCountries.length,
+                                itemBuilder: (context, index) {
+                                  final country = filteredCountries[index];
+                                  final isSelected = _selectedCountryCode == country['code'];
+                                  
+                                  return ListTile(
+                                    leading: Text(
+                                      country['flag']!,
+                                      style: const TextStyle(fontSize: 28),
+                                    ),
+                                    title: Text(
+                                      country['name']!,
+                                      style: TextStyle(
+                                        fontFamily: 'Poppins',
+                                        fontSize: 16,
+                                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                                        color: isSelected ? const Color(0xFFFFD700) : Colors.black87,
+                                      ),
+                                    ),
+                                    trailing: Text(
+                                      country['code']!,
+                                      style: TextStyle(
+                                        fontFamily: 'Poppins',
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                        color: isSelected ? const Color(0xFFFFD700) : Colors.grey[600],
+                                      ),
+                                    ),
+                                    selected: isSelected,
+                                    selectedTileColor: const Color(0xFFFFD700).withOpacity(0.1),
+                                    onTap: () {
+                                      setState(() {
+                                        _selectedCountryCode = country['code']!;
+                                        _selectedCountryFlag = country['flag']!;
+                                        _countrySearchQuery = ''; // Reset search
+                                      });
+                                      Navigator.pop(context);
+                                    },
+                                  );
+                                },
+                              ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
     );
   }
 
@@ -285,71 +767,77 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // Animated Yellow Organic Shape (Top-Left, Main)
-          AnimatedBuilder(
-            animation: _bubble1Animation,
-            builder: (context, child) {
-              return Positioned(
-                left: -120 + _bubble1Animation.value * 0.4,
-                top: -180 + _bubble1Animation.value,
-                child: ClipPath(
-                  clipper: _OrganicRegisterClipper(),
-                  child: Container(
-                    width: 500,
-                    height: 600,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFFFD700),
+          // Register screen bubbles - only show when not showing success
+          if (!_showSuccess) ...[
+            // Static Yellow Bubble (Top-Left) - Bit larger
+            AnimatedBuilder(
+              animation: _bubble1RotationAnimation,
+              builder: (context, child) {
+                return Positioned(
+                  left: -100,
+                  top: -60,
+                  child: Transform.rotate(
+                    angle: _bubble1RotationAnimation.value * (3.14159 / 180),
+                    child: ClipPath(
+                      clipper: _RegisterBubble02Clipper(),
+                      child: Container(
+                        width: 320,
+                        height: 380,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFFFD700),
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              );
-            },
-          ),
-          
-          // Animated Black Bubble (Top-Right)
-          AnimatedBuilder(
-            animation: _bubble2Animation,
-            builder: (context, child) {
-              return Positioned(
-                right: -250 - _bubble2Animation.value * 0.3,
-                top: -150 + _bubble2Animation.value * 0.5,
-                child: Container(
-                  width: 600,
-                  height: 600,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.black,
+                );
+              },
+            ),
+            
+            // Static Black Bubble (Top-Right) - Moved more to the right
+            AnimatedBuilder(
+              animation: _bubble2RotationAnimation,
+              builder: (context, child) {
+                return Positioned(
+                  right: -150,
+                  top: 0,
+                  child: Transform.rotate(
+                    angle: _bubble2RotationAnimation.value * (3.14159 / 180),
+                    child: ClipPath(
+                      clipper: _RegisterBubble01Clipper(),
+                      child: Container(
+                        width: 320,
+                        height: 380,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF02091A),
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-              );
-            },
-          ),
+                );
+              },
+            ),
+          ],
           
-          // Main Content Layer
-          SafeArea(
-            child: Column(
-              children: [
-                // Back Button - Material Design
+          // Main Content Layer - with fade out animation
+          if (!_showSuccess)
+            FadeTransition(
+              opacity: _contentFadeAnimation,
+              child: SafeArea(
+                child: Column(
+                  children: [
+                // Back Button - Black circular border with black arrow
                 Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(16.0),
                   child: Align(
                     alignment: Alignment.topLeft,
-                    child: Material(
-                      elevation: 4,
-                      shape: const CircleBorder(),
-                      shadowColor: Colors.black26,
-                      color: const Color(0xFFFFD700),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.black, width: 2),
+                      ),
                       child: IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(
-                          Icons.arrow_back_rounded,
-                          color: Colors.black,
-                          size: 24,
-                        ),
-                        style: IconButton.styleFrom(
-                          padding: const EdgeInsets.all(12),
-                          minimumSize: const Size(48, 48),
-                        ),
+                        icon: const Icon(Icons.arrow_back, color: Colors.black),
+                        onPressed: _handleBack,
                       ),
                     ),
                   ),
@@ -361,28 +849,27 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                       padding: const EdgeInsets.symmetric(horizontal: 35),
                       child: Form(
                         key: _formKey,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const SizedBox(height: 40),
-                      
-                      // Animated "Create Account" Title
-                      SlideTransition(
-                        position: _titleSlideAnimation,
-                        child: FadeTransition(
-                          opacity: _titleFadeAnimation,
-                          child: const Text(
+                        child: SlideTransition(
+                          position: _contentSlideAnimation,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 0),
+                        
+                        // Animated "Create Account" Title
+                        FadeTransition(
+                        opacity: _titleFadeAnimation,
+                        child: const Text(
                             'Create\nAccount',
                             style: TextStyle(
                               fontFamily: 'Raleway',
-                              fontSize: 50,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF202020),
-                              letterSpacing: -0.5,
-                              height: 1.2,
+                                fontSize: 52,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF202020),
+                                letterSpacing: -0.52,
+                                height: 1.17,
                             ),
                           ),
-                        ),
                       ),
                       
                       const SizedBox(height: 30),
@@ -394,65 +881,60 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                           scale: _photoScaleAnimation,
                           child: GestureDetector(
                             onTap: _pickImage,
-                            child: Container(
-                              width: 70,
-                              height: 70,
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                  color: Colors.black,
-                                  width: 2,
-                                ),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
+                            child: SizedBox(
+                              width: 100,
+                              height: 100,
                               child: _profileImage != null
                                   ? ClipRRect(
-                                      borderRadius: BorderRadius.circular(10),
+                                      borderRadius: BorderRadius.circular(12),
                                       child: Image.file(
                                         _profileImage!,
                                         fit: BoxFit.cover,
                                       ),
                                     )
-                                  : const Center(
-                                      child: Text(
-                                        '☺',
-                                        style: TextStyle(
-                                          fontSize: 40,
-                                        ),
-                                      ),
+                                  : Image.asset(
+                                      'assets/images/download-removebg-preview 1.png',
+                                      fit: BoxFit.contain,
                                     ),
                             ),
                           ),
                         ),
                       ),
                       
-                      const SizedBox(height: 40),
+                      const SizedBox(height: 30),
                       
-                      // Animated Email Input Field - Material Design
-                      SlideTransition(
-                        position: _fieldSlideAnimation,
-                        child: FadeTransition(
-                          opacity: _field1FadeAnimation,
-                          child: TextFormField(
-                            controller: _emailController,
-                            keyboardType: TextInputType.emailAddress,
-                            validator: Validators.validateEmail,
+                      // Animated Name Input Field - Material Design
+                      FadeTransition(
+                        opacity: _field0FadeAnimation,
+                        child: TextFormField(
+                            controller: _nameController,
+                            keyboardType: TextInputType.name,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Name is required';
+                              }
+                              if (value.length < 2) {
+                                return 'Name must be at least 2 characters';
+                              }
+                              return null;
+                            },
                             style: const TextStyle(
-                              fontFamily: 'Poppins',
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.black87,
+                              fontFamily: 'Nunito Sans',
+                              fontSize: 19,
+                              fontWeight: FontWeight.w300,
+                              color: Colors.white,
                             ),
                             decoration: InputDecoration(
-                              hintText: 'Email',
+                              hintText: 'Full Name',
                               hintStyle: const TextStyle(
-                                fontFamily: 'Poppins',
-                                fontSize: 16,
-                                fontWeight: FontWeight.w400,
-                                color: Color(0xFF666666),
+                                fontFamily: 'Nunito Sans',
+                                fontSize: 19,
+                                fontWeight: FontWeight.w300,
+                                color: Colors.white,
                               ),
                               filled: true,
-                              fillColor: const Color(0xFFE8E8E8),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                              fillColor: Colors.black.withOpacity(0.4),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(30),
                                 borderSide: BorderSide.none,
@@ -463,21 +945,76 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(30),
-                                borderSide: const BorderSide(color: Color(0xFFFFD700), width: 2),
+                                borderSide: BorderSide.none,
+                              ),
+                              errorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(30),
+                                borderSide: BorderSide.none,
+                              ),
+                              focusedErrorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(30),
+                                borderSide: BorderSide.none,
                               ),
                             ),
                           ),
-                        ),
+                      ),
+                      
+                      const SizedBox(height: 12),
+                      
+                      // Animated Email Input Field - Material Design
+                      FadeTransition(
+                        opacity: _field1FadeAnimation,
+                        child: TextFormField(
+                            controller: _emailController,
+                            keyboardType: TextInputType.emailAddress,
+                            validator: Validators.validateEmail,
+                            style: const TextStyle(
+                               fontFamily: 'Nunito Sans',
+                                    fontSize: 19,
+                                    fontWeight: FontWeight.w300,
+                                    color: Colors.white, // W
+                            ),
+                            decoration: InputDecoration(
+                              hintText: 'Email',
+                              hintStyle: const TextStyle(
+                                 fontFamily: 'Nunito Sans',
+                                    fontSize: 19,
+                                    fontWeight: FontWeight.w300,
+                                    color: Colors.white, // W
+                              ),
+                              filled: true,
+                              fillColor: Colors.black.withOpacity(0.4),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(30),
+                                borderSide: BorderSide.none,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(30),
+                                borderSide: BorderSide.none,
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(30),
+                                borderSide: BorderSide.none,
+                              ),
+                              errorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(30),
+                                borderSide: BorderSide.none,
+                              ),
+                              focusedErrorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(30),
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
+                          ),
                       ),
                       
                       const SizedBox(height: 12),
                       
                       // Animated Password Input - Material Design
-                      SlideTransition(
-                        position: _fieldSlideAnimation,
-                        child: FadeTransition(
-                          opacity: _field2FadeAnimation,
-                          child: TextFormField(
+                      FadeTransition(
+                        opacity: _field2FadeAnimation,
+                        child: TextFormField(
                             controller: _passwordController,
                             obscureText: _obscurePassword,
                             validator: (value) {
@@ -490,26 +1027,26 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                               return null;
                             },
                             style: const TextStyle(
-                              fontFamily: 'Poppins',
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.black87,
+                               fontFamily: 'Nunito Sans',
+                                    fontSize: 19,
+                                    fontWeight: FontWeight.w300,
+                                    color: Colors.white, // W
                             ),
                             decoration: InputDecoration(
                               hintText: 'Password',
                               hintStyle: const TextStyle(
-                                fontFamily: 'Poppins',
-                                fontSize: 16,
-                                fontWeight: FontWeight.w400,
-                                color: Color(0xFF666666),
+                                 fontFamily: 'Nunito Sans',
+                                    fontSize: 19,
+                                    fontWeight: FontWeight.w300,
+                                    color: Colors.white, // W
                               ),
                               filled: true,
-                              fillColor: const Color(0xFFE8E8E8),
+                              fillColor: Colors.black.withOpacity(0.4),
                               contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
                               suffixIcon: IconButton(
                                 icon: Icon(
                                   _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                                  color: const Color(0xFF666666),
+                                  color: Colors.white70,
                                 ),
                                 onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                               ),
@@ -523,21 +1060,26 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(30),
-                                borderSide: const BorderSide(color: Color(0xFFFFD700), width: 2),
+                                borderSide: BorderSide.none,
+                              ),
+                              errorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(30),
+                                borderSide: BorderSide.none,
+                              ),
+                              focusedErrorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(30),
+                                borderSide: BorderSide.none,
                               ),
                             ),
                           ),
-                        ),
                       ),
                       
                       const SizedBox(height: 12),
                       
                       // Animated Confirm Password Input - Material Design
-                      SlideTransition(
-                        position: _fieldSlideAnimation,
-                        child: FadeTransition(
-                          opacity: _field3FadeAnimation,
-                          child: TextFormField(
+                      FadeTransition(
+                        opacity: _field3FadeAnimation,
+                        child: TextFormField(
                             controller: _confirmPasswordController,
                             obscureText: _obscureConfirmPassword,
                             validator: (value) {
@@ -547,26 +1089,26 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                               return null;
                             },
                             style: const TextStyle(
-                              fontFamily: 'Poppins',
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.black87,
+                               fontFamily: 'Nunito Sans',
+                                    fontSize: 19,
+                                    fontWeight: FontWeight.w300,
+                                    color: Colors.white, // W
                             ),
                             decoration: InputDecoration(
                               hintText: 'Confirm Password',
                               hintStyle: const TextStyle(
-                                fontFamily: 'Poppins',
-                                fontSize: 16,
-                                fontWeight: FontWeight.w400,
-                                color: Color(0xFF666666),
+                                 fontFamily: 'Nunito Sans',
+                                    fontSize: 19,
+                                    fontWeight: FontWeight.w300,
+                                    color: Colors.white, // W
                               ),
                               filled: true,
-                              fillColor: const Color(0xFFE8E8E8),
+                              fillColor: Colors.black.withOpacity(0.4),
                               contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
                               suffixIcon: IconButton(
                                 icon: Icon(
                                   _obscureConfirmPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                                  color: const Color(0xFF666666),
+                                  color: Colors.white70,
                                 ),
                                 onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
                               ),
@@ -580,54 +1122,72 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(30),
-                                borderSide: const BorderSide(color: Color(0xFFFFD700), width: 2),
+                                borderSide: BorderSide.none,
+                              ),
+                              errorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(30),
+                                borderSide: BorderSide.none,
+                              ),
+                              focusedErrorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(30),
+                                borderSide: BorderSide.none,
                               ),
                             ),
                           ),
-                        ),
                       ),
                       
                       const SizedBox(height: 12),
                       
                       // Animated Phone Number Input - Material Design
-                      SlideTransition(
-                        position: _fieldSlideAnimation,
-                        child: FadeTransition(
-                          opacity: _field4FadeAnimation,
-                          child: TextFormField(
+                      FadeTransition(
+                        opacity: _field4FadeAnimation,
+                        child: TextFormField(
                             controller: _phoneController,
                             keyboardType: TextInputType.phone,
                             style: const TextStyle(
-                              fontFamily: 'Poppins',
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.black87,
+                               fontFamily: 'Nunito Sans',
+                                    fontSize: 19,
+                                    fontWeight: FontWeight.w300,
+                                    color: Colors.white, // W
                             ),
                             decoration: InputDecoration(
                               hintText: 'Your number',
                               hintStyle: const TextStyle(
-                                fontFamily: 'Poppins',
-                                fontSize: 16,
-                                fontWeight: FontWeight.w400,
-                                color: Color(0xFF666666),
+                                fontFamily: 'Nunito Sans',
+                                    fontSize: 19,
+                                    fontWeight: FontWeight.w300,
+                                    color: Colors.white, // W
                               ),
                               filled: true,
-                              fillColor: const Color(0xFFE8E8E8),
+                              fillColor: Colors.black.withOpacity(0.4),
                               contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-                              prefixIcon: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const SizedBox(width: 16),
-                                  const Text('🇱🇰', style: TextStyle(fontSize: 20)),
-                                  const SizedBox(width: 4),
-                                  Icon(Icons.arrow_drop_down, color: Colors.grey[600]),
-                                  Container(
-                                    margin: const EdgeInsets.only(left: 8, right: 12),
-                                    width: 1,
-                                    height: 28,
-                                    color: Colors.grey[400],
-                                  ),
-                                ],
+                              prefixIcon: InkWell(
+                                onTap: _showCountryPicker,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const SizedBox(width: 16),
+                                    Text(_selectedCountryFlag, style: const TextStyle(fontSize: 20)),
+                                    const SizedBox(width: 4),
+                                    const Icon(Icons.arrow_drop_down, color: Colors.white70),
+                                    Container(
+                                      margin: const EdgeInsets.only(left: 8, right: 12),
+                                      width: 1,
+                                      height: 28,
+                                      color: Colors.white38,
+                                    ),
+                                    Text(
+                                      _selectedCountryCode,
+                                      style: const TextStyle(
+                                         fontFamily: 'Nunito Sans',
+                                          fontSize: 19,
+                                          fontWeight: FontWeight.w300,
+                                          color: Colors.white, // W
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                  ],
+                                ),
                               ),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(30),
@@ -639,14 +1199,21 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(30),
-                                borderSide: const BorderSide(color: Color(0xFFFFD700), width: 2),
+                                borderSide: BorderSide.none,
+                              ),
+                              errorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(30),
+                                borderSide: BorderSide.none,
+                              ),
+                              focusedErrorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(30),
+                                borderSide: BorderSide.none,
                               ),
                             ),
                           ),
-                        ),
                       ),
                       
-                      const SizedBox(height: 40),
+                      const SizedBox(height: 10),
                       
                       // Animated Checkbox
                       FadeTransition(
@@ -677,10 +1244,10 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                                   text: const TextSpan(
                                     text: 'I agree All ',
                                     style: TextStyle(
-                                      fontFamily: 'Poppins',
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w400,
-                                      color: Color(0xFF666666),
+                                       fontFamily: 'Nunito Sans',
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w300,
+                                    color: Color.fromARGB(255, 0, 0, 0), // W,
                                     ),
                                     children: [
                                       TextSpan(
@@ -700,7 +1267,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                         ),
                       ),
                       
-                      const SizedBox(height: 30),
+                      const SizedBox(height: 10),
                       
                       // Animated Register Button - Material Design
                       FadeTransition(
@@ -743,7 +1310,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                         ),
                       ),
                       
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 10),
                       
                       // Animated Cancel Button
                       FadeTransition(
@@ -764,30 +1331,415 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                         ),
                       ),
                       
-                      const SizedBox(height: 40),
                       
-                      // Bottom Navigation Indicator
-                      Center(
-                        child: Container(
-                          width: 134,
-                          height: 5,
-                          decoration: BoxDecoration(
-                            color: Colors.black,
-                            borderRadius: BorderRadius.circular(100),
-                          ),
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 20),
-                            ],
+                    
+                              ],
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
-                ],
+                  ],
+                ),
               ),
             ),
+          
+          // Success View - Beautiful Material Design Animation
+          if (_showSuccess)
+            Positioned.fill(
+              child: Stack(
+                children: [
+                  // Blurred background with dark overlay
+                  BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            const Color(0xFFF5F5F5),
+                            const Color(0xFFFFFFFF),
+                            const Color(0xFFF0F9FF),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Dark overlay for darker blur effect
+                  Container(
+                    color: Colors.black.withOpacity(0.3),
+                  ),
+                  // Content
+                  SafeArea(
+                    bottom: false,
+                    top: false,
+                    child: Stack(
+                      children: [
+                      
+                      // Success Screen Bubbles with rotation animation
+                      AnimatedBuilder(
+                        animation: _successBubble1RotationAnimation,
+                        builder: (context, child) {
+                          return Positioned(
+                            left: -100,
+                            top: -60,
+                            child: Transform.rotate(
+                              angle: _successBubble1RotationAnimation.value * (3.14159 / 180),
+                              child: ClipPath(
+                                clipper: _RegisterBubble02Clipper(),
+                                child: Container(
+                                  width: 320,
+                                  height: 380,
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFFFFD700),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      
+                      AnimatedBuilder(
+                        animation: _successBubble2RotationAnimation,
+                        builder: (context, child) {
+                          return Positioned(
+                            right: -150,
+                            top: 0,
+                            child: Transform.rotate(
+                              angle: _successBubble2RotationAnimation.value * (3.14159 / 180),
+                              child: ClipPath(
+                                clipper: _RegisterBubble01Clipper(),
+                                child: Container(
+                                  width: 320,
+                                  height: 380,
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFF02091A),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      
+                      // Main content
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // Modern check icon with glow animation
+                          SlideTransition(
+                            position: _successIconSlideAnimation,
+                            child: FadeTransition(
+                              opacity: _successCheckFadeAnimation,
+                              child: AnimatedBuilder(
+                                animation: _successGlowController,
+                                builder: (context, child) {
+                                  return Transform.rotate(
+                                    angle: _successCheckRotationAnimation.value,
+                                    child: Transform.scale(
+                                      scale: _successCheckScaleAnimation.value,
+                                      child: Stack(
+                                        alignment: Alignment.center,
+                                        children: [
+                                          // Subtle ripple effect
+                                          ...List.generate(2, (index) {
+                                            final delay = index * 0.5;
+                                            final rippleValue = ((_successGlowAnimation.value + delay) % 1.0);
+                                            final scale = 1.0 + (rippleValue * 0.3);
+                                            final opacity = (1.0 - rippleValue).clamp(0.0, 0.3);
+                                            
+                                            return Transform.scale(
+                                              scale: scale,
+                                              child: Container(
+                                                width: 120,
+                                                height: 120,
+                                                decoration: BoxDecoration(
+                                                  shape: BoxShape.circle,
+                                                  border: Border.all(
+                                                    color: const Color(0xFF4CAF50).withOpacity(opacity),
+                                                    width: 2,
+                                                  ),
+                                                ),
+                                              ),
+                                            );
+                                          }),
+                                          // Pulsing glow effect
+                                          Container(
+                                            width: 140 + (_successGlowAnimation.value * 20),
+                                            height: 140 + (_successGlowAnimation.value * 20),
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              gradient: RadialGradient(
+                                                colors: [
+                                                  const Color(0xFF4CAF50).withOpacity(_successGlowAnimation.value * 0.2),
+                                                  const Color(0xFF4CAF50).withOpacity(0.0),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                          // Main checkmark circle
+                                          Container(
+                                            width: 120,
+                                            height: 120,
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              gradient: const LinearGradient(
+                                                begin: Alignment.topLeft,
+                                                end: Alignment.bottomRight,
+                                                colors: [
+                                                  Color(0xFF66BB6A),
+                                                  Color(0xFF4CAF50),
+                                                ],
+                                              ),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: const Color(0xFF4CAF50).withOpacity(0.3 + _successGlowAnimation.value * 0.2),
+                                                  blurRadius: 25 + (_successGlowAnimation.value * 10),
+                                                  spreadRadius: 5,
+                                                ),
+                                              ],
+                                            ),
+                                            child: const Icon(
+                                              Icons.check_rounded,
+                                              size: 70,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                          
+                          const SizedBox(height: 48),
+                          
+                          // Modern success card with enhanced design
+                          SlideTransition(
+                            position: _successCardSlideAnimation,
+                            child: ScaleTransition(
+                              scale: _successCardScaleAnimation,
+                              child: FadeTransition(
+                                opacity: _successTextFadeAnimation,
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(28),
+                                      gradient: LinearGradient(
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                        colors: [
+                                          Colors.white,
+                                          const Color(0xFFFAFAFA),
+                                        ],
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.08),
+                                          blurRadius: 30,
+                                          spreadRadius: 0,
+                                          offset: const Offset(0, 10),
+                                        ),
+                                        BoxShadow(
+                                          color: const Color(0xFF4CAF50).withOpacity(0.1),
+                                          blurRadius: 20,
+                                          spreadRadius: -5,
+                                        ),
+                                      ],
+                                    ),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(28),
+                                      child: BackdropFilter(
+                                        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                                        child: Container(
+                                          padding: const EdgeInsets.all(36),
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(28),
+                                            border: Border.all(
+                                              color: Colors.white.withOpacity(0.3),
+                                              width: 1.5,
+                                            ),
+                                          ),
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              // Animated title
+                                              SlideTransition(
+                                                position: _successTitleSlideAnimation,
+                                                child: FadeTransition(
+                                                  opacity: _successTitleFadeAnimation,
+                                                  child: const Text(
+                                                    'Account Created!',
+                                                    style: TextStyle(
+                                                      fontFamily: 'Raleway',
+                                                      fontSize: 42,
+                                                      fontWeight: FontWeight.w800,
+                                                      color: Color(0xFF1A1A1A),
+                                                      letterSpacing: -1,
+                                                      height: 1.2,
+                                                    ),
+                                                    textAlign: TextAlign.center,
+                                                  ),
+                                                ),
+                                              ),
+                                              
+                                              const SizedBox(height: 16),
+                                              
+                                              // Animated gradient line
+                                              AnimatedBuilder(
+                                                animation: _successTitleController,
+                                                builder: (context, child) {
+                                                  final width = 80 * _successTitleFadeAnimation.value;
+                                                  return Container(
+                                                    height: 5,
+                                                    width: width,
+                                                    decoration: BoxDecoration(
+                                                      borderRadius: BorderRadius.circular(3),
+                                                      gradient: const LinearGradient(
+                                                        colors: [
+                                                          Color(0xFF4CAF50),
+                                                          Color(0xFF66BB6A),
+                                                          Color(0xFF81C784),
+                                                        ],
+                                                      ),
+                                                      boxShadow: [
+                                                        BoxShadow(
+                                                          color: const Color(0xFF4CAF50).withOpacity(0.4),
+                                                          blurRadius: 8,
+                                                          spreadRadius: 2,
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  );
+                                                },
+                                              ),
+                                              
+                                              const SizedBox(height: 24),
+                                              
+                                              // Animated welcome message
+                                              FadeTransition(
+                                                opacity: _successSubtitleFadeAnimation,
+                                                child: Column(
+                                                  children: [
+                                                    const Text(
+                                                      'Welcome to',
+                                                      style: TextStyle(
+                                                        fontFamily: 'Nunito Sans',
+                                                        fontSize: 20,
+                                                        fontWeight: FontWeight.w400,
+                                                        color: Color(0xFF666666),
+                                                        letterSpacing: 0.5,
+                                                      ),
+                                                      textAlign: TextAlign.center,
+                                                    ),
+                                                    const SizedBox(height: 4),
+                                                    ShaderMask(
+                                                      shaderCallback: (bounds) => const LinearGradient(
+                                                        colors: [
+                                                          Color(0xFF4CAF50),
+                                                          Color(0xFF66BB6A),
+                                                        ],
+                                                      ).createShader(bounds),
+                                                      child: const Text(
+                                                        'Leo Connect',
+                                                        style: TextStyle(
+                                                          fontFamily: 'Nunito Sans',
+                                                          fontSize: 28,
+                                                          fontWeight: FontWeight.w700,
+                                                          color: Colors.white,
+                                                          letterSpacing: 0.5,
+                                                        ),
+                                                        textAlign: TextAlign.center,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              
+                                              const SizedBox(height: 16),
+                                              
+                                              // Animated description
+                                              FadeTransition(
+                                                opacity: _successSubtitleFadeAnimation,
+                                                child: const Text(
+                                                  'Your account has been created\nsuccessfully.',
+                                                  style: TextStyle(
+                                                    fontFamily: 'Nunito Sans',
+                                                    fontSize: 18,
+                                                    fontWeight: FontWeight.w400,
+                                                    color: Color(0xFF666666),
+                                                    height: 1.6,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ),
+                                              
+                                              const SizedBox(height: 32),
+                                              
+                                              // Modern loading indicator
+                                              FadeTransition(
+                                                opacity: _successSubtitleFadeAnimation,
+                                                child: Container(
+                                                  padding: const EdgeInsets.symmetric(
+                                                    horizontal: 24,
+                                                    vertical: 12,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    borderRadius: BorderRadius.circular(20),
+                                                    color: const Color(0xFF4CAF50).withOpacity(0.1),
+                                                  ),
+                                                  child: Row(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      SizedBox(
+                                                        width: 18,
+                                                        height: 18,
+                                                        child: CircularProgressIndicator(
+                                                          strokeWidth: 2.5,
+                                                          valueColor: AlwaysStoppedAnimation<Color>(
+                                                            const Color(0xFF4CAF50),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      const SizedBox(width: 12),
+                                                      const Text(
+                                                        'Redirecting to login...',
+                                                        style: TextStyle(
+                                                          fontFamily: 'Nunito Sans',
+                                                          fontSize: 16,
+                                                          fontWeight: FontWeight.w500,
+                                                          color: Color(0xFF4CAF50),
+                                                          letterSpacing: 0.3,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -1052,33 +2004,74 @@ class _SuccessDialogBlackShapeClipper extends CustomClipper<Path> {
   bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
 
-// Custom Clipper for Organic Yellow Shape (Register Screen - Top-Left)
-class _OrganicRegisterClipper extends CustomClipper<Path> {
+// Custom Clipper for Register Bubble 01 (Black bubble - from SVG)
+class _RegisterBubble01Clipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
     final path = Path();
-    // Start from top-left
-    path.moveTo(0, 0);
-    // Top edge with curve
-    path.lineTo(size.width * 0.75, 0);
-    path.quadraticBezierTo(
-      size.width * 0.9, size.height * 0.15,
-      size.width, size.height * 0.35,
+    final scaleX = size.width / 244;
+    final scaleY = size.height / 267;
+    
+    // SVG path: M122.23 23.973C179.747 -54.2618 243.628 78.3248 243.628 145.371C243.628 212.418 189.276 266.77 122.23 266.77C55.1834 266.77 -8.01705 215.723 0.831575 145.371C9.6802 75.0195 64.7126 102.208 122.23 23.973Z
+    path.moveTo(122.23 * scaleX, 23.973 * scaleY);
+    path.cubicTo(
+      179.747 * scaleX, -54.2618 * scaleY,
+      243.628 * scaleX, 78.3248 * scaleY,
+      243.628 * scaleX, 145.371 * scaleY,
     );
-    // Right side going down
-    path.lineTo(size.width, size.height * 0.6);
-    // Curve back
-    path.quadraticBezierTo(
-      size.width * 0.8, size.height * 0.75,
-      size.width * 0.5, size.height * 0.85,
+    path.cubicTo(
+      243.628 * scaleX, 212.418 * scaleY,
+      189.276 * scaleX, 266.77 * scaleY,
+      122.23 * scaleX, 266.77 * scaleY,
     );
-    // Bottom wavy edge
-    path.quadraticBezierTo(
-      size.width * 0.25, size.height * 0.92,
-      0, size.height,
+    path.cubicTo(
+      55.1834 * scaleX, 266.77 * scaleY,
+      -8.01705 * scaleX, 215.723 * scaleY,
+      0.831575 * scaleX, 145.371 * scaleY,
     );
-    // Left edge
-    path.lineTo(0, 0);
+    path.cubicTo(
+      9.6802 * scaleX, 75.0195 * scaleY,
+      64.7126 * scaleX, 102.208 * scaleY,
+      122.23 * scaleX, 23.973 * scaleY,
+    );
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
+}
+
+// Custom Clipper for Register Bubble 02 (Yellow bubble - from SVG)
+class _RegisterBubble02Clipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    final scaleX = size.width / 303;
+    final scaleY = size.height / 376;
+    
+    // SVG path: M224.374 319.747C191.353 449.079 29.2324 323.656 7.13194 227.533C-14.9685 131.41 13.8919 44.8161 99.3459 10.2904C184.8 -24.2353 254.604 33.0762 292.299 108.465C329.993 183.854 257.396 190.414 224.374 319.747Z
+    path.moveTo(224.374 * scaleX, 319.747 * scaleY);
+    path.cubicTo(
+      191.353 * scaleX, 449.079 * scaleY,
+      29.2324 * scaleX, 323.656 * scaleY,
+      7.13194 * scaleX, 227.533 * scaleY,
+    );
+    path.cubicTo(
+      -14.9685 * scaleX, 131.41 * scaleY,
+      13.8919 * scaleX, 44.8161 * scaleY,
+      99.3459 * scaleX, 10.2904 * scaleY,
+    );
+    path.cubicTo(
+      184.8 * scaleX, -24.2353 * scaleY,
+      254.604 * scaleX, 33.0762 * scaleY,
+      292.299 * scaleX, 108.465 * scaleY,
+    );
+    path.cubicTo(
+      329.993 * scaleX, 183.854 * scaleY,
+      257.396 * scaleX, 190.414 * scaleY,
+      224.374 * scaleX, 319.747 * scaleY,
+    );
     path.close();
     return path;
   }

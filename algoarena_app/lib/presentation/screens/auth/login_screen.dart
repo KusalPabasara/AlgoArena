@@ -537,19 +537,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                         
                         SizedBox(height: MediaQuery.of(context).size.height * 0.12),
                         
-                        // Bottom Navigation Indicator
-                        Center(
-                          child: Container(
-                            width: 134,
-                            height: 5,
-                            decoration: BoxDecoration(
-                              color: Colors.black,
-                              borderRadius: BorderRadius.circular(100),
-                            ),
-                          ),
-                        ),
                         
-                        const SizedBox(height: 20),
                       ],
                     ),
                   ),
