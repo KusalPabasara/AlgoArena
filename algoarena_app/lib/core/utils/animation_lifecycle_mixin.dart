@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
+import 'dart:ui' show AppExitResponse;
 
 /// Mixin to manage animation lifecycle - stops animations when app is paused
 /// This prevents memory leaks and CPU usage when app is in background
@@ -76,12 +78,10 @@ mixin AnimationLifecycleMixin<T extends StatefulWidget> on State<T> implements W
   @override
   Future<bool> didPushRouteInformation(RouteInformation routeInformation) => Future<bool>.value(false);
   
-  // Note: didRequestAppExit is commented out due to Flutter version compatibility
-  // It's not critical for animation lifecycle management
-  // @override
-  // Future<AppExitResponse> didRequestAppExit() async {
-  //   return AppExitResponse.exit;
-  // }
+  @override
+  Future<AppExitResponse> didRequestAppExit() async {
+    return AppExitResponse.exit;
+  }
   
   @override
   void handleCancelBackGesture() {}
