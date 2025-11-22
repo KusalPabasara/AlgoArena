@@ -5,6 +5,7 @@ import 'dart:io';
 import '../../../core/constants/colors.dart';
 import '../../../core/utils/validators.dart';
 import '../../../data/repositories/auth_repository.dart';
+import '../../../core/utils/responsive.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({Key? key}) : super(key: key);
@@ -760,24 +761,9 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
     );
   }
 
-  // Calculate responsive scale factor - only scales down on small screens, keeps original on normal screens
+  // Calculate responsive scale factor - uses new responsive helper
   double _getScaleFactor(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    
-    // Reference screen height (iPhone 12 Pro: 844px)
-    const referenceHeight = 844.0;
-    
-    // Only scale down if screen is smaller than reference, never scale up
-    // This preserves original design on normal/large screens
-    if (screenHeight >= referenceHeight) {
-      return 1.0; // Keep original size on normal/large screens
-    }
-    
-    // Scale down proportionally for smaller screens, but not too much
-    final scaleFactor = screenHeight / referenceHeight;
-    
-    // Clamp minimum to 0.85 to prevent extreme shrinking
-    return scaleFactor.clamp(0.85, 1.0);
+    return ResponsiveHelper.getScaleFactor(context);
   }
 
   @override
