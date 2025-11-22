@@ -174,7 +174,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                 clipper: _Bubble04Clipper(),
                 child: Container(
                   width: 500,
-                  height: MediaQuery.of(context).size.height + 250, // Extend to screen bottom
+                  height: 650,
                   color: const Color(0xFFFFD700),
                 ),
               ),

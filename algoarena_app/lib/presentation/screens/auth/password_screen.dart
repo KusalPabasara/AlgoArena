@@ -222,7 +222,7 @@ class _PasswordScreenState extends State<PasswordScreen> with TickerProviderStat
               clipper: _Bubble04Clipper(),
               child: Container(
                 width: ResponsiveHelper.getResponsiveBubbleSize(context, 500),
-                height: MediaQuery.of(context).size.height + 250, // Extend to screen bottom
+                height: ResponsiveHelper.getResponsiveBubbleSize(context, 650, useHeight: true),
                 color: const Color(0xFFFFD700),
               ),
             ),
