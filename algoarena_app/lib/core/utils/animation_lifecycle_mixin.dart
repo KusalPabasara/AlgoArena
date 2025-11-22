@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 /// Mixin to manage animation lifecycle - stops animations when app is paused
 /// This prevents memory leaks and CPU usage when app is in background
-mixin AnimationLifecycleMixin<T extends StatefulWidget> on State<T> {
+mixin AnimationLifecycleMixin<T extends StatefulWidget> on State<T> implements WidgetsBindingObserver {
   /// List of animation controllers that should be paused/resumed
   List<AnimationController> get animationControllers;
   
@@ -15,12 +15,12 @@ mixin AnimationLifecycleMixin<T extends StatefulWidget> on State<T> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addObserver(this as WidgetsBindingObserver);
   }
   
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
+    WidgetsBinding.instance.removeObserver(this as WidgetsBindingObserver);
     super.dispose();
   }
   
