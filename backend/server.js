@@ -6,6 +6,24 @@ const dotenv = require('dotenv');
 // Load environment variables
 dotenv.config();
 
+// Validate required environment variables
+const requiredEnvVars = ['MONGODB_URI', 'JWT_SECRET'];
+const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+if (missingEnvVars.length > 0) {
+  console.error('❌ Missing required environment variables:');
+  missingEnvVars.forEach(varName => {
+    console.error(`   - ${varName}`);
+  });
+  console.error('\n📋 Please create a .env file in the backend directory.');
+  console.error('📖 See ENV_SETUP.md for detailed instructions.\n');
+  process.exit(1);
+}
+
+// Set default values for optional environment variables
+process.env.JWT_EXPIRE = process.env.JWT_EXPIRE || '30d';
+process.env.NODE_ENV = process.env.NODE_ENV || 'development';
+
 // Initialize express app
 const app = express();
 
@@ -17,10 +35,24 @@ app.use(express.urlencoded({ extended: true }));
 // Static files for uploads
 app.use('/uploads', express.static('uploads'));
 
-// Database connection
-mongoose.connect(process.env.MONGODB_URI)
-.then(() => console.log('MongoDB connected successfully'))
-.catch((err) => console.error('MongoDB connection error:', err));
+// Database connection with better error handling
+console.log('🔄 Connecting to MongoDB...');
+mongoose.connect(process.env.MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+.then(() => {
+  console.log('✅ MongoDB connected successfully');
+  console.log(`📂 Database: ${mongoose.connection.name}`);
+})
+.catch((err) => {
+  console.error('❌ MongoDB connection error:', err.message);
+  console.error('\n💡 Troubleshooting tips:');
+  console.error('   1. Make sure MongoDB is running');
+  console.error('   2. Check your MONGODB_URI in .env file');
+  console.error('   3. See ENV_SETUP.md for setup instructions\n');
+  process.exit(1);
+});
 
 // Routes
 app.use('/api/auth', require('./routes/auth.routes'));

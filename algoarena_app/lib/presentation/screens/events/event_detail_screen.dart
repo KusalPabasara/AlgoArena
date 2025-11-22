@@ -19,15 +19,45 @@ class EventDetailScreen extends StatefulWidget {
   State<EventDetailScreen> createState() => _EventDetailScreenState();
 }
 
-class _EventDetailScreenState extends State<EventDetailScreen> {
+class _EventDetailScreenState extends State<EventDetailScreen>
+    with SingleTickerProviderStateMixin {
   final _eventRepository = EventRepository();
+  final ScrollController _scrollController = ScrollController();
   Event? _event;
   bool _isLoading = true;
+  double _scrollOffset = 0.0;
+  
+  late AnimationController _fadeController;
+  late Animation<double> _fadeAnimation;
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
+    
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _fadeController, curve: Curves.easeIn),
+    );
+    
     _loadEvent();
+  }
+  
+  void _onScroll() {
+    setState(() {
+      _scrollOffset = _scrollController.offset;
+    });
+  }
+  
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _fadeController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadEvent() async {
@@ -38,6 +68,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
           _event = event;
           _isLoading = false;
         });
+        _fadeController.forward();
       }
     } catch (e) {
       if (mounted) {
@@ -139,10 +170,10 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // Decorative Bubbles Background
+          // Animated Decorative Bubbles Background with parallax
           Positioned(
             left: -211.13,
-            top: -331.84,
+            top: -331.84 + (_scrollOffset * 0.3),
             child: Opacity(
               opacity: 0.15,
               child: Container(
@@ -160,9 +191,10 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
             ),
           ),
 
-          // Main Content
+          // Main Content with parallax scroll
           SafeArea(
             child: SingleChildScrollView(
+              controller: _scrollController,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -175,31 +207,37 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                     ),
                   ),
 
-                  // Event Banner with border (121×121)
+                  // Animated Event Banner with border and scale effect (121×121)
                   if (_event!.bannerImageUrl != null)
-                    Center(
-                      child: Container(
-                        width: 121,
-                        height: 121,
-                        margin: const EdgeInsets.only(top: 10),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(15),
-                          border: Border.all(
-                            color: AppColors.primary.withOpacity(0.5),
-                            width: 5,
-                          ),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(15),
-                          child: CachedNetworkImage(
-                            imageUrl: _event!.bannerImageUrl!,
-                            fit: BoxFit.cover,
-                            placeholder: (context, url) => Container(
-                              color: Colors.grey[300],
+                    FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: Center(
+                        child: Transform.scale(
+                          scale: 1.0 - (_scrollOffset * 0.0005).clamp(0.0, 0.2),
+                          child: Container(
+                            width: 121,
+                            height: 121,
+                            margin: const EdgeInsets.only(top: 10),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(15),
+                              border: Border.all(
+                                color: AppColors.primary.withOpacity(0.5),
+                                width: 5,
+                              ),
                             ),
-                            errorWidget: (context, url, error) => Container(
-                              color: Colors.grey[300],
-                              child: const Icon(Icons.event, size: 50),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(15),
+                              child: CachedNetworkImage(
+                                imageUrl: _event!.bannerImageUrl!,
+                                fit: BoxFit.cover,
+                                placeholder: (context, url) => Container(
+                                  color: Colors.grey[300],
+                                ),
+                                errorWidget: (context, url, error) => Container(
+                                  color: Colors.grey[300],
+                                  child: const Icon(Icons.event, size: 50),
+                                ),
+                              ),
                             ),
                           ),
                         ),
@@ -208,17 +246,20 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
 
                   const SizedBox(height: 10),
 
-                  // Event Title
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 33.5),
-                    child: Text(
-                      _event!.title,
-                      style: const TextStyle(
-                        fontFamily: 'Raleway',
-                        fontWeight: FontWeight.w800, // ExtraBold
-                        fontSize: 30,
-                        color: AppColors.black,
-                        letterSpacing: -0.52,
+                  // Animated Event Title with fade
+                  FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 33.5),
+                      child: Text(
+                        _event!.title,
+                        style: const TextStyle(
+                          fontFamily: 'Raleway',
+                          fontWeight: FontWeight.w800, // ExtraBold
+                          fontSize: 30,
+                          color: AppColors.black,
+                          letterSpacing: -0.52,
+                        ),
                       ),
                     ),
                   ),
@@ -348,36 +389,39 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
 
                   const SizedBox(height: 15),
 
-                  // Description Box with gold tint background
-                  Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 15),
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: AppColors.goldTint,
-                      borderRadius: BorderRadius.circular(21),
-                    ),
-                    child: _event!.description != null
-                        ? SingleChildScrollView(
-                            child: Text(
-                              _event!.description!,
-                              style: const TextStyle(
+                  // Animated Description Box with gold tint background
+                  FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 15),
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: AppColors.goldTint,
+                        borderRadius: BorderRadius.circular(21),
+                      ),
+                      child: _event!.description != null
+                          ? SingleChildScrollView(
+                              child: Text(
+                                _event!.description!,
+                                style: const TextStyle(
+                                  fontFamily: 'Nunito Sans',
+                                  fontWeight: FontWeight.w400, // Regular
+                                  fontSize: 15,
+                                  color: AppColors.black,
+                                  height: 1.0,
+                                ),
+                              ),
+                            )
+                          : const Text(
+                              'No description available',
+                              style: TextStyle(
                                 fontFamily: 'Nunito Sans',
-                                fontWeight: FontWeight.w400, // Regular
+                                fontWeight: FontWeight.w400,
                                 fontSize: 15,
-                                color: AppColors.black,
-                                height: 1.0,
+                                color: AppColors.textSecondary,
                               ),
                             ),
-                          )
-                        : const Text(
-                            'No description available',
-                            style: TextStyle(
-                              fontFamily: 'Nunito Sans',
-                              fontWeight: FontWeight.w400,
-                              fontSize: 15,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
+                    ),
                   ),
 
                   const SizedBox(height: 100),

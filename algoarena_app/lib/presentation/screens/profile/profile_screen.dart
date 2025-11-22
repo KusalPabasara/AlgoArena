@@ -13,16 +13,54 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends State<ProfileScreen>
+    with SingleTickerProviderStateMixin {
   final _authRepository = AuthRepository();
+  final ScrollController _scrollController = ScrollController();
   
   User? _user;
   bool _isLoading = true;
+  double _scrollOffset = 0.0;
+  
+  late AnimationController _headerController;
+  late Animation<double> _headerFadeAnimation;
+  late Animation<Offset> _headerSlideAnimation;
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
+    
+    _headerController = AnimationController(
+      duration: const Duration(milliseconds: 1000),
+      vsync: this,
+    );
+    
+    _headerFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _headerController, curve: Curves.easeIn),
+    );
+    
+    _headerSlideAnimation = Tween<Offset>(
+      begin: const Offset(0, -0.2),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(parent: _headerController, curve: Curves.easeOut),
+    );
+    
     _loadProfile();
+  }
+  
+  void _onScroll() {
+    setState(() {
+      _scrollOffset = _scrollController.offset;
+    });
+  }
+  
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _headerController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadProfile() async {
@@ -34,6 +72,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _user = user;
           _isLoading = false;
         });
+        _headerController.forward();
       }
     } catch (e) {
       if (mounted) {
@@ -87,10 +126,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: AppColors.white,
       body: Stack(
         children: [
-          // Decorative bubbles background - Black bubble
+          // Animated Decorative bubbles background with parallax - Black bubble
           Positioned(
-            left: -200,
-            top: -250,
+            left: -200 + (_scrollOffset * 0.1),
+            top: -250 + (_scrollOffset * 0.15),
             child: Transform.rotate(
               angle: 240 * 3.14159 / 180,
               child: Image.asset(
@@ -103,8 +142,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           // Gold/Yellow bubble
           Positioned(
-            left: -350,
-            top: -180,
+            left: -350 - (_scrollOffset * 0.08),
+            top: -180 + (_scrollOffset * 0.2),
             child: Transform.rotate(
               angle: 112 * 3.14159 / 180,
               child: Image.asset(
@@ -116,105 +155,121 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
           
-          // Main content
+          // Main content with animated scroll
           SafeArea(
             child: SingleChildScrollView(
+              controller: _scrollController,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header with back button and title
-                  Padding(
-                    padding: const EdgeInsets.all(10),
-                    child: Row(
-                      children: [
-                        GestureDetector(
-                          onTap: () => Navigator.pop(context),
-                          child: Container(
-                            width: 50,
-                            height: 53,
-                            padding: const EdgeInsets.all(8),
-                            child: Image.asset(
-                              'assets/images/profile/back_arrow.png',
-                              fit: BoxFit.contain,
-                            ),
+                  // Animated Header with back button and title
+                  SlideTransition(
+                    position: _headerSlideAnimation,
+                    child: FadeTransition(
+                      opacity: _headerFadeAnimation,
+                      child: Transform.scale(
+                        scale: 1.0 - (_scrollOffset * 0.001).clamp(0.0, 0.3),
+                        child: Padding(
+                          padding: const EdgeInsets.all(10),
+                          child: Row(
+                            children: [
+                              GestureDetector(
+                                onTap: () => Navigator.pop(context),
+                                child: Container(
+                                  width: 50,
+                                  height: 53,
+                                  padding: const EdgeInsets.all(8),
+                                  child: Image.asset(
+                                    'assets/images/profile/back_arrow.png',
+                                    fit: BoxFit.contain,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 9),
+                              const Text(
+                                'Profile',
+                                style: TextStyle(
+                                  fontFamily: 'Raleway',
+                                  fontSize: 50,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.white,
+                                  letterSpacing: -0.52,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(width: 9),
-                        const Text(
-                          'Profile',
-                          style: TextStyle(
-                            fontFamily: 'Raleway',
-                            fontSize: 50,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.white,
-                            letterSpacing: -0.52,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                   
                   const SizedBox(height: 20),
                   
-                  // Profile avatar with verified badge
-                  Center(
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        Container(
-                          width: 127,
-                          height: 127,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: const Color(0xFFFFD700).withOpacity(0.5),
-                              width: 5,
-                            ),
-                          ),
-                          child: ClipOval(
-                            child: _user!.profilePhoto != null
-                                ? CachedNetworkImage(
-                                    imageUrl: _user!.profilePhoto!,
-                                    fit: BoxFit.cover,
-                                    placeholder: (context, url) => const CircularProgressIndicator(),
-                                    errorWidget: (context, url, error) => Image.asset(
-                                      'assets/images/profile/avatar_artist.png',
-                                      fit: BoxFit.cover,
-                                    ),
-                                  )
-                                : Image.asset(
-                                    'assets/images/profile/avatar_artist.png',
-                                    fit: BoxFit.cover,
-                                  ),
-                          ),
-                        ),
-                        // Verified badge
-                        if (_user!.isVerified)
-                          Positioned(
-                            bottom: -10,
-                            left: 0,
-                            right: 0,
-                            child: Center(
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF15FF00),
-                                  border: Border.all(color: const Color(0xFF0D9700), width: 3),
-                                  borderRadius: BorderRadius.circular(20),
+                  // Animated Profile avatar with verified badge
+                  FadeTransition(
+                    opacity: _headerFadeAnimation,
+                    child: Transform.scale(
+                      scale: 1.0 - (_scrollOffset * 0.0008).clamp(0.0, 0.25),
+                      child: Center(
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Container(
+                              width: 127,
+                              height: 127,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: const Color(0xFFFFD700).withOpacity(0.5),
+                                  width: 5,
                                 ),
-                                child: const Text(
-                                  'Verified',
-                                  style: TextStyle(
-                                    fontFamily: 'Nunito Sans',
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.black,
+                              ),
+                              child: ClipOval(
+                                child: _user!.profilePhoto != null
+                                    ? CachedNetworkImage(
+                                        imageUrl: _user!.profilePhoto!,
+                                        fit: BoxFit.cover,
+                                        placeholder: (context, url) => const CircularProgressIndicator(),
+                                        errorWidget: (context, url, error) => Image.asset(
+                                          'assets/images/profile/avatar_artist.png',
+                                          fit: BoxFit.cover,
+                                        ),
+                                      )
+                                    : Image.asset(
+                                        'assets/images/profile/avatar_artist.png',
+                                        fit: BoxFit.cover,
+                                      ),
+                              ),
+                            ),
+                            // Verified badge
+                            if (_user!.isVerified)
+                              Positioned(
+                                bottom: -10,
+                                left: 0,
+                                right: 0,
+                                child: Center(
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF15FF00),
+                                      border: Border.all(color: const Color(0xFF0D9700), width: 3),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: const Text(
+                                      'Verified',
+                                      style: TextStyle(
+                                        fontFamily: 'Nunito Sans',
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.black,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                          ),
-                      ],
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                   

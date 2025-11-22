@@ -16,7 +16,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   final _postRepository = PostRepository();
   final _authRepository = AuthRepository();
   final _scaffoldKey = GlobalKey<ScaffoldState>();
@@ -26,11 +26,58 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = true;
   bool _isRefreshing = false;
   int _currentIndex = 0;
+  
+  // Animation controllers
+  late AnimationController _bubbleController;
+  late AnimationController _greetingController;
+  late Animation<double> _bubbleAnimation;
+  late Animation<Offset> _greetingSlideAnimation;
+  late Animation<double> _greetingFadeAnimation;
 
   @override
   void initState() {
     super.initState();
+    _initAnimations();
     _loadData();
+  }
+  
+  void _initAnimations() {
+    // Bubble float animation
+    _bubbleController = AnimationController(
+      duration: const Duration(seconds: 3),
+      vsync: this,
+    )..repeat(reverse: true);
+    
+    _bubbleAnimation = Tween<double>(begin: 0, end: 20).animate(
+      CurvedAnimation(parent: _bubbleController, curve: Curves.easeInOut),
+    );
+    
+    // Greeting animation
+    _greetingController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    
+    _greetingSlideAnimation = Tween<Offset>(
+      begin: const Offset(-0.3, 0),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _greetingController,
+      curve: Curves.easeOut,
+    ));
+    
+    _greetingFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _greetingController, curve: Curves.easeIn),
+    );
+    
+    _greetingController.forward();
+  }
+  
+  @override
+  void dispose() {
+    _bubbleController.dispose();
+    _greetingController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -132,46 +179,56 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // Decorative bubbles background
-          Positioned(
-            left: -50,
-            top: -100,
-            child: Opacity(
-              opacity: 0.15,
-              child: Container(
-                width: 400,
-                height: 400,
-                decoration: BoxDecoration(
-                  gradient: RadialGradient(
-                    colors: [
-                      AppColors.primary.withOpacity(0.3),
-                      Colors.transparent,
-                    ],
+          // Animated Decorative bubbles background
+          AnimatedBuilder(
+            animation: _bubbleAnimation,
+            builder: (context, child) {
+              return Positioned(
+                left: -50,
+                top: -100 + _bubbleAnimation.value,
+                child: Opacity(
+                  opacity: 0.15,
+                  child: Container(
+                    width: 400,
+                    height: 400,
+                    decoration: BoxDecoration(
+                      gradient: RadialGradient(
+                        colors: [
+                          AppColors.primary.withOpacity(0.3),
+                          Colors.transparent,
+                        ],
+                      ),
+                      shape: BoxShape.circle,
+                    ),
                   ),
-                  shape: BoxShape.circle,
                 ),
-              ),
-            ),
+              );
+            },
           ),
-          Positioned(
-            right: -80,
-            bottom: 100,
-            child: Opacity(
-              opacity: 0.1,
-              child: Container(
-                width: 300,
-                height: 300,
-                decoration: BoxDecoration(
-                  gradient: RadialGradient(
-                    colors: [
-                      AppColors.primary.withOpacity(0.2),
-                      Colors.transparent,
-                    ],
+          AnimatedBuilder(
+            animation: _bubbleAnimation,
+            builder: (context, child) {
+              return Positioned(
+                right: -80,
+                bottom: 100 - _bubbleAnimation.value * 0.5,
+                child: Opacity(
+                  opacity: 0.1,
+                  child: Container(
+                    width: 300,
+                    height: 300,
+                    decoration: BoxDecoration(
+                      gradient: RadialGradient(
+                        colors: [
+                          AppColors.primary.withOpacity(0.2),
+                          Colors.transparent,
+                        ],
+                      ),
+                      shape: BoxShape.circle,
+                    ),
                   ),
-                  shape: BoxShape.circle,
                 ),
-              ),
-            ),
+              );
+            },
           ),
           
           // Main content
@@ -212,54 +269,60 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 
-                // User greeting
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                  child: Row(
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                // Animated User greeting
+                SlideTransition(
+                  position: _greetingSlideAnimation,
+                  child: FadeTransition(
+                    opacity: _greetingFadeAnimation,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                      child: Row(
                         children: [
-                          const Text(
-                            'Hello,',
-                            style: TextStyle(
-                              fontFamily: 'Raleway',
-                              fontSize: 52,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF202020),
-                              height: 1.0,
-                            ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Hello,',
+                                style: TextStyle(
+                                  fontFamily: 'Raleway',
+                                  fontSize: 52,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF202020),
+                                  height: 1.0,
+                                ),
+                              ),
+                              Text(
+                                _currentUser?.fullName.split(' ').first ?? 'Leo',
+                                style: const TextStyle(
+                                  fontFamily: 'Nunito Sans',
+                                  fontSize: 19,
+                                  fontWeight: FontWeight.w300,
+                                  color: Color(0xFF202020),
+                                ),
+                              ),
+                            ],
                           ),
-                          Text(
-                            _currentUser?.fullName.split(' ').first ?? 'Leo',
-                            style: const TextStyle(
-                              fontFamily: 'Nunito Sans',
-                              fontSize: 19,
-                              fontWeight: FontWeight.w300,
-                              color: Color(0xFF202020),
+                          const Spacer(),
+                          if (_currentUser?.profilePhoto != null)
+                            CircleAvatar(
+                              radius: 22,
+                              backgroundImage: NetworkImage(_currentUser!.profilePhoto!),
+                            )
+                          else
+                            CircleAvatar(
+                              radius: 22,
+                              backgroundColor: AppColors.primary,
+                              child: Text(
+                                _currentUser?.fullName[0].toUpperCase() ?? 'L',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
-                          ),
                         ],
                       ),
-                      const Spacer(),
-                      if (_currentUser?.profilePhoto != null)
-                        CircleAvatar(
-                          radius: 22,
-                          backgroundImage: NetworkImage(_currentUser!.profilePhoto!),
-                        )
-                      else
-                        CircleAvatar(
-                          radius: 22,
-                          backgroundColor: AppColors.primary,
-                          child: Text(
-                            _currentUser?.fullName[0].toUpperCase() ?? 'L',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                    ],
+                    ),
                   ),
                 ),
                 
@@ -268,7 +331,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: RefreshIndicator(
                     onRefresh: _refreshFeed,
                     color: AppColors.primary,
-                    child: SingleChildScrollView(
+                    child: _isRefreshing
+                        ? const Center(
+                            child: CircularProgressIndicator(
+                              color: AppColors.primary,
+                            ),
+                          )
+                        : SingleChildScrollView(
                       child: Column(
                         children: [
                           // Posts feed
@@ -296,17 +365,19 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             )
                           else
-                            ...(_posts.take(3).map((post) => Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                              child: PostCard(
+                            ...(_posts.take(3).toList().asMap().entries.map((entry) {
+                              final index = entry.key;
+                              final post = entry.value;
+                              return _AnimatedPostCard(
                                 post: post,
+                                index: index,
                                 currentUserId: _currentUser?.id,
                                 onLike: () => _handleLike(post),
                                 onComment: () {},
                                 onShare: () {},
                                 onDelete: () => _handleDelete(post),
-                              ),
-                            ))),
+                              );
+                            })),
                           
                           // Suggested to Follow section
                           const SizedBox(height: 16),
@@ -461,6 +532,97 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Animated Post Card Widget with staggered entrance animation
+class _AnimatedPostCard extends StatefulWidget {
+  final Post post;
+  final int index;
+  final String? currentUserId;
+  final VoidCallback onLike;
+  final VoidCallback onComment;
+  final VoidCallback onShare;
+  final VoidCallback onDelete;
+
+  const _AnimatedPostCard({
+    required this.post,
+    required this.index,
+    this.currentUserId,
+    required this.onLike,
+    required this.onComment,
+    required this.onShare,
+    required this.onDelete,
+  });
+
+  @override
+  State<_AnimatedPostCard> createState() => _AnimatedPostCardState();
+}
+
+class _AnimatedPostCardState extends State<_AnimatedPostCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeIn,
+      ),
+    );
+
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeOut,
+      ),
+    );
+
+    // Staggered animation based on index
+    Future.delayed(Duration(milliseconds: 100 * widget.index), () {
+      if (mounted) {
+        _controller.forward();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SlideTransition(
+      position: _slideAnimation,
+      child: FadeTransition(
+        opacity: _fadeAnimation,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: PostCard(
+            post: widget.post,
+            currentUserId: widget.currentUserId,
+            onLike: widget.onLike,
+            onComment: widget.onComment,
+            onShare: widget.onShare,
+            onDelete: widget.onDelete,
+          ),
+        ),
       ),
     );
   }

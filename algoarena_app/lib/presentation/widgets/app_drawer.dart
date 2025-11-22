@@ -1,16 +1,13 @@
 import 'package:flutter/material.dart';
-import '../../../data/models/user.dart';
 
-class SideMenu extends StatefulWidget {
-  final User? user;
-  
-  const SideMenu({Key? key, this.user}) : super(key: key);
+class AppDrawer extends StatefulWidget {
+  const AppDrawer({Key? key}) : super(key: key);
 
   @override
-  State<SideMenu> createState() => _SideMenuState();
+  State<AppDrawer> createState() => _AppDrawerState();
 }
 
-class _SideMenuState extends State<SideMenu> with SingleTickerProviderStateMixin {
+class _AppDrawerState extends State<AppDrawer> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<Offset> _slideAnimation;
   late Animation<double> _fadeAnimation;
@@ -68,7 +65,7 @@ class _SideMenuState extends State<SideMenu> with SingleTickerProviderStateMixin
 
             const Spacer(),
 
-            // Menu items with animation
+            // Menu items
             SlideTransition(
               position: _slideAnimation,
               child: FadeTransition(
@@ -82,7 +79,7 @@ class _SideMenuState extends State<SideMenu> with SingleTickerProviderStateMixin
                       Icons.help_outline,
                       () {
                         Navigator.pop(context);
-                        Navigator.pushNamed(context, '/about');
+                        // Navigate to About page
                       },
                     ),
                     const SizedBox(height: 8),
@@ -92,7 +89,7 @@ class _SideMenuState extends State<SideMenu> with SingleTickerProviderStateMixin
                       Icons.people_outline,
                       () {
                         Navigator.pop(context);
-                        Navigator.pushNamed(context, '/executive');
+                        // Navigate to Executive Committee page
                       },
                     ),
                     const SizedBox(height: 8),
@@ -102,7 +99,7 @@ class _SideMenuState extends State<SideMenu> with SingleTickerProviderStateMixin
                       Icons.chat_bubble_outline,
                       () {
                         Navigator.pop(context);
-                        Navigator.pushNamed(context, '/leo-assist');
+                        // Navigate to LeoAssist page
                       },
                     ),
                     const SizedBox(height: 8),
@@ -112,7 +109,7 @@ class _SideMenuState extends State<SideMenu> with SingleTickerProviderStateMixin
                       Icons.phone_outlined,
                       () {
                         Navigator.pop(context);
-                        Navigator.pushNamed(context, '/contact');
+                        // Navigate to Contact page
                       },
                     ),
                     const SizedBox(height: 8),
@@ -180,3 +177,4 @@ class _SideMenuState extends State<SideMenu> with SingleTickerProviderStateMixin
     );
   }
 }
+

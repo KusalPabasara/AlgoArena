@@ -8,13 +8,30 @@ const Club = require('./models/Club');
 const District = require('./models/District');
 const Post = require('./models/Post');
 
+// Validate environment variables
+if (!process.env.MONGODB_URI) {
+  console.error('❌ Error: MONGODB_URI is not defined in .env file');
+  console.error('📖 Please see ENV_SETUP.md for setup instructions\n');
+  process.exit(1);
+}
+
 // Connect to MongoDB
+console.log('🔄 Connecting to MongoDB...');
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
-.then(() => console.log('MongoDB connected'))
-.catch(err => console.error('MongoDB connection error:', err));
+.then(() => {
+  console.log('✅ MongoDB connected successfully\n');
+})
+.catch(err => {
+  console.error('❌ MongoDB connection error:', err.message);
+  console.error('\n💡 Troubleshooting tips:');
+  console.error('   1. Make sure MongoDB is running');
+  console.error('   2. Check your MONGODB_URI in .env file');
+  console.error('   3. See ENV_SETUP.md for setup instructions\n');
+  process.exit(1);
+});
 
 const seedDatabase = async () => {
   try {

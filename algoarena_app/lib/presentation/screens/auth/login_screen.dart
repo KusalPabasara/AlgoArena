@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../../core/utils/validators.dart';
 
@@ -8,27 +9,142 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   bool _isLoading = false;
+  String? _emailError; // Store email error message
+  
+  // Animation controllers
+  late AnimationController _contentController;
+  late AnimationController _buttonController;
+  late AnimationController _fadeOutController;
+  
+  late Animation<double> _titleFadeAnimation;
+  late Animation<Offset> _titleSlideAnimation;
+  late Animation<double> _inputFadeAnimation;
+  late Animation<Offset> _inputSlideAnimation;
+  late Animation<double> _socialFadeAnimation;
+  late Animation<double> _buttonScaleAnimation;
+  late Animation<double> _fadeOutAnimation;
 
+  @override
+  void initState() {
+    super.initState();
+    _setupAnimations();
+    _startAnimations();
+  }
+  
+  void _setupAnimations() {
+    // Content entrance animations
+    _contentController = AnimationController(
+      duration: const Duration(milliseconds: 1200),
+      vsync: this,
+    );
+    
+    // Fade out animation for when leaving screen
+    _fadeOutController = AnimationController(
+      duration: const Duration(milliseconds: 400),
+      vsync: this,
+    );
+    
+    _fadeOutAnimation = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(parent: _fadeOutController, curve: Curves.easeIn),
+    );
+    
+    // Title animations
+    _titleFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _contentController,
+        curve: const Interval(0.0, 0.4, curve: Curves.easeIn),
+      ),
+    );
+    
+    _titleSlideAnimation = Tween<Offset>(
+      begin: const Offset(-0.5, 0),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(
+        parent: _contentController,
+        curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
+      ),
+    );
+    
+    // Input field animations
+    _inputFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _contentController,
+        curve: const Interval(0.3, 0.7, curve: Curves.easeIn),
+      ),
+    );
+    
+    _inputSlideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(
+        parent: _contentController,
+        curve: const Interval(0.3, 0.7, curve: Curves.easeOut),
+      ),
+    );
+    
+    // Social icons animation
+    _socialFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _contentController,
+        curve: const Interval(0.6, 1.0, curve: Curves.easeIn),
+      ),
+    );
+    
+    // Button press animation
+    _buttonController = AnimationController(
+      duration: const Duration(milliseconds: 150),
+      vsync: this,
+    );
+    
+    _buttonScaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
+      CurvedAnimation(parent: _buttonController, curve: Curves.easeInOut),
+    );
+  }
+  
+  void _startAnimations() {
+    _contentController.forward();
+  }
+  
   @override
   void dispose() {
     _emailController.dispose();
+    _contentController.dispose();
+    _buttonController.dispose();
+    _fadeOutController.dispose();
     super.dispose();
   }
 
   Future<void> _handleNext() async {
     if (!_formKey.currentState!.validate()) return;
     
-    Navigator.pushNamed(
+    // Button press animation
+    await _buttonController.forward();
+    await _buttonController.reverse();
+    
+    // Fade out content before navigating
+    await _fadeOutController.forward();
+    
+    if (!mounted) return;
+    
+    // Navigate to password screen
+    await Navigator.pushNamed(
       context,
       '/password',
       arguments: {
         'email': _emailController.text.trim(),
       },
     );
+    
+    // When user comes back, fade content back in
+    if (mounted) {
+      await _fadeOutController.reverse();
+    }
   }
 
   Future<void> _handleSocialLogin(String provider) async {
@@ -43,69 +159,83 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Get screen size for responsive positioning
-    final size = MediaQuery.of(context).size;
-    final width = size.width;
-    final height = size.height;
-    
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // Bubbles Background Layer - positioned exactly as Figma 69:53
-          // Consolidated bubbles image: 1154.387x850.395px at -209.94, -186.48
+          // Bubble 04 - Large Bottom Yellow (Static with rotation)
           Positioned(
-            left: -209.94,
-            top: -186.48,
-            child: Container(
-              width: 1154.387,
-              height: 850.395,
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  center: Alignment.topLeft,
-                  radius: 0.8,
-                  colors: [
-                    const Color(0xFFFFD700).withOpacity(0.3), // Yellow bubble
-                    Colors.transparent,
-                  ],
+            left: MediaQuery.of(context).size.width * 0.3,
+            bottom: -250,
+            child: Transform.rotate(
+              angle: 0 * 3.14159 / 180, // 0 degrees for Login screen
+              child: ClipPath(
+                clipper: _Bubble04Clipper(),
+                child: Container(
+                  width: 500,
+                  height: 650,
+                  color: const Color(0xFFFFD700),
                 ),
               ),
             ),
           ),
           
-          // Black bubble overlay
+          // Bubble 03 - Top Right Small Black Organic Shape (Static with rotation)
           Positioned(
-            right: -100,
-            top: -50,
-            child: Container(
-              width: 450,
-              height: 450,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.black.withOpacity(0.15),
+            right: -20,
+            top: 280,
+            child: Transform.rotate(
+              angle: 156 * 3.14159 / 180, // 156 degrees for Login screen
+              child: ClipPath(
+                clipper: _Bubble03Clipper(),
+                child: Container(
+                  width: 180,
+                  height: 180,
+                  color: Colors.black,
+                ),
               ),
             ),
           ),
           
-          // Yellow accent bubble bottom-right
+          // Bubble 02 - Top Yellow Organic Shape (Static with rotation)
           Positioned(
-            right: -150,
-            bottom: -200,
-            child: Container(
-              width: 550,
-              height: 550,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFFFFD700).withOpacity(0.2),
+            left: -200,
+            top: -150,
+            child: Transform.rotate(
+              angle: 140 * 3.14159 / 180, // 140 degrees for Login screen
+              child: ClipPath(
+                clipper: _Bubble02Clipper(),
+                child: Container(
+                  width: 500,
+                  height: 600,
+                  color: const Color(0xFFFFD700),
+                ),
               ),
             ),
           ),
           
-          // Main Content Layer
-          SafeArea(
-            child: SingleChildScrollView(
-              child: SizedBox(
-                height: height - MediaQuery.of(context).padding.top - MediaQuery.of(context).padding.bottom,
+          // Bubble 01 - Large Top Left Black Organic Shape (Static with rotation)
+          Positioned(
+            left: -250,
+            top: -200,
+            child: Transform.rotate(
+              angle: 260 * 3.14159 / 180, // 260 degrees for Login screen
+              child: ClipPath(
+                clipper: _Bubble01Clipper(),
+                child: Container(
+                  width: 550,
+                  height: 550,
+                  color: Colors.black,
+                ),
+              ),
+            ),
+          ),
+          
+          // Main Content Layer (with fade out animation)
+          FadeTransition(
+            opacity: _fadeOutAnimation,
+            child: SafeArea(
+              child: SingleChildScrollView(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 35),
                   child: Form(
@@ -113,221 +243,313 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const SizedBox(height: 360),
+                      SizedBox(height: MediaQuery.of(context).size.height * 0.40),
                         
-                        // "Login" Title - Raleway Bold 52px, #202020, -0.52px tracking
-                        const Text(
-                          'Login',
-                          style: TextStyle(
-                            fontFamily: 'Raleway',
-                            fontSize: 52,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF202020),
-                            letterSpacing: -0.52,
-                            height: 1.17,
+                        // Animated "Login" Title
+                        SlideTransition(
+                          position: _titleSlideAnimation,
+                          child: FadeTransition(
+                            opacity: _titleFadeAnimation,
+                            child: const Text(
+                              'Login',
+                              style: TextStyle(
+                                fontFamily: 'Raleway',
+                                fontSize: 52,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF202020),
+                                letterSpacing: -0.52,
+                                height: 1.17,
+                              ),
+                            ),
                           ),
                         ),
                         
                         const SizedBox(height: 5),
                         
-                        // "Good to see you back!" subtitle - Nunito Sans Light 19px, 35px line height
-                        const Text(
-                          'Good to see you back!',
-                          style: TextStyle(
-                            fontFamily: 'Nunito Sans',
-                            fontSize: 19,
-                            fontWeight: FontWeight.w300,
-                            color: Color(0xFF202020),
-                            height: 35 / 19,
-                          ),
-                        ),
-                        
-                        const SizedBox(height: 50),
-                        
-                        // Email Input Field - 332x52px, rgba(0,0,0,0.4) bg, 60px radius
-                        Container(
-                          width: 332,
-                          height: 52,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 19.705,
-                            vertical: 15.764,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0x66000000), // rgba(0,0,0,0.4)
-                            borderRadius: BorderRadius.circular(60),
-                          ),
-                          child: TextFormField(
-                            controller: _emailController,
-                            keyboardType: TextInputType.emailAddress,
-                            validator: Validators.validateEmail,
-                            style: const TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 13.79,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.white,
-                          ),
-                          decoration: const InputDecoration(
-                            hintText: 'Email',
-                            hintStyle: TextStyle(
-                              fontFamily: 'Poppins',
-                                fontSize: 13.79,
-                                fontWeight: FontWeight.w500,
-                                color: Color(0xFFD2D2D2),
-                              ),
-                              border: InputBorder.none,
-                              contentPadding: EdgeInsets.zero,
-                              isDense: true,
+                        // Animated subtitle
+                        FadeTransition(
+                          opacity: _titleFadeAnimation,
+                          child: const Text(
+                            'Good to see you back!',
+                            style: TextStyle(
+                              fontFamily: 'Nunito Sans',
+                              fontSize: 19,
+                              fontWeight: FontWeight.w300,
+                              color: Color(0xFF202020),
+                              height: 35 / 19,
                             ),
                           ),
                         ),
                         
-                        const SizedBox(height: 23),
+                        const SizedBox(height: 30),
                         
-                        // Next Button - 332x61px, black bg, 20px radius
-                        GestureDetector(
-                          onTap: _isLoading ? null : _handleNext,
-                          child: Container(
-                            width: 332,
-                            height: 61,
-                            decoration: BoxDecoration(
-                              color: Colors.black,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            alignment: Alignment.center,
-                            child: _isLoading
-                                ? const CircularProgressIndicator(
-                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                  )
-                                : const Text(
-                                    'Next',
-                                    style: TextStyle(
-                                      fontFamily: 'Nunito Sans',
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.w700,
-                                      color: Color(0xFFF3F3F3),
-                                      height: 31 / 22,
-                                    ),
-                                  ),
-                          ),
-                        ),
-                        
-                        const SizedBox(height: 22),
-                        
-                        // Social Icons Row - Two 50px circles
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            // Google Icon Circle
-                            GestureDetector(
-                              onTap: () => _handleSocialLogin('Google'),
-                              child: Container(
-                                width: 50,
-                                height: 50,
-                                decoration: const BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Colors.white,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Color(0x1A000000),
-                                      blurRadius: 8,
-                                      offset: Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                padding: const EdgeInsets.all(9.5),
-                                child: const Icon(
-                                  Icons.g_mobiledata,
-                                  size: 31,
-                                  color: Color(0xFF4285F4),
-                                ),
-                              ),
-                            ),
-                            
-                            const SizedBox(width: 16),
-                            
-                            // Apple Icon Circle
-                            GestureDetector(
-                              onTap: () => _handleSocialLogin('Apple'),
-                              child: Container(
-                                width: 50,
-                                height: 50,
-                                decoration: const BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Colors.white,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Color(0x1A000000),
-                                      blurRadius: 8,
-                                      offset: Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                padding: const EdgeInsets.all(8.5),
-                                child: const Icon(
-                                  Icons.apple,
-                                  size: 33,
-                                  color: Colors.black,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        
-                        const SizedBox(height: 22),
-                        
-                        // Register Button - 30px circle with arrow + text
-                        GestureDetector(
-                          onTap: _handleRegister,
-                          child: Center(
+                        // Animated Email Input Field with fixed-height error container
+                        SlideTransition(
+                          position: _inputSlideAnimation,
+                          child: FadeTransition(
+                            opacity: _inputFadeAnimation,
                             child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Circular arrow button
-                                Container(
-                                  width: 30,
-                                  height: 30,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: const Color(0xFFFFD700), // Yellow background
+                                TextFormField(
+                                  controller: _emailController,
+                                  keyboardType: TextInputType.emailAddress,
+                                  validator: (value) {
+                                    final error = Validators.validateEmail(value);
+                                    setState(() {
+                                      _emailError = error;
+                                    });
+                                    return error;
+                                  },
+                                  onChanged: (value) {
+                                    // Clear error on typing
+                                    if (_emailError != null) {
+                                      setState(() {
+                                        _emailError = null;
+                                      });
+                                    }
+                                  },
+                                  style: const TextStyle(
+                                    fontFamily: 'Nunito Sans',
+                                    fontSize: 19,
+                                    fontWeight: FontWeight.w300,
+                                    color: Colors.white, // White text
                                   ),
-                                  child: const Icon(
-                                    Icons.arrow_forward,
-                                    size: 16,
-                                    color: Colors.black,
+                                  decoration: InputDecoration(
+                                    hintText: 'Email',
+                                    hintStyle: const TextStyle(
+                                      fontFamily: 'Nunito Sans',
+                                      fontSize: 19,
+                                      fontWeight: FontWeight.w300,
+                                      color: Color(0xFFD2D2D2), // Light gray hint
+                                    ),
+                                    filled: true,
+                                    fillColor: Colors.black.withOpacity(0.4), // Black 40% opacity
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(30),
+                                      borderSide: BorderSide.none, // No border
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(30),
+                                      borderSide: BorderSide.none, // No border
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(30),
+                                      borderSide: BorderSide.none, // No border
+                                    ),
+                                    errorBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(30),
+                                      borderSide: BorderSide.none,
+                                    ),
+                                    focusedErrorBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(30),
+                                      borderSide: BorderSide.none, // No border even when error and focused
+                                    ),
+                                    errorStyle: const TextStyle(
+                                      height: 0, // Hide default error text
+                                      fontSize: 0,
+                                    ),
                                   ),
                                 ),
-                                
-                                const SizedBox(height: 4),
-                                
-                                // "Register" text - Nunito Sans Bold 15px, 90% opacity
-                                Text(
-                                  'Register',
-                                  style: TextStyle(
-                                    fontFamily: 'Nunito Sans',
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.black.withOpacity(0.9),
-                                  ),
+                                // Fixed-height error container
+                                SizedBox(
+                                  height: 24, // Fixed height always reserved
+                                  child: _emailError != null
+                                      ? Padding(
+                                          padding: const EdgeInsets.only(left: 24, top: 4),
+                                          child: Text(
+                                            _emailError!,
+                                            style: const TextStyle(
+                                              color: Colors.red,
+                                              fontSize: 12,
+                                              fontFamily: 'Nunito Sans',
+                                            ),
+                                          ),
+                                        )
+                                      : const SizedBox.shrink(),
                                 ),
                               ],
                             ),
                           ),
                         ),
                         
-                        const Spacer(),
-                        
-                        // Bottom Bar - 145.848x5.442px, 34px radius, centered
-                        Center(
-                          child: Container(
-                            width: 145.848,
-                            height: 5.442,
-                            decoration: BoxDecoration(
-                              color: Colors.black,
-                              borderRadius: BorderRadius.circular(34),
+                        // Animated Next Button - Material Design
+                        FadeTransition(
+                          opacity: _inputFadeAnimation,
+                          child: ScaleTransition(
+                            scale: _buttonScaleAnimation,
+                            child: SizedBox(
+                              width: double.infinity,
+                              height: 60,
+                              child: FilledButton(
+                                onPressed: _isLoading ? null : _handleNext,
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: Colors.black,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(32),
+                                  ),
+                                  elevation: 4,
+                                  shadowColor: Colors.black.withOpacity(0.3),
+                                ),
+                                child: _isLoading
+                                    ? const SizedBox(
+                                        width: 24,
+                                        height: 24,
+                                        child: CircularProgressIndicator(
+                                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                          strokeWidth: 2.5,
+                                        ),
+                                      )
+                                    : const Text(
+                                        'Next',
+                                        style: TextStyle(
+                                          fontFamily: 'Nunito Sans',
+                                          fontSize: 19,
+                                          fontWeight: FontWeight.w500,
+                                
+                                        ),
+                                      ),
+                              ),
                             ),
                           ),
                         ),
                         
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 18),
+                        
+                        // Animated Social Icons Row - Custom Icons
+                        FadeTransition(
+                          opacity: _socialFadeAnimation,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              // Google IconButton with custom image and blur
+                              Material(
+                                elevation: 4,
+                                shape: const CircleBorder(),
+                                shadowColor: Colors.black26,
+                                child: InkWell(
+                                  onTap: () => _handleSocialLogin('Google'),
+                                  customBorder: const CircleBorder(),
+                                  child: ClipOval(
+                                    child: BackdropFilter(
+                                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                                      child: Container(
+                                        width: 52,
+                                        height: 52,
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withOpacity(0.28),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Image.asset(
+                                          'assets/images/Google.png',
+                                          width: 28,
+                                          height: 28,
+                                          fit: BoxFit.contain,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              
+                              const SizedBox(width: 24),
+                              
+                              // Apple IconButton with custom image and blur
+                              Material(
+                                elevation: 4,
+                                shape: const CircleBorder(),
+                                shadowColor: Colors.black26,
+                                child: InkWell(
+                                  onTap: () => _handleSocialLogin('Apple'),
+                                  customBorder: const CircleBorder(),
+                                  child: ClipOval(
+                                    child: BackdropFilter(
+                                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                                      child: Container(
+                                        width: 52,
+                                        height: 52,
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withOpacity(0.28),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Image.asset(
+                                          'assets/images/apple.png',
+                                          width: 26,
+                                          height: 26,
+                                          fit: BoxFit.contain,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        
+                        const SizedBox(height: 18),
+                        
+                        // Animated Register Button - Material Design
+                        Center(
+                          child: FadeTransition(
+                            opacity: _socialFadeAnimation,
+                            child: ElevatedButton.icon(
+                              onPressed: _handleRegister,
+                              icon: const Text(
+                                'Register',
+                                style: TextStyle(
+                                  fontFamily: 'Raleway',
+                                  fontSize: 19,
+                                  fontWeight: FontWeight.w700,
+                                
+                                ),
+                              ),
+                              label: Container(
+                                width: 30,
+                                height: 30,
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.black,
+                                ),
+                                child: const Icon(
+                                  Icons.arrow_forward_rounded,
+                                  size: 16,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFFFD700),
+                                foregroundColor: Colors.black,
+                                elevation: 0,
+                                shadowColor: Colors.transparent,
+                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(22),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        
+                        SizedBox(height: MediaQuery.of(context).size.height * 0.12),
+                        
+                        // Bottom Navigation Indicator
+                        Center(
+                          child: Container(
+                            width: 134,
+                            height: 5,
+                            decoration: BoxDecoration(
+                              color: Colors.black,
+                              borderRadius: BorderRadius.circular(100),
+                            ),
+                          ),
+                        ),
+                        
+                        const SizedBox(height: 20),
                       ],
                     ),
                   ),
@@ -335,44 +557,158 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
           ),
-          
-          // Status Bar Elements (Top) - matching Figma status bar
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              height: 48,
-              padding: const EdgeInsets.symmetric(horizontal: 22.512),
-              child: Row(
-                children: [
-                  // Time
-                  Container(
-                    width: 57.888,
-                    height: 19.636,
-                    alignment: Alignment.center,
-                    child: const Text(
-                      '9:41',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black,
-                      ),
-                    ),
-                  ),
-                  const Spacer(),
-                  // Status icons (cellular, wifi, battery)
-                  const Icon(Icons.signal_cellular_4_bar, size: 16, color: Colors.black),
-                  const SizedBox(width: 5),
-                  const Icon(Icons.wifi, size: 16, color: Colors.black),
-                  const SizedBox(width: 5),
-                  const Icon(Icons.battery_full, size: 16, color: Colors.black),
-                ],
-              ),
-            ),
-          ),
         ],
       ),
     );
   }
+}
+
+// Custom Clippers for SVG Bubble Shapes (from Figma)
+
+// Bubble 01 - Black organic shape
+class _Bubble01Clipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    final scaleX = size.width / 403;
+    final scaleY = size.height / 443;
+    
+    path.moveTo(201.436 * scaleX, 39.7783 * scaleY);
+    path.cubicTo(
+      296.874 * scaleX, -90.0363 * scaleY,
+      402.871 * scaleX, 129.964 * scaleY,
+      402.871 * scaleX, 241.214 * scaleY,
+    );
+    path.cubicTo(
+      402.871 * scaleX, 352.464 * scaleY,
+      312.686 * scaleX, 442.65 * scaleY,
+      201.436 * scaleX, 442.65 * scaleY,
+    );
+    path.cubicTo(
+      90.1858 * scaleX, 442.65 * scaleY,
+      0, 352.464 * scaleY,
+      0, 241.214 * scaleY,
+    );
+    path.cubicTo(
+      0, 129.964 * scaleY,
+      105.998 * scaleX, 169.593 * scaleY,
+      201.436 * scaleX, 39.7783 * scaleY,
+    );
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
+}
+
+// Bubble 02 - Yellow organic shape
+class _Bubble02Clipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    final scaleX = size.width / 372;
+    final scaleY = size.height / 451;
+    
+    path.moveTo(276.948 * scaleX, 385.957 * scaleY);
+    path.cubicTo(
+      237.089 * scaleX, 542.071 * scaleY,
+      56.396 * scaleX, 377.797 * scaleY,
+      14.7211 * scaleX, 274.648 * scaleY,
+    );
+    path.cubicTo(
+      -26.9538 * scaleX, 171.499 * scaleY,
+      22.8808 * scaleX, 54.0961 * scaleY,
+      126.03 * scaleX, 12.4212 * scaleY,
+    );
+    path.cubicTo(
+      229.179 * scaleX, -29.2537 * scaleY,
+      313.438 * scaleX, 39.9252 * scaleY,
+      358.938 * scaleX, 130.925 * scaleY,
+    );
+    path.cubicTo(
+      404.438 * scaleX, 221.925 * scaleY,
+      316.807 * scaleX, 229.843 * scaleY,
+      276.948 * scaleX, 385.957 * scaleY,
+    );
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
+}
+
+// Bubble 03 - Small black organic shape
+class _Bubble03Clipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    final scaleX = size.width / 141;
+    final scaleY = size.height / 137;
+    
+    path.moveTo(43.3153 * scaleX, 131.631 * scaleY);
+    path.cubicTo(
+      -4.48347 * scaleX, 158.87 * scaleY,
+      -6.99358 * scaleX, 75.5242 * scaleY,
+      8.45684 * scaleX, 40.822 * scaleY,
+    );
+    path.cubicTo(
+      23.9072 * scaleX, 6.11976 * scaleY,
+      64.564 * scaleX, -9.48691 * scaleY,
+      99.2662 * scaleX, 5.96351 * scaleY,
+    );
+    path.cubicTo(
+      133.968 * scaleX, 21.4139 * scaleY,
+      149.575 * scaleX, 62.0707 * scaleY,
+      134.125 * scaleX, 96.7729 * scaleY,
+    );
+    path.cubicTo(
+      118.674 * scaleX, 131.475 * scaleY,
+      91.114 * scaleX, 104.393 * scaleY,
+      43.3153 * scaleX, 131.631 * scaleY,
+    );
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
+}
+
+// Bubble 04 - Large yellow organic shape
+class _Bubble04Clipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    final scaleX = size.width / 415;
+    final scaleY = size.height / 378;
+    
+    path.moveTo(393.067 * scaleX, 235.624 * scaleY);
+    path.cubicTo(
+      487.036 * scaleX, 366.506 * scaleY,
+      245.048 * scaleX, 399.332 * scaleY,
+      139.243 * scaleX, 364.954 * scaleY,
+    );
+    path.cubicTo(
+      33.4381 * scaleX, 330.576 * scaleY,
+      -24.4647 * scaleX, 216.935 * scaleY,
+      9.91336 * scaleX, 111.13 * scaleY,
+    );
+    path.cubicTo(
+      44.2915 * scaleX, 5.32546 * scaleY,
+      151.446 * scaleX, -14.7531 * scaleY,
+      250.403 * scaleX, 8.88553 * scaleY,
+    );
+    path.cubicTo(
+      349.36 * scaleX, 32.5242 * scaleY,
+      299.098 * scaleX, 104.743 * scaleY,
+      393.067 * scaleX, 235.624 * scaleY,
+    );
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }

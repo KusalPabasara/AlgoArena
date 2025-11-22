@@ -8,6 +8,8 @@ import 'presentation/screens/auth/password_screen.dart';
 import 'presentation/screens/auth/forgot_password_screen.dart';
 import 'presentation/screens/auth/verify_sms_screen.dart';
 import 'presentation/screens/auth/reset_password_screen.dart';
+import 'presentation/screens/auth/password_recovery_screen.dart';
+import 'presentation/screens/auth/password_entry_screen.dart';
 import 'presentation/screens/home/home_screen.dart';
 import 'presentation/screens/search/search_screen.dart';
 import 'presentation/screens/pages/pages_screen.dart';
@@ -49,11 +51,32 @@ class AlgoArenaApp extends StatelessWidget {
           // Handle routes with parameters
           if (settings.name == '/password') {
             final args = settings.arguments as Map<String, dynamic>?;
-            return MaterialPageRoute(
-              builder: (context) => PasswordScreen(
+            return PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) => PasswordScreen(
                 email: args?['email'] ?? '',
                 userName: args?['userName'],
                 profileImageUrl: args?['profileImageUrl'],
+              ),
+              transitionDuration: const Duration(milliseconds: 900),
+              reverseTransitionDuration: const Duration(milliseconds: 900),
+              transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                // Simple fade transition - no slide
+                // (Password screen handles its own content animations)
+                return FadeTransition(
+                  opacity: animation,
+                  child: child,
+                );
+              },
+              opaque: false, // Allow Login bubbles to show through
+              barrierColor: Colors.transparent,
+              barrierDismissible: false,
+            );
+          }
+          if (settings.name == '/password-entry') {
+            final args = settings.arguments as Map<String, dynamic>?;
+            return MaterialPageRoute(
+              builder: (context) => PasswordEntryScreen(
+                username: args?['username'] ?? 'User',
               ),
             );
           }
@@ -79,6 +102,7 @@ class AlgoArenaApp extends StatelessWidget {
           '/': (context) => const SplashScreen(),
           '/login': (context) => const LoginScreen(),
           '/forgot-password': (context) => const ForgotPasswordScreen(),
+          '/password-recovery': (context) => const PasswordRecoveryScreen(),
           '/register': (context) => const RegisterScreen(),
           '/reset-password': (context) => const ResetPasswordScreen(),
           '/home': (context) => const HomeScreen(),
