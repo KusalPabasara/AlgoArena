@@ -586,7 +586,8 @@ class _PasswordScreenState extends State<PasswordScreen> with TickerProviderStat
                 ),
 
                 const SizedBox(height: 40),
-              ],
+                ],
+              ),
             ),
           ),
         ],

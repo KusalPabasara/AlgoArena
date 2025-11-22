@@ -872,16 +872,19 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                 Expanded(
                   child: SingleChildScrollView(
                     physics: const BouncingScrollPhysics(),
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: shouldScale ? 35 * scale : 35),
-                      child: Form(
-                        key: _formKey,
-                        child: SlideTransition(
-                          position: _contentSlideAnimation,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              SizedBox(height: 0),
+                    padding: EdgeInsets.only(
+                      left: shouldScale ? 35 * scale : 35,
+                      right: shouldScale ? 35 * scale : 35,
+                      bottom: MediaQuery.of(context).viewInsets.bottom + 40, // Extra padding for keyboard
+                    ),
+                    child: Form(
+                      key: _formKey,
+                      child: SlideTransition(
+                        position: _contentSlideAnimation,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(height: 0),
                         
                         // Animated "Create Account" Title
                         FadeTransition(
