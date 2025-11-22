@@ -37,16 +37,17 @@ class ResponsiveHelper {
   }
   
   /// Get uniform scale factor that maintains design proportions
-  /// Uses the smaller dimension to ensure everything fits
+  /// Uses width-based scaling to maintain the exact design layout
+  /// All elements scale uniformly, preserving the design
   static double getUniformScaleFactor(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
     
     // Calculate scale based on width (primary dimension for mobile)
-    // This maintains the design proportions
+    // This maintains the design proportions - everything scales together
     final widthScale = size.width / ReferenceDevice.width;
     
     // Clamp scale to reasonable bounds to prevent extreme scaling
+    // This ensures the design looks good on all devices
     return widthScale.clamp(0.75, 1.25);
   }
   
