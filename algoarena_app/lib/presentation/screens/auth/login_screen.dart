@@ -243,7 +243,9 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                   left: 35,
                   right: 35,
                   top: MediaQuery.of(context).size.height * 0.40,
-                  bottom: MediaQuery.of(context).viewInsets.bottom + 20, // Extra padding for keyboard
+                  bottom: MediaQuery.of(context).viewInsets.bottom > 0 
+                      ? MediaQuery.of(context).viewInsets.bottom + 20 
+                      : 0, // Only add padding when keyboard is visible
                 ),
                 child: Form(
                     key: _formKey,

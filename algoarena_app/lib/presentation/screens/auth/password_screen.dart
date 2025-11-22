@@ -303,7 +303,9 @@ class _PasswordScreenState extends State<PasswordScreen> with TickerProviderStat
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom + 20, // Extra padding for keyboard
+                bottom: MediaQuery.of(context).viewInsets.bottom > 0 
+                    ? MediaQuery.of(context).viewInsets.bottom + 20 
+                    : 0, // Only add padding when keyboard is visible
               ),
               child: Column(
                 children: [
