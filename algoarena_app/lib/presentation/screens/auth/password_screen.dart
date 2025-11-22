@@ -211,7 +211,7 @@ class _PasswordScreenState extends State<PasswordScreen> with TickerProviderStat
             builder: (context, child) {
               return Positioned(
                 left: size.width * 0.3, // SAME as Login: 30%
-                bottom: -250,
+                bottom: 0,
                 child: Transform.rotate(
                   angle: _bubble04RotationAnimation.value * 3.14159 / 180,
                   child: child,
@@ -221,8 +221,8 @@ class _PasswordScreenState extends State<PasswordScreen> with TickerProviderStat
             child: ClipPath(
               clipper: _Bubble04Clipper(),
               child: Container(
-                width: ResponsiveHelper.getResponsiveBubbleSize(context, 500),
-                height: ResponsiveHelper.getResponsiveBubbleSize(context, 650, useHeight: true),
+                width: 500,
+                height: 650,
                 color: const Color(0xFFFFD700),
               ),
             ),
