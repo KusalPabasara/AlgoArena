@@ -760,8 +760,31 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
     );
   }
 
+  // Calculate responsive scale factor - only scales down on small screens, keeps original on normal screens
+  double _getScaleFactor(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    
+    // Reference screen height (iPhone 12 Pro: 844px)
+    const referenceHeight = 844.0;
+    
+    // Only scale down if screen is smaller than reference, never scale up
+    // This preserves original design on normal/large screens
+    if (screenHeight >= referenceHeight) {
+      return 1.0; // Keep original size on normal/large screens
+    }
+    
+    // Scale down proportionally for smaller screens, but not too much
+    final scaleFactor = screenHeight / referenceHeight;
+    
+    // Clamp minimum to 0.85 to prevent extreme shrinking
+    return scaleFactor.clamp(0.85, 1.0);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final scale = _getScaleFactor(context);
+    // Only apply scaling if screen is smaller (scale < 1.0)
+    final shouldScale = scale < 1.0;
     
     return Scaffold(
       backgroundColor: Colors.white,
@@ -827,16 +850,16 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                   children: [
                 // Back Button - Black circular border with black arrow
                 Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: EdgeInsets.all(shouldScale ? 16.0 * scale : 16.0),
                   child: Align(
                     alignment: Alignment.topLeft,
                     child: Container(
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.black, width: 2),
+                        border: Border.all(color: Colors.black, width: shouldScale ? 2 * scale : 2),
                       ),
                       child: IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.black),
+                        icon: Icon(Icons.arrow_back, color: Colors.black, size: shouldScale ? 24 * scale : 24),
                         onPressed: _handleBack,
                       ),
                     ),
@@ -844,35 +867,34 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                 ),
                 
                 Expanded(
-                  child: SingleChildScrollView(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 35),
-                      child: Form(
-                        key: _formKey,
-                        child: SlideTransition(
-                          position: _contentSlideAnimation,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: shouldScale ? 35 * scale : 35),
+                    child: Form(
+                      key: _formKey,
+                      child: SlideTransition(
+                        position: _contentSlideAnimation,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const SizedBox(height: 0),
+                              SizedBox(height: 0),
                         
                         // Animated "Create Account" Title
                         FadeTransition(
                         opacity: _titleFadeAnimation,
-                        child: const Text(
+                        child: Text(
                             'Create\nAccount',
                             style: TextStyle(
                               fontFamily: 'Raleway',
-                                fontSize: 52,
+                                fontSize: shouldScale ? 52 * scale : 52,
                                 fontWeight: FontWeight.w700,
                                 color: Color(0xFF202020),
-                                letterSpacing: -0.52,
+                                letterSpacing: shouldScale ? -0.52 * scale : -0.52,
                                 height: 1.17,
                             ),
                           ),
                       ),
                       
-                      const SizedBox(height: 30),
+                      SizedBox(height: shouldScale ? 30 * scale : 30),
                       
                       // Animated Face Icon
                       FadeTransition(
@@ -882,8 +904,8 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                           child: GestureDetector(
                             onTap: _pickImage,
                             child: SizedBox(
-                              width: 100,
-                              height: 100,
+                              width: shouldScale ? 100 * scale : 100,
+                              height: shouldScale ? 100 * scale : 100,
                               child: _profileImage != null
                                   ? ClipRRect(
                                       borderRadius: BorderRadius.circular(12),
@@ -918,23 +940,26 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                               }
                               return null;
                             },
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontFamily: 'Nunito Sans',
-                              fontSize: 19,
+                              fontSize: shouldScale ? 19 * scale : 19,
                               fontWeight: FontWeight.w300,
                               color: Colors.white,
                             ),
                             decoration: InputDecoration(
                               hintText: 'Full Name',
-                              hintStyle: const TextStyle(
+                              hintStyle: TextStyle(
                                 fontFamily: 'Nunito Sans',
-                                fontSize: 19,
+                                fontSize: shouldScale ? 19 * scale : 19,
                                 fontWeight: FontWeight.w300,
                                 color: Colors.white,
                               ),
                               filled: true,
                               fillColor: Colors.black.withOpacity(0.4),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: shouldScale ? 24 * scale : 24,
+                                vertical: shouldScale ? 14 * scale : 14,
+                              ),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(30),
                                 borderSide: BorderSide.none,
@@ -959,7 +984,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                           ),
                       ),
                       
-                      const SizedBox(height: 12),
+                      SizedBox(height: shouldScale ? 12 * scale : 12),
                       
                       // Animated Email Input Field - Material Design
                       FadeTransition(
@@ -968,23 +993,26 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                             controller: _emailController,
                             keyboardType: TextInputType.emailAddress,
                             validator: Validators.validateEmail,
-                            style: const TextStyle(
+                            style: TextStyle(
                                fontFamily: 'Nunito Sans',
-                                    fontSize: 19,
+                                    fontSize: shouldScale ? 19 * scale : 19,
                                     fontWeight: FontWeight.w300,
                                     color: Colors.white, // W
                             ),
                             decoration: InputDecoration(
                               hintText: 'Email',
-                              hintStyle: const TextStyle(
+                              hintStyle: TextStyle(
                                  fontFamily: 'Nunito Sans',
-                                    fontSize: 19,
+                                    fontSize: shouldScale ? 19 * scale : 19,
                                     fontWeight: FontWeight.w300,
                                     color: Colors.white, // W
                               ),
                               filled: true,
                               fillColor: Colors.black.withOpacity(0.4),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: shouldScale ? 24 * scale : 24,
+                                vertical: shouldScale ? 14 * scale : 14,
+                              ),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(30),
                                 borderSide: BorderSide.none,
@@ -1009,7 +1037,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                           ),
                       ),
                       
-                      const SizedBox(height: 12),
+                      SizedBox(height: shouldScale ? 12 * scale : 12),
                       
                       // Animated Password Input - Material Design
                       FadeTransition(
@@ -1026,23 +1054,26 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                               }
                               return null;
                             },
-                            style: const TextStyle(
+                            style: TextStyle(
                                fontFamily: 'Nunito Sans',
-                                    fontSize: 19,
+                                    fontSize: shouldScale ? 19 * scale : 19,
                                     fontWeight: FontWeight.w300,
                                     color: Colors.white, // W
                             ),
                             decoration: InputDecoration(
                               hintText: 'Password',
-                              hintStyle: const TextStyle(
+                              hintStyle: TextStyle(
                                  fontFamily: 'Nunito Sans',
-                                    fontSize: 19,
+                                    fontSize: shouldScale ? 19 * scale : 19,
                                     fontWeight: FontWeight.w300,
                                     color: Colors.white, // W
                               ),
                               filled: true,
                               fillColor: Colors.black.withOpacity(0.4),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: shouldScale ? 24 * scale : 24,
+                                vertical: shouldScale ? 18 * scale : 18,
+                              ),
                               suffixIcon: IconButton(
                                 icon: Icon(
                                   _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
@@ -1074,7 +1105,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                           ),
                       ),
                       
-                      const SizedBox(height: 12),
+                      SizedBox(height: shouldScale ? 12 * scale : 12),
                       
                       // Animated Confirm Password Input - Material Design
                       FadeTransition(
@@ -1088,23 +1119,26 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                               }
                               return null;
                             },
-                            style: const TextStyle(
+                            style: TextStyle(
                                fontFamily: 'Nunito Sans',
-                                    fontSize: 19,
+                                    fontSize: shouldScale ? 19 * scale : 19,
                                     fontWeight: FontWeight.w300,
                                     color: Colors.white, // W
                             ),
                             decoration: InputDecoration(
                               hintText: 'Confirm Password',
-                              hintStyle: const TextStyle(
+                              hintStyle: TextStyle(
                                  fontFamily: 'Nunito Sans',
-                                    fontSize: 19,
+                                    fontSize: shouldScale ? 19 * scale : 19,
                                     fontWeight: FontWeight.w300,
                                     color: Colors.white, // W
                               ),
                               filled: true,
                               fillColor: Colors.black.withOpacity(0.4),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: shouldScale ? 24 * scale : 24,
+                                vertical: shouldScale ? 18 * scale : 18,
+                              ),
                               suffixIcon: IconButton(
                                 icon: Icon(
                                   _obscureConfirmPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
@@ -1136,7 +1170,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                           ),
                       ),
                       
-                      const SizedBox(height: 12),
+                      SizedBox(height: shouldScale ? 12 * scale : 12),
                       
                       // Animated Phone Number Input - Material Design
                       FadeTransition(
@@ -1144,23 +1178,26 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                         child: TextFormField(
                             controller: _phoneController,
                             keyboardType: TextInputType.phone,
-                            style: const TextStyle(
+                            style: TextStyle(
                                fontFamily: 'Nunito Sans',
-                                    fontSize: 19,
+                                    fontSize: shouldScale ? 19 * scale : 19,
                                     fontWeight: FontWeight.w300,
                                     color: Colors.white, // W
                             ),
                             decoration: InputDecoration(
                               hintText: 'Your number',
-                              hintStyle: const TextStyle(
+                              hintStyle: TextStyle(
                                 fontFamily: 'Nunito Sans',
-                                    fontSize: 19,
+                                    fontSize: shouldScale ? 19 * scale : 19,
                                     fontWeight: FontWeight.w300,
                                     color: Colors.white, // W
                               ),
                               filled: true,
                               fillColor: Colors.black.withOpacity(0.4),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: shouldScale ? 24 * scale : 24,
+                                vertical: shouldScale ? 18 * scale : 18,
+                              ),
                               prefixIcon: InkWell(
                                 onTap: _showCountryPicker,
                                 child: Row(
@@ -1213,7 +1250,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                           ),
                       ),
                       
-                      const SizedBox(height: 10),
+                      SizedBox(height: shouldScale ? 10 * scale : 10),
                       
                       // Animated Checkbox
                       FadeTransition(
@@ -1221,8 +1258,8 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                         child: Row(
                           children: [
                             SizedBox(
-                              width: 24,
-                              height: 24,
+                              width: shouldScale ? 24 * scale : 24,
+                              height: shouldScale ? 24 * scale : 24,
                               child: Checkbox(
                                 value: _agreeToTerms,
                                 onChanged: (value) {
@@ -1232,20 +1269,20 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                                 },
                                 activeColor: Colors.black,
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(4),
+                                  borderRadius: BorderRadius.circular(shouldScale ? 4 * scale : 4),
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 8),
+                            SizedBox(width: shouldScale ? 8 * scale : 8),
                             Expanded(
                               child: GestureDetector(
                                 onTap: _showTermsAndConditions,
                                 child: RichText(
-                                  text: const TextSpan(
+                                  text: TextSpan(
                                     text: 'I agree All ',
                                     style: TextStyle(
                                        fontFamily: 'Nunito Sans',
-                                    fontSize: 16,
+                                    fontSize: shouldScale ? 16 * scale : 16,
                                     fontWeight: FontWeight.w300,
                                     color: Color.fromARGB(255, 0, 0, 0), // W,
                                     ),
@@ -1256,6 +1293,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                                           color: Color(0xFF0088FF),
                                           decoration: TextDecoration.underline,
                                           fontWeight: FontWeight.w500,
+                                          fontSize: shouldScale ? 16 * scale : 16,
                                         ),
                                       ),
                                     ],
@@ -1267,7 +1305,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                         ),
                       ),
                       
-                      const SizedBox(height: 10),
+                      SizedBox(height: shouldScale ? 10 * scale : 10),
                       
                       // Animated Register Button - Material Design
                       FadeTransition(
@@ -1276,7 +1314,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                           scale: _buttonScaleAnimation,
                           child: SizedBox(
                             width: double.infinity,
-                            height: 56,
+                            height: shouldScale ? 56 * scale : 56,
                             child: FilledButton(
                               onPressed: _isLoading ? null : _handleRegister,
                               style: FilledButton.styleFrom(
@@ -1297,11 +1335,11 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                                         strokeWidth: 2.5,
                                       ),
                                     )
-                                  : const Text(
+                                    : Text(
                                       'Register',
                                       style: TextStyle(
                                         fontFamily: 'Poppins',
-                                        fontSize: 18,
+                                        fontSize: shouldScale ? 18 * scale : 18,
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
@@ -1310,7 +1348,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                         ),
                       ),
                       
-                      const SizedBox(height: 10),
+                      SizedBox(height: shouldScale ? 5 * scale : 5),
                       
                       // Animated Cancel Button
                       FadeTransition(
@@ -1318,11 +1356,11 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                         child: Center(
                           child: TextButton(
                             onPressed: _handleCancel,
-                            child: const Text(
+                            child: Text(
                               'Cancel',
                               style: TextStyle(
                                 fontFamily: 'Poppins',
-                                fontSize: 16,
+                                fontSize: shouldScale ? 16 * scale : 16,
                                 fontWeight: FontWeight.w500,
                                 color: Colors.black,
                               ),
@@ -1338,8 +1376,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                           ),
                         ),
                       ),
-                    ),
-                  ),
+                ),
                   ],
                 ),
               ),

@@ -235,10 +235,9 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
           FadeTransition(
             opacity: _fadeOutAnimation,
             child: SafeArea(
-              child: SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 35),
-                  child: Form(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 35),
+                child: Form(
                     key: _formKey,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -535,14 +534,12 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                           ),
                         ),
                         
-                        SizedBox(height: MediaQuery.of(context).size.height * 0.12),
                         
                         
                       ],
                     ),
                   ),
                 ),
-              ),
             ),
           ),
         ],
