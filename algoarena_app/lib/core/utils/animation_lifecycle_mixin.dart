@@ -76,10 +76,15 @@ mixin AnimationLifecycleMixin<T extends StatefulWidget> on State<T> implements W
   @override
   Future<bool> didPushRouteInformation(RouteInformation routeInformation) => Future<bool>.value(false);
   
-  // Note: didRequestAppExit signature may vary by Flutter version
-  // Using dynamic to be compatible
+  // Note: didRequestAppExit may not be available in all Flutter versions
+  // Using noSuchMethod to handle gracefully
   @override
-  dynamic didRequestAppExit() => Future.value(false);
+  dynamic noSuchMethod(Invocation invocation) {
+    if (invocation.memberName == #didRequestAppExit) {
+      return Future.value(false);
+    }
+    return super.noSuchMethod(invocation);
+  }
   
   @override
   void handleCancelBackGesture() {}
