@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/constants/strings.dart';
 import '../../widgets/app_bottom_nav.dart';
+import '../../../core/utils/animation_lifecycle_mixin.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({Key? key}) : super(key: key);
@@ -11,7 +12,7 @@ class SearchScreen extends StatefulWidget {
 }
 
 class _SearchScreenState extends State<SearchScreen>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, AnimationLifecycleMixin {
   final _searchController = TextEditingController();
   String _searchQuery = '';
   
@@ -19,6 +20,11 @@ class _SearchScreenState extends State<SearchScreen>
   late AnimationController _bubbleController;
   late Animation<double> _searchBarAnimation;
   late Animation<double> _bubbleAnimation;
+  
+  @override
+  List<AnimationController> get animationControllers => [
+    _bubbleController,
+  ];
   
   @override
   void initState() {

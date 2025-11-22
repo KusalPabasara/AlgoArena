@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/constants/strings.dart';
 import '../../../data/repositories/post_repository.dart';
+import '../../../core/utils/animation_lifecycle_mixin.dart';
 
 class CreatePostScreen extends StatefulWidget {
   const CreatePostScreen({Key? key}) : super(key: key);
@@ -13,7 +14,7 @@ class CreatePostScreen extends StatefulWidget {
 }
 
 class _CreatePostScreenState extends State<CreatePostScreen>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, AnimationLifecycleMixin {
   final _contentController = TextEditingController();
   final _postRepository = PostRepository();
   final _imagePicker = ImagePicker();
@@ -25,6 +26,11 @@ class _CreatePostScreenState extends State<CreatePostScreen>
   late AnimationController _fabController;
   late Animation<double> _bubbleAnimation;
   late Animation<double> _fabScaleAnimation;
+  
+  @override
+  List<AnimationController> get animationControllers => [
+    _bubbleController,
+  ];
 
   @override
   void initState() {

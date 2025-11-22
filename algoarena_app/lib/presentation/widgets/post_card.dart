@@ -3,6 +3,7 @@ import 'package:timeago/timeago.dart' as timeago;
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/constants/colors.dart';
 import '../../data/models/post.dart';
+import '../../core/utils/image_cache_manager.dart';
 
 class PostCard extends StatelessWidget {
   final Post post;
@@ -115,6 +116,11 @@ class PostCard extends StatelessWidget {
                   imageUrl: post.images.first,
                   width: double.infinity,
                   fit: BoxFit.cover,
+                  cacheManager: ImageCacheManager.getCacheManager(),
+                  memCacheWidth: 800, // Limit memory cache to 800px width
+                  memCacheHeight: 800, // Limit memory cache to 800px height
+                  maxWidthDiskCache: 1200, // Limit disk cache to 1200px
+                  maxHeightDiskCache: 1200,
                   placeholder: (context, url) => Container(
                     height: 200,
                     color: AppColors.background,

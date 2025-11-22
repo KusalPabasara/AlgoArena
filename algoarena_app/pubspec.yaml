@@ -25,6 +25,7 @@ dependencies:
   google_fonts: ^6.1.0
   cached_network_image: ^3.3.0
   image_picker: ^1.0.5
+  flutter_cache_manager: ^3.3.1
   
   # Navigation
   go_router: ^12.1.3

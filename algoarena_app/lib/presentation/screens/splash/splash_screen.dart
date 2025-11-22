@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import '../../../data/repositories/auth_repository.dart';
+import '../../../core/utils/animation_lifecycle_mixin.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({Key? key}) : super(key: key);
@@ -9,7 +10,8 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMixin {
+class _SplashScreenState extends State<SplashScreen> 
+    with TickerProviderStateMixin, AnimationLifecycleMixin {
   late AnimationController _phase1Controller; // Lion only - left aligned
   late AnimationController _phase2Controller; // Lion moves to center + logo appears
   late AnimationController _dotsController;
@@ -22,6 +24,11 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   late Animation<double> _screenFadeAnimation;
   
   final _authRepository = AuthRepository();
+  
+  @override
+  List<AnimationController> get animationControllers => [
+    _dotsController,
+  ];
 
   @override
   void initState() {

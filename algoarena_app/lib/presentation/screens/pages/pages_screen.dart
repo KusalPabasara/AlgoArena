@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import '../../../core/constants/colors.dart';
 import '../../../data/models/club.dart';
 import '../../widgets/loading_indicator.dart';
+import '../../../core/utils/animation_lifecycle_mixin.dart';
 
 class PagesScreen extends StatefulWidget {
   const PagesScreen({Key? key}) : super(key: key);
@@ -12,12 +13,17 @@ class PagesScreen extends StatefulWidget {
 }
 
 class _PagesScreenState extends State<PagesScreen>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, AnimationLifecycleMixin {
   bool _isLoading = true;
   List<Club> _clubs = [];
   late AnimationController _bubblesController;
   late AnimationController _listController;
   late AnimationController _headerController;
+  
+  @override
+  List<AnimationController> get animationControllers => [
+    _bubblesController,
+  ];
 
   @override
   void initState() {

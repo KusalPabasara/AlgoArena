@@ -8,7 +8,7 @@ import '../../widgets/post_card.dart';
 import '../../widgets/loading_indicator.dart';
 import '../../widgets/app_bottom_nav.dart';
 import 'side_menu.dart';
-import '../../../core/utils/responsive.dart';
+import '../../../core/utils/animation_lifecycle_mixin.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -17,15 +17,20 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
+class _HomeScreenState extends State<HomeScreen> 
+    with TickerProviderStateMixin, AnimationLifecycleMixin {
   final _postRepository = PostRepository();
   final _authRepository = AuthRepository();
   final _scaffoldKey = GlobalKey<ScaffoldState>();
+  final _scrollController = ScrollController();
   
   List<Post> _posts = [];
   User? _currentUser;
   bool _isLoading = true;
   bool _isRefreshing = false;
+  bool _isLoadingMore = false;
+  bool _hasMore = true;
+  int _currentPage = 1;
   int _currentIndex = 0;
   
   // Animation controllers
@@ -34,12 +39,27 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late Animation<double> _bubbleAnimation;
   late Animation<Offset> _greetingSlideAnimation;
   late Animation<double> _greetingFadeAnimation;
+  
+  @override
+  List<AnimationController> get animationControllers => [
+    _bubbleController,
+  ];
 
   @override
   void initState() {
     super.initState();
     _initAnimations();
+    _scrollController.addListener(_onScroll);
     _loadData();
+  }
+  
+  void _onScroll() {
+    if (_scrollController.position.pixels >= 
+        _scrollController.position.maxScrollExtent * 0.8) {
+      if (!_isLoadingMore && _hasMore && !_isLoading) {
+        _loadMorePosts();
+      }
+    }
   }
   
   void _initAnimations() {
@@ -76,6 +96,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
     _bubbleController.dispose();
     _greetingController.dispose();
     super.dispose();
@@ -84,12 +106,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Future<void> _loadData() async {
     try {
       final user = await _authRepository.getCurrentUser();
-      final posts = await _postRepository.getFeed();
+      final posts = await _postRepository.getFeed(page: 1, limit: 10);
       
       if (mounted) {
         setState(() {
           _currentUser = user;
           _posts = posts;
+          _currentPage = 1;
+          _hasMore = posts.length >= 10;
           _isLoading = false;
         });
       }
@@ -105,16 +129,50 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       }
     }
   }
-
-  Future<void> _refreshFeed() async {
-    setState(() => _isRefreshing = true);
+  
+  Future<void> _loadMorePosts() async {
+    if (_isLoadingMore || !_hasMore) return;
+    
+    setState(() => _isLoadingMore = true);
     
     try {
-      final posts = await _postRepository.getFeed();
+      final newPosts = await _postRepository.getFeed(
+        page: _currentPage + 1,
+        limit: 10,
+      );
+      
+      if (mounted) {
+        setState(() {
+          if (newPosts.isEmpty || newPosts.length < 10) {
+            _hasMore = false;
+          } else {
+            _posts.addAll(newPosts);
+            _currentPage++;
+          }
+          _isLoadingMore = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingMore = false);
+      }
+    }
+  }
+
+  Future<void> _refreshFeed() async {
+    setState(() {
+      _isRefreshing = true;
+      _currentPage = 1;
+      _hasMore = true;
+    });
+    
+    try {
+      final posts = await _postRepository.getFeed(page: 1, limit: 10);
       
       if (mounted) {
         setState(() {
           _posts = posts;
+          _hasMore = posts.length >= 10;
           _isRefreshing = false;
         });
       }
@@ -215,8 +273,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 child: Opacity(
                   opacity: 0.1,
                   child: Container(
-                    width: ResponsiveHelper.getResponsiveSquareSize(context, 300),
-                    height: ResponsiveHelper.getResponsiveSquareSize(context, 300),
+                    width: 300,
+                    height: 300,
                     decoration: BoxDecoration(
                       gradient: RadialGradient(
                         colors: [
@@ -238,18 +296,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               children: [
                 // Custom header
                 Container(
-                  padding: ResponsiveHelper.getResponsiveSymmetricPadding(
-                    context,
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   child: Row(
                     children: [
                       IconButton(
-                        icon: Icon(
-                          Icons.arrow_back,
-                          size: ResponsiveHelper.getResponsiveIconSize(context, 28),
-                        ),
+                        icon: const Icon(Icons.arrow_back, size: 28),
                         onPressed: () {
                           _scaffoldKey.currentState?.openDrawer();
                         },
@@ -283,33 +334,29 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   child: FadeTransition(
                     opacity: _greetingFadeAnimation,
                     child: Padding(
-                      padding: ResponsiveHelper.getResponsiveSymmetricPadding(
-                        context,
-                        horizontal: 24,
-                        vertical: 8,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                       child: Row(
                         children: [
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
+                              const Text(
                                 'Hello,',
                                 style: TextStyle(
                                   fontFamily: 'Raleway',
-                                  fontSize: ResponsiveHelper.getResponsiveFontSize(context, 52),
+                                  fontSize: 52,
                                   fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF202020),
+                                  color: Color(0xFF202020),
                                   height: 1.0,
                                 ),
                               ),
                               Text(
                                 _currentUser?.fullName.split(' ').first ?? 'Leo',
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontFamily: 'Nunito Sans',
-                                  fontSize: ResponsiveHelper.getResponsiveFontSize(context, 19),
+                                  fontSize: 19,
                                   fontWeight: FontWeight.w300,
-                                  color: const Color(0xFF202020),
+                                  color: Color(0xFF202020),
                                 ),
                               ),
                             ],
@@ -317,12 +364,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           const Spacer(),
                           if (_currentUser?.profilePhoto != null)
                             CircleAvatar(
-                              radius: ResponsiveHelper.getResponsiveSquareSize(context, 22),
+                              radius: 22,
                               backgroundImage: NetworkImage(_currentUser!.profilePhoto!),
                             )
                           else
                             CircleAvatar(
-                              radius: ResponsiveHelper.getResponsiveSquareSize(context, 22),
+                              radius: 22,
                               backgroundColor: AppColors.primary,
                               child: Text(
                                 _currentUser?.fullName[0].toUpperCase() ?? 'L',
@@ -349,70 +396,80 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               color: AppColors.primary,
                             ),
                           )
-                        : SingleChildScrollView(
-                      child: Column(
-                        children: [
-                          // Posts feed
-                          if (_posts.isEmpty)
-                            Container(
-                              height: 300,
-                              alignment: Alignment.center,
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.post_add,
-                                    size: 80,
-                                    color: AppColors.disabled,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  const Text(
-                                    'No posts yet',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      color: AppColors.textSecondary,
+                        : _posts.isEmpty
+                            ? Container(
+                                height: 300,
+                                alignment: Alignment.center,
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.post_add,
+                                      size: 80,
+                                      color: AppColors.disabled,
                                     ),
-                                  ),
-                                ],
+                                    const SizedBox(height: 16),
+                                    const Text(
+                                      'No posts yet',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        color: AppColors.textSecondary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : ListView.builder(
+                                controller: _scrollController,
+                                padding: EdgeInsets.zero,
+                                itemCount: _posts.length + (_hasMore ? 1 : 0),
+                                itemBuilder: (context, index) {
+                                  if (index == _posts.length) {
+                                    // Loading indicator for pagination
+                                    return _isLoadingMore
+                                        ? const Padding(
+                                            padding: EdgeInsets.all(16.0),
+                                            child: Center(
+                                              child: CircularProgressIndicator(
+                                                color: AppColors.primary,
+                                              ),
+                                            ),
+                                          )
+                                        : const SizedBox.shrink();
+                                  }
+                                  
+                                  final post = _posts[index];
+                                  return _AnimatedPostCard(
+                                    post: post,
+                                    index: index,
+                                    currentUserId: _currentUser?.id,
+                                    onLike: () => _handleLike(post),
+                                    onComment: () {},
+                                    onShare: () {},
+                                    onDelete: () => _handleDelete(post),
+                                  );
+                                },
                               ),
-                            )
-                          else
-                            ...(_posts.take(3).toList().asMap().entries.map((entry) {
-                              final index = entry.key;
-                              final post = entry.value;
-                              return _AnimatedPostCard(
-                                post: post,
-                                index: index,
-                                currentUserId: _currentUser?.id,
-                                onLike: () => _handleLike(post),
-                                onComment: () {},
-                                onShare: () {},
-                                onDelete: () => _handleDelete(post),
-                              );
-                            })),
                           
                           // Suggested to Follow section
-                          SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context, 16)),
+                          const SizedBox(height: 16),
                           Padding(
-                            padding: ResponsiveHelper.getResponsiveSymmetricPadding(
-                              context,
-                              horizontal: 24,
-                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
+                                const Text(
                                   'Suggested to Follow',
                                   style: TextStyle(
                                     fontFamily: 'Raleway',
-                                    fontSize: ResponsiveHelper.getResponsiveFontSize(context, 24),
+                                    fontSize: 24,
                                     fontWeight: FontWeight.bold,
-                                    color: const Color(0xFF202020),
+                                    color: Color(0xFF202020),
                                   ),
                                 ),
-                                SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context, 12)),
+                                const SizedBox(height: 12),
                                 SizedBox(
-                                  height: ResponsiveHelper.getResponsiveHeight(context, 340),
+                                  height: 340,
                                   child: ListView.builder(
                                     scrollDirection: Axis.horizontal,
                                     itemCount: 3,
@@ -427,7 +484,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               ],
                             ),
                           ),
-                          SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context, 80)),
+                          const SizedBox(height: 80),
                         ],
                       ),
                     ),
@@ -437,16 +494,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 // Bottom bar indicator
                 Center(
                   child: Container(
-                    margin: EdgeInsets.only(
-                      bottom: ResponsiveHelper.getResponsiveSpacing(context, 10),
-                    ),
-                    width: ResponsiveHelper.getResponsiveWidth(context, 146),
-                    height: ResponsiveHelper.getResponsiveHeight(context, 5),
+                    margin: const EdgeInsets.only(bottom: 10),
+                    width: 146,
+                    height: 5,
                     decoration: BoxDecoration(
                       color: Colors.black,
-                      borderRadius: BorderRadius.circular(
-                        ResponsiveHelper.getResponsiveRadius(context, 34),
-                      ),
+                      borderRadius: BorderRadius.circular(34),
                     ),
                   ),
                 ),
@@ -470,24 +523,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   
   Widget _buildClubCard(String name, String description) {
     return Container(
-      width: ResponsiveHelper.getResponsiveWidth(context, 198),
-      height: ResponsiveHelper.getResponsiveHeight(context, 317),
-      margin: EdgeInsets.only(
-        right: ResponsiveHelper.getResponsiveSpacing(context, 16, isHorizontal: true),
-        top: ResponsiveHelper.getResponsiveSpacing(context, 10),
-      ),
+      width: 198,
+      height: 317,
+      margin: const EdgeInsets.only(right: 16, top: 10),
       decoration: BoxDecoration(
         color: const Color(0xFFFFD700).withOpacity(0.37),
-        borderRadius: BorderRadius.circular(
-          ResponsiveHelper.getResponsiveRadius(context, 14),
-        ),
+        borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            width: ResponsiveHelper.getResponsiveSquareSize(context, 169),
-            height: ResponsiveHelper.getResponsiveSquareSize(context, 169),
+            width: 169,
+            height: 169,
             decoration: BoxDecoration(
               color: const Color(0xFF8F7902),
               shape: BoxShape.circle,

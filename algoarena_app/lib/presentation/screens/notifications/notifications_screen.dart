@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import '../../../core/utils/animation_lifecycle_mixin.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({Key? key}) : super(key: key);
@@ -9,10 +10,15 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, AnimationLifecycleMixin {
   late AnimationController _bubblesController;
   late AnimationController _listController;
   late AnimationController _headerController;
+  
+  @override
+  List<AnimationController> get animationControllers => [
+    _bubblesController,
+  ];
   
   @override
   void initState() {
