@@ -485,7 +485,7 @@ class _PasswordScreenState extends State<PasswordScreen> with TickerProviderStat
                                     ),
                                     contentPadding: const EdgeInsets.symmetric(
                                       horizontal: 24,
-                                      vertical: 18,
+                                      vertical: 12,
                                     ),
                                     suffixIcon: IconButton(
                                       icon: Icon(

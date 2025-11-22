@@ -333,7 +333,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                     ),
                                     filled: true,
                                     fillColor: Colors.black.withOpacity(0.4), // Black 40% opacity
-                                    contentPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(30),
                                       borderSide: BorderSide.none, // No border

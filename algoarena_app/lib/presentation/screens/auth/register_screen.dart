@@ -1086,7 +1086,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                               fillColor: Colors.black.withOpacity(0.4),
                               contentPadding: EdgeInsets.symmetric(
                                 horizontal: shouldScale ? 24 * scale : 24,
-                                vertical: shouldScale ? 18 * scale : 18,
+                                vertical: shouldScale ? 12 * scale : 12,
                               ),
                               suffixIcon: IconButton(
                                 icon: Icon(
@@ -1159,7 +1159,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                               fillColor: Colors.black.withOpacity(0.4),
                               contentPadding: EdgeInsets.symmetric(
                                 horizontal: shouldScale ? 24 * scale : 24,
-                                vertical: shouldScale ? 18 * scale : 18,
+                                vertical: shouldScale ? 12 * scale : 12,
                               ),
                               suffixIcon: IconButton(
                                 icon: Icon(
@@ -1220,7 +1220,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                               fillColor: Colors.black.withOpacity(0.4),
                               contentPadding: EdgeInsets.symmetric(
                                 horizontal: shouldScale ? 24 * scale : 24,
-                                vertical: shouldScale ? 18 * scale : 18,
+                                vertical: shouldScale ? 12 * scale : 12,
                               ),
                               prefixIcon: InkWell(
                                 onTap: _showCountryPicker,
