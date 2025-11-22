@@ -36,32 +36,36 @@ class ResponsiveHelper {
     }
   }
   
-  /// Get responsive width based on reference device (960px)
-  /// 
-  /// Example: getResponsiveWidth(context, 500) on a 480px wide device
-  /// will return 250 (scaled down proportionally)
+  /// Get uniform scale factor that maintains design proportions
+  /// Uses the smaller dimension to ensure everything fits
+  static double getUniformScaleFactor(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
+    
+    // Calculate scale based on width (primary dimension for mobile)
+    // This maintains the design proportions
+    final widthScale = size.width / ReferenceDevice.width;
+    
+    // Clamp scale to reasonable bounds to prevent extreme scaling
+    return widthScale.clamp(0.75, 1.25);
+  }
+  
+  /// Get responsive width - maintains design proportions
+  /// Uses uniform scaling to keep the design intact
   static double getResponsiveWidth(BuildContext context, double width) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    return (width / ReferenceDevice.width) * screenWidth;
+    return width * getUniformScaleFactor(context);
   }
   
-  /// Get responsive height based on reference device (2142px)
-  /// 
-  /// Example: getResponsiveHeight(context, 650) on a 1600px tall device
-  /// will scale proportionally
+  /// Get responsive height - maintains design proportions
+  /// Uses uniform scaling to keep the design intact
   static double getResponsiveHeight(BuildContext context, double height) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    return (height / ReferenceDevice.height) * screenHeight;
+    return height * getUniformScaleFactor(context);
   }
   
-  /// Get responsive font size with smart scaling
-  /// 
-  /// Scales between 0.8x and 1.2x based on screen width
-  /// Ensures readability on all devices
+  /// Get responsive font size - maintains design proportions
+  /// Uses uniform scaling to keep text readable and proportional
   static double getResponsiveFontSize(BuildContext context, double fontSize) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final scaleFactor = (screenWidth / ReferenceDevice.width).clamp(0.8, 1.2);
-    return fontSize * scaleFactor;
+    return fontSize * getUniformScaleFactor(context);
   }
   
   /// Get responsive padding that scales with screen size
@@ -106,31 +110,25 @@ class ResponsiveHelper {
     }
   }
   
-  /// Get responsive size for icons
-  /// Icons scale less aggressively than text
+  /// Get responsive size for icons - maintains design proportions
   static double getResponsiveIconSize(BuildContext context, double size) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final scaleFactor = (screenWidth / ReferenceDevice.width).clamp(0.85, 1.15);
-    return size * scaleFactor;
+    return size * getUniformScaleFactor(context);
   }
   
-  /// Get responsive border radius
+  /// Get responsive border radius - maintains design proportions
   static double getResponsiveRadius(BuildContext context, double radius) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    return (radius / ReferenceDevice.width) * screenWidth;
+    return radius * getUniformScaleFactor(context);
   }
   
   /// Get scale factor for the current device
-  /// Returns a value between 0.8 and 1.2
+  /// Returns uniform scale factor that maintains design
   static double getScaleFactor(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    return (screenWidth / ReferenceDevice.width).clamp(0.8, 1.2);
+    return getUniformScaleFactor(context);
   }
   
   /// Get responsive size for a square widget (maintains aspect ratio)
   static double getResponsiveSquareSize(BuildContext context, double size) {
-    // Use width for square sizes to maintain consistency
-    return getResponsiveWidth(context, size);
+    return size * getUniformScaleFactor(context);
   }
   
   /// Check if device is small screen
@@ -198,33 +196,28 @@ class ResponsiveHelper {
     return MediaQuery.of(context).size.height * percentage;
   }
   
-  /// Get responsive size for bubbles (used in auth screens)
-  /// Bubbles scale more aggressively to maintain visual impact
+  /// Get responsive size for bubbles - maintains design proportions
+  /// Uses uniform scaling to keep bubbles proportional to design
   static double getResponsiveBubbleSize(
     BuildContext context,
     double size, {
     bool useHeight = false,
   }) {
-    if (useHeight) {
-      final screenHeight = MediaQuery.of(context).size.height;
-      final scaleFactor = (screenHeight / ReferenceDevice.height).clamp(0.7, 1.3);
-      return size * scaleFactor;
-    } else {
-      final screenWidth = MediaQuery.of(context).size.width;
-      final scaleFactor = (screenWidth / ReferenceDevice.width).clamp(0.7, 1.3);
-      return size * scaleFactor;
-    }
+    // Use uniform scaling to maintain design proportions
+    return size * getUniformScaleFactor(context);
   }
   
   /// Get responsive position offset (for absolute positioning)
+  /// Maintains design proportions
   static Offset getResponsiveOffset(
     BuildContext context,
     double left,
     double top,
   ) {
+    final scale = getUniformScaleFactor(context);
     return Offset(
-      getResponsiveWidth(context, left),
-      getResponsiveHeight(context, top),
+      left * scale,
+      top * scale,
     );
   }
 }

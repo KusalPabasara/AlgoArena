@@ -14,11 +14,14 @@ enum DeviceType {
 }
 
 /// Reference device dimensions (Pixel 9 Pro - baseline)
+/// This is the design reference - all dimensions scale from this
 class ReferenceDevice {
-  static const double width = 960.0;
-  static const double height = 2142.0;
+  // Use logical pixels (dp) instead of physical pixels
+  // Pixel 9 Pro logical width in dp (360dp is standard for most phones)
+  static const double width = 360.0;  // Logical pixels (dp)
+  static const double height = 800.0;  // Logical pixels (dp) - approximate
   static const double density = 360.0; // DPI
-  static const double aspectRatio = width / height; // ~0.448
+  static const double aspectRatio = width / height; // ~0.45
 }
 
 /// Screen size breakpoints
