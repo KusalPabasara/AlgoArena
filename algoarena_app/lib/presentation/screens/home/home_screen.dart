@@ -8,6 +8,7 @@ import '../../widgets/post_card.dart';
 import '../../widgets/loading_indicator.dart';
 import '../../widgets/app_bottom_nav.dart';
 import 'side_menu.dart';
+import '../../../core/utils/responsive.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -214,8 +215,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 child: Opacity(
                   opacity: 0.1,
                   child: Container(
-                    width: 300,
-                    height: 300,
+                    width: ResponsiveHelper.getResponsiveSquareSize(context, 300),
+                    height: ResponsiveHelper.getResponsiveSquareSize(context, 300),
                     decoration: BoxDecoration(
                       gradient: RadialGradient(
                         colors: [
@@ -237,11 +238,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               children: [
                 // Custom header
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: ResponsiveHelper.getResponsiveSymmetricPadding(
+                    context,
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   child: Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.arrow_back, size: 28),
+                        icon: Icon(
+                          Icons.arrow_back,
+                          size: ResponsiveHelper.getResponsiveIconSize(context, 28),
+                        ),
                         onPressed: () {
                           _scaffoldKey.currentState?.openDrawer();
                         },
@@ -275,29 +283,33 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   child: FadeTransition(
                     opacity: _greetingFadeAnimation,
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                      padding: ResponsiveHelper.getResponsiveSymmetricPadding(
+                        context,
+                        horizontal: 24,
+                        vertical: 8,
+                      ),
                       child: Row(
                         children: [
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
+                              Text(
                                 'Hello,',
                                 style: TextStyle(
                                   fontFamily: 'Raleway',
-                                  fontSize: 52,
+                                  fontSize: ResponsiveHelper.getResponsiveFontSize(context, 52),
                                   fontWeight: FontWeight.bold,
-                                  color: Color(0xFF202020),
+                                  color: const Color(0xFF202020),
                                   height: 1.0,
                                 ),
                               ),
                               Text(
                                 _currentUser?.fullName.split(' ').first ?? 'Leo',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontFamily: 'Nunito Sans',
-                                  fontSize: 19,
+                                  fontSize: ResponsiveHelper.getResponsiveFontSize(context, 19),
                                   fontWeight: FontWeight.w300,
-                                  color: Color(0xFF202020),
+                                  color: const Color(0xFF202020),
                                 ),
                               ),
                             ],
@@ -305,12 +317,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           const Spacer(),
                           if (_currentUser?.profilePhoto != null)
                             CircleAvatar(
-                              radius: 22,
+                              radius: ResponsiveHelper.getResponsiveSquareSize(context, 22),
                               backgroundImage: NetworkImage(_currentUser!.profilePhoto!),
                             )
                           else
                             CircleAvatar(
-                              radius: 22,
+                              radius: ResponsiveHelper.getResponsiveSquareSize(context, 22),
                               backgroundColor: AppColors.primary,
                               child: Text(
                                 _currentUser?.fullName[0].toUpperCase() ?? 'L',
@@ -380,24 +392,27 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             })),
                           
                           // Suggested to Follow section
-                          const SizedBox(height: 16),
+                          SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context, 16)),
                           Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            padding: ResponsiveHelper.getResponsiveSymmetricPadding(
+                              context,
+                              horizontal: 24,
+                            ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
+                                Text(
                                   'Suggested to Follow',
                                   style: TextStyle(
                                     fontFamily: 'Raleway',
-                                    fontSize: 24,
+                                    fontSize: ResponsiveHelper.getResponsiveFontSize(context, 24),
                                     fontWeight: FontWeight.bold,
-                                    color: Color(0xFF202020),
+                                    color: const Color(0xFF202020),
                                   ),
                                 ),
-                                const SizedBox(height: 12),
+                                SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context, 12)),
                                 SizedBox(
-                                  height: 340,
+                                  height: ResponsiveHelper.getResponsiveHeight(context, 340),
                                   child: ListView.builder(
                                     scrollDirection: Axis.horizontal,
                                     itemCount: 3,
@@ -412,7 +427,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               ],
                             ),
                           ),
-                          const SizedBox(height: 80),
+                          SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context, 80)),
                         ],
                       ),
                     ),
@@ -422,12 +437,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 // Bottom bar indicator
                 Center(
                   child: Container(
-                    margin: const EdgeInsets.only(bottom: 10),
-                    width: 146,
-                    height: 5,
+                    margin: EdgeInsets.only(
+                      bottom: ResponsiveHelper.getResponsiveSpacing(context, 10),
+                    ),
+                    width: ResponsiveHelper.getResponsiveWidth(context, 146),
+                    height: ResponsiveHelper.getResponsiveHeight(context, 5),
                     decoration: BoxDecoration(
                       color: Colors.black,
-                      borderRadius: BorderRadius.circular(34),
+                      borderRadius: BorderRadius.circular(
+                        ResponsiveHelper.getResponsiveRadius(context, 34),
+                      ),
                     ),
                   ),
                 ),
@@ -451,19 +470,24 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   
   Widget _buildClubCard(String name, String description) {
     return Container(
-      width: 198,
-      height: 317,
-      margin: const EdgeInsets.only(right: 16, top: 10),
+      width: ResponsiveHelper.getResponsiveWidth(context, 198),
+      height: ResponsiveHelper.getResponsiveHeight(context, 317),
+      margin: EdgeInsets.only(
+        right: ResponsiveHelper.getResponsiveSpacing(context, 16, isHorizontal: true),
+        top: ResponsiveHelper.getResponsiveSpacing(context, 10),
+      ),
       decoration: BoxDecoration(
         color: const Color(0xFFFFD700).withOpacity(0.37),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(
+          ResponsiveHelper.getResponsiveRadius(context, 14),
+        ),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            width: 169,
-            height: 169,
+            width: ResponsiveHelper.getResponsiveSquareSize(context, 169),
+            height: ResponsiveHelper.getResponsiveSquareSize(context, 169),
             decoration: BoxDecoration(
               color: const Color(0xFF8F7902),
               shape: BoxShape.circle,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/colors.dart';
+import '../../core/utils/responsive.dart';
 
 class CustomButton extends StatelessWidget {
   final String text;
@@ -27,9 +28,15 @@ class CustomButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final responsiveHeight = ResponsiveHelper.getResponsiveHeight(context, height);
+    final responsiveBorderRadius = ResponsiveHelper.getResponsiveRadius(context, borderRadius);
+    final responsiveWidth = width != null 
+        ? ResponsiveHelper.getResponsiveWidth(context, width!)
+        : null;
+    
     return SizedBox(
-      width: width ?? double.infinity,
-      height: height,
+      width: responsiveWidth ?? double.infinity,
+      height: responsiveHeight,
       child: isOutlined
           ? OutlinedButton(
               onPressed: isLoading ? null : onPressed,
@@ -37,19 +44,24 @@ class CustomButton extends StatelessWidget {
                 foregroundColor: textColor ?? AppColors.black,
                 side: BorderSide(
                   color: backgroundColor ?? AppColors.black,
-                  width: 2,
+                  width: ResponsiveHelper.getResponsiveWidth(context, 2),
                 ),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(borderRadius),
+                  borderRadius: BorderRadius.circular(responsiveBorderRadius),
                 ),
               ),
               child: isLoading
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                  ? SizedBox(
+                      width: ResponsiveHelper.getResponsiveIconSize(context, 20),
+                      height: ResponsiveHelper.getResponsiveIconSize(context, 20),
+                      child: const CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : Text(text),
+                  : Text(
+                      text,
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(context, 16),
+                      ),
+                    ),
             )
           : ElevatedButton(
               onPressed: isLoading ? null : onPressed,
@@ -58,22 +70,22 @@ class CustomButton extends StatelessWidget {
                 foregroundColor: textColor ?? AppColors.white,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(borderRadius),
+                  borderRadius: BorderRadius.circular(responsiveBorderRadius),
                 ),
               ),
               child: isLoading
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
+                  ? SizedBox(
+                      width: ResponsiveHelper.getResponsiveIconSize(context, 20),
+                      height: ResponsiveHelper.getResponsiveIconSize(context, 20),
+                      child: const CircularProgressIndicator(
                         strokeWidth: 2,
                         valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
                       ),
                     )
                   : Text(
                       text,
-                      style: const TextStyle(
-                        fontSize: 16,
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(context, 16),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
