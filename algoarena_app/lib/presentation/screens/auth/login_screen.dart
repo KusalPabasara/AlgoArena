@@ -1,7 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../../core/utils/validators.dart';
-import '../../../core/utils/responsive.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -237,6 +236,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
           FadeTransition(
             opacity: _fadeOutAnimation,
             child: SafeArea(
+              bottom: false,
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
                 padding: EdgeInsets.only(

@@ -299,6 +299,7 @@ class _PasswordScreenState extends State<PasswordScreen> with TickerProviderStat
 
           // Content
           SafeArea(
+            bottom: false,
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               padding: EdgeInsets.only(
