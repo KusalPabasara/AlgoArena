@@ -9,6 +9,7 @@ import '../../widgets/loading_indicator.dart';
 import '../../widgets/app_bottom_nav.dart';
 import 'side_menu.dart';
 import '../../../core/utils/animation_lifecycle_mixin.dart';
+import '../../../core/utils/responsive.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);

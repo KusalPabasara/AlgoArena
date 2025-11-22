@@ -16,12 +16,28 @@ class AuthRepository {
         'fullName': fullName,
         'email': email,
         'password': password,
-        if (phoneNumber != null) 'phoneNumber': phoneNumber,
+        // Note: Backend doesn't currently accept phoneNumber, but we keep it for future use
+        // if (phoneNumber != null) 'phoneNumber': phoneNumber,
       });
+      
+      // Save token if registration successful (like login does)
+      if (response['token'] != null) {
+        await _apiService.saveToken(response['token']);
+      }
       
       return response;
     } catch (e) {
-      throw Exception('Registration failed: $e');
+      // Re-throw with more context
+      final errorMessage = e.toString();
+      if (errorMessage.contains('User already exists')) {
+        throw Exception('An account with this email already exists');
+      } else if (errorMessage.contains('Network error')) {
+        throw Exception('Unable to connect to server. Please check your internet connection.');
+      } else if (errorMessage.contains('500')) {
+        throw Exception('Server error. Please try again later.');
+      } else {
+        throw Exception('Registration failed: ${errorMessage.replaceAll('Exception: ', '')}');
+      }
     }
   }
   

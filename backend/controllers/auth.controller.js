@@ -17,9 +17,30 @@ exports.register = async (req, res) => {
   try {
     const { fullName, email, password } = req.body;
 
+    // Validate required fields
+    if (!fullName || !email || !password) {
+      return res.status(400).json({ 
+        message: 'Please provide fullName, email, and password' 
+      });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ message: 'Please provide a valid email address' });
+    }
+
+    // Validate password length
+    if (password.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters long' });
+    }
+
+    console.log('📝 Registration attempt:', { fullName, email, passwordLength: password.length });
+
     // Check if user exists
-    const userExists = await User.findOne({ email });
+    const userExists = await User.findOne({ email: email.toLowerCase() });
     if (userExists) {
+      console.log('❌ User already exists:', email);
       return res.status(400).json({ message: 'User already exists' });
     }
 
@@ -27,15 +48,21 @@ exports.register = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
+    console.log('🔐 Password hashed, creating user...');
+
     // Create user
     const user = await User.create({
-      fullName,
-      email,
+      fullName: fullName.trim(),
+      email: email.toLowerCase().trim(),
       password: hashedPassword
     });
 
+    console.log('✅ User created successfully:', user._id);
+
     // Generate token
     const token = generateToken(user._id);
+
+    console.log('🎫 Token generated, sending response...');
 
     res.status(201).json({
       token,
@@ -52,7 +79,23 @@ exports.register = async (req, res) => {
       }
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('❌ Registration error:', error);
+    
+    // Handle Mongoose validation errors
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({ message: messages.join(', ') });
+    }
+    
+    // Handle duplicate key error (email already exists)
+    if (error.code === 11000) {
+      return res.status(400).json({ message: 'User with this email already exists' });
+    }
+    
+    res.status(500).json({ 
+      message: error.message || 'Server error during registration',
+      ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
+    });
   }
 };
 

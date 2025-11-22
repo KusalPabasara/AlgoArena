@@ -522,7 +522,13 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
     setState(() => _isLoading = true);
 
     try {
-      await _authRepository.register(
+      // Debug: Print registration data
+      print('🔵 Registering user:');
+      print('   Name: ${_nameController.text.trim()}');
+      print('   Email: ${_emailController.text.trim()}');
+      print('   Password: ${_passwordController.text.length} chars');
+      
+      final response = await _authRepository.register(
         fullName: _nameController.text.trim(),
         email: _emailController.text.trim(),
         password: _passwordController.text,
@@ -530,6 +536,11 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
             ? _phoneController.text.trim() 
             : null,
       );
+
+      // Debug: Print response
+      print('✅ Registration successful:');
+      print('   Token: ${response['token'] != null ? 'Received' : 'Missing'}');
+      print('   User ID: ${response['user']?['id'] ?? 'N/A'}');
 
       if (mounted) {
         // Fade out current content
@@ -565,11 +576,16 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
         }
       }
     } catch (e) {
+      // Debug: Print error
+      print('❌ Registration error: $e');
+      
       if (mounted) {
+        final errorMessage = e.toString().replaceAll('Exception: ', '');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString().replaceAll('Exception: ', '')),
+            content: Text(errorMessage),
             backgroundColor: AppColors.error,
+            duration: const Duration(seconds: 4),
           ),
         );
       }

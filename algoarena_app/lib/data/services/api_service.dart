@@ -115,19 +115,34 @@ class ApiService {
   
   // Handle API response
   Map<String, dynamic> _handleResponse(http.Response response) {
+    // Debug: Print response details
+    print('📡 API Response:');
+    print('   Status: ${response.statusCode}');
+    print('   URL: ${response.request?.url}');
+    
     if (response.statusCode >= 200 && response.statusCode < 300) {
       try {
-        return json.decode(response.body);
+        final decoded = json.decode(response.body);
+        print('   Success: ${decoded.containsKey('token') ? 'Token received' : 'No token'}');
+        return decoded;
       } catch (e) {
-        throw Exception('Invalid JSON response from server');
+        print('   ❌ JSON decode error: $e');
+        print('   Body: ${response.body.substring(0, response.body.length > 200 ? 200 : response.body.length)}');
+        throw Exception('Invalid JSON response from server: $e');
       }
     } else {
       try {
         final error = json.decode(response.body);
-        throw Exception(error['message'] ?? 'An error occurred');
+        final errorMessage = error['message'] ?? 'An error occurred';
+        print('   ❌ Error: $errorMessage');
+        throw Exception(errorMessage);
       } catch (e) {
         // If response body is not valid JSON (e.g., HTML error page)
-        throw Exception('Server error (${response.statusCode}): ${response.body.length > 100 ? response.body.substring(0, 100) : response.body}');
+        final errorBody = response.body.length > 200 
+            ? response.body.substring(0, 200) 
+            : response.body;
+        print('   ❌ Server error (${response.statusCode}): $errorBody');
+        throw Exception('Server error (${response.statusCode}): $errorBody');
       }
     }
   }
