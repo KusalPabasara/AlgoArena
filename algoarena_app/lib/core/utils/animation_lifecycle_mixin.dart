@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 /// Mixin to manage animation lifecycle - stops animations when app is paused
 /// This prevents memory leaks and CPU usage when app is in background
-mixin AnimationLifecycleMixin<T extends StatefulWidget> on State<T>, WidgetsBindingObserver {
+mixin AnimationLifecycleMixin<T extends StatefulWidget> on State<T> {
   /// List of animation controllers that should be paused/resumed
   List<AnimationController> get animationControllers;
   
@@ -26,8 +26,6 @@ mixin AnimationLifecycleMixin<T extends StatefulWidget> on State<T>, WidgetsBind
   
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    super.didChangeAppLifecycleState(state);
-    
     switch (state) {
       case AppLifecycleState.paused:
       case AppLifecycleState.inactive:
@@ -46,6 +44,54 @@ mixin AnimationLifecycleMixin<T extends StatefulWidget> on State<T>, WidgetsBind
         break;
     }
   }
+  
+  // Implement other WidgetsBindingObserver methods as no-ops
+  @override
+  void didChangeAccessibilityFeatures() {}
+  
+  @override
+  void didChangeLocales(List<Locale>? locales) {}
+  
+  @override
+  void didChangeMetrics() {}
+  
+  @override
+  void didChangePlatformBrightness() {}
+  
+  @override
+  void didChangeTextScaleFactor() {}
+  
+  @override
+  void didChangeViewFocus(dynamic event) {}
+  
+  @override
+  void didHaveMemoryPressure() {}
+  
+  @override
+  Future<bool> didPopRoute() => Future<bool>.value(false);
+  
+  @override
+  Future<bool> didPushRoute(String route) => Future<bool>.value(false);
+  
+  @override
+  Future<bool> didPushRouteInformation(RouteInformation routeInformation) => Future<bool>.value(false);
+  
+  // Note: didRequestAppExit signature may vary by Flutter version
+  // Using dynamic to be compatible
+  @override
+  dynamic didRequestAppExit() => Future.value(false);
+  
+  @override
+  void handleCancelBackGesture() {}
+  
+  @override
+  void handleCommitBackGesture() {}
+  
+  @override
+  bool handleStartBackGesture(dynamic backEvent) => false;
+  
+  @override
+  void handleUpdateBackGestureProgress(dynamic backEvent) {}
   
   /// Pause all repeating animations
   void _pauseAnimations() {

@@ -9,7 +9,6 @@ import '../../widgets/loading_indicator.dart';
 import '../../widgets/app_bottom_nav.dart';
 import 'side_menu.dart';
 import '../../../core/utils/animation_lifecycle_mixin.dart';
-import '../../../core/utils/responsive.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -391,66 +390,69 @@ class _HomeScreenState extends State<HomeScreen>
                   child: RefreshIndicator(
                     onRefresh: _refreshFeed,
                     color: AppColors.primary,
-                    child: _isRefreshing
-                        ? const Center(
-                            child: CircularProgressIndicator(
-                              color: AppColors.primary,
-                            ),
-                          )
-                        : _posts.isEmpty
-                            ? Container(
-                                height: 300,
-                                alignment: Alignment.center,
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.post_add,
-                                      size: 80,
-                                      color: AppColors.disabled,
+                    child: SingleChildScrollView(
+                      controller: _scrollController,
+                      child: Column(
+                        children: [
+                          // Posts feed
+                          _isRefreshing
+                              ? const Center(
+                                  child: Padding(
+                                    padding: EdgeInsets.all(16.0),
+                                    child: CircularProgressIndicator(
+                                      color: AppColors.primary,
                                     ),
-                                    const SizedBox(height: 16),
-                                    const Text(
-                                      'No posts yet',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        color: AppColors.textSecondary,
+                                  ),
+                                )
+                              : _posts.isEmpty
+                                  ? Container(
+                                      height: 300,
+                                      alignment: Alignment.center,
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            Icons.post_add,
+                                            size: 80,
+                                            color: AppColors.disabled,
+                                          ),
+                                          const SizedBox(height: 16),
+                                          const Text(
+                                            'No posts yet',
+                                            style: TextStyle(
+                                              fontSize: 18,
+                                              color: AppColors.textSecondary,
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                    ),
-                                  ],
-                                ),
-                              )
-                            : ListView.builder(
-                                controller: _scrollController,
-                                padding: EdgeInsets.zero,
-                                itemCount: _posts.length + (_hasMore ? 1 : 0),
-                                itemBuilder: (context, index) {
-                                  if (index == _posts.length) {
-                                    // Loading indicator for pagination
-                                    return _isLoadingMore
-                                        ? const Padding(
+                                    )
+                                  : Column(
+                                      children: [
+                                        ...(_posts.asMap().entries.map((entry) {
+                                          final index = entry.key;
+                                          final post = entry.value;
+                                          return _AnimatedPostCard(
+                                            post: post,
+                                            index: index,
+                                            currentUserId: _currentUser?.id,
+                                            onLike: () => _handleLike(post),
+                                            onComment: () {},
+                                            onShare: () {},
+                                            onDelete: () => _handleDelete(post),
+                                          );
+                                        })),
+                                        if (_hasMore && _isLoadingMore)
+                                          const Padding(
                                             padding: EdgeInsets.all(16.0),
                                             child: Center(
                                               child: CircularProgressIndicator(
                                                 color: AppColors.primary,
                                               ),
                                             ),
-                                          )
-                                        : const SizedBox.shrink();
-                                  }
-                                  
-                                  final post = _posts[index];
-                                  return _AnimatedPostCard(
-                                    post: post,
-                                    index: index,
-                                    currentUserId: _currentUser?.id,
-                                    onLike: () => _handleLike(post),
-                                    onComment: () {},
-                                    onShare: () {},
-                                    onDelete: () => _handleDelete(post),
-                                  );
-                                },
-                              ),
+                                          ),
+                                      ],
+                                    ),
                           
                           // Suggested to Follow section
                           const SizedBox(height: 16),
