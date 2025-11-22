@@ -162,19 +162,20 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
           // Bubble 04 - Large Bottom Yellow (Static with rotation)
           Positioned(
-            left: ResponsiveHelper.getPercentageWidth(context, 0.3),
-            bottom: ResponsiveHelper.getResponsiveHeight(context, -250),
+            left: MediaQuery.of(context).size.width * 0.3,
+            bottom: -250,
             child: Transform.rotate(
               angle: 0 * 3.14159 / 180, // 0 degrees for Login screen
               child: ClipPath(
                 clipper: _Bubble04Clipper(),
                 child: Container(
-                  width: ResponsiveHelper.getResponsiveBubbleSize(context, 500),
-                  height: ResponsiveHelper.getResponsiveBubbleSize(context, 650, useHeight: true),
+                  width: 500,
+                  height: 650,
                   color: const Color(0xFFFFD700),
                 ),
               ),
@@ -183,15 +184,15 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
           
           // Bubble 03 - Top Right Small Black Organic Shape (Static with rotation)
           Positioned(
-            right: ResponsiveHelper.getResponsiveWidth(context, -20),
-            top: ResponsiveHelper.getResponsiveHeight(context, 280),
+            right: -20,
+            top: 280,
             child: Transform.rotate(
               angle: 156 * 3.14159 / 180, // 156 degrees for Login screen
               child: ClipPath(
                 clipper: _Bubble03Clipper(),
                 child: Container(
-                  width: ResponsiveHelper.getResponsiveBubbleSize(context, 180),
-                  height: ResponsiveHelper.getResponsiveBubbleSize(context, 180),
+                  width: 180,
+                  height: 180,
                   color: Colors.black,
                 ),
               ),
@@ -200,15 +201,15 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
           
           // Bubble 02 - Top Yellow Organic Shape (Static with rotation)
           Positioned(
-            left: ResponsiveHelper.getResponsiveWidth(context, -200),
-            top: ResponsiveHelper.getResponsiveHeight(context, -150),
+            left: -200,
+            top: -150,
             child: Transform.rotate(
               angle: 140 * 3.14159 / 180, // 140 degrees for Login screen
               child: ClipPath(
                 clipper: _Bubble02Clipper(),
                 child: Container(
-                  width: ResponsiveHelper.getResponsiveBubbleSize(context, 500),
-                  height: ResponsiveHelper.getResponsiveBubbleSize(context, 600, useHeight: true),
+                  width: 500,
+                  height: 600,
                   color: const Color(0xFFFFD700),
                 ),
               ),
@@ -217,15 +218,15 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
           
           // Bubble 01 - Large Top Left Black Organic Shape (Static with rotation)
           Positioned(
-            left: ResponsiveHelper.getResponsiveWidth(context, -250),
-            top: ResponsiveHelper.getResponsiveHeight(context, -200),
+            left: -250,
+            top: -200,
             child: Transform.rotate(
               angle: 260 * 3.14159 / 180, // 260 degrees for Login screen
               child: ClipPath(
                 clipper: _Bubble01Clipper(),
                 child: Container(
-                  width: ResponsiveHelper.getResponsiveBubbleSize(context, 550),
-                  height: ResponsiveHelper.getResponsiveBubbleSize(context, 550),
+                  width: 550,
+                  height: 550,
                   color: Colors.black,
                 ),
               ),
@@ -236,17 +237,19 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
           FadeTransition(
             opacity: _fadeOutAnimation,
             child: SafeArea(
-              child: Padding(
-                padding: ResponsiveHelper.getResponsiveSymmetricPadding(
-                  context,
-                  horizontal: 35,
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: EdgeInsets.only(
+                  left: 35,
+                  right: 35,
+                  top: MediaQuery.of(context).size.height * 0.40,
+                  bottom: MediaQuery.of(context).viewInsets.bottom + 20, // Extra padding for keyboard
                 ),
                 child: Form(
                     key: _formKey,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                      SizedBox(height: ResponsiveHelper.getPercentageHeight(context, 0.40)),
                         
                         // Animated "Login" Title
                         SlideTransition(
@@ -257,17 +260,17 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                               'Login',
                               style: TextStyle(
                                 fontFamily: 'Raleway',
-                                fontSize: ResponsiveHelper.getResponsiveFontSize(context, 52),
+                                fontSize: 52,
                                 fontWeight: FontWeight.w700,
                                 color: const Color(0xFF202020),
-                                letterSpacing: ResponsiveHelper.getResponsiveFontSize(context, -0.52),
+                                letterSpacing: -0.52,
                                 height: 1.17,
                               ),
                             ),
                           ),
                         ),
                         
-                        SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context, 5)),
+                        const SizedBox(height: 5),
                         
                         // Animated subtitle
                         FadeTransition(
@@ -276,7 +279,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                             'Good to see you back!',
                             style: TextStyle(
                               fontFamily: 'Nunito Sans',
-                              fontSize: ResponsiveHelper.getResponsiveFontSize(context, 19),
+                              fontSize: 19,
                               fontWeight: FontWeight.w300,
                               color: const Color(0xFF202020),
                               height: 35 / 19,
@@ -284,7 +287,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                           ),
                         ),
                         
-                        SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context, 30)),
+                        const SizedBox(height: 30),
                         
                         // Animated Email Input Field with fixed-height error container
                         SlideTransition(
@@ -297,6 +300,8 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                 TextFormField(
                                   controller: _emailController,
                                   keyboardType: TextInputType.emailAddress,
+                                  textInputAction: TextInputAction.next,
+                                  autofocus: false,
                                   validator: (value) {
                                     final error = Validators.validateEmail(value);
                                     setState(() {
@@ -312,9 +317,9 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                       });
                                     }
                                   },
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     fontFamily: 'Nunito Sans',
-                                    fontSize: ResponsiveHelper.getResponsiveFontSize(context, 19),
+                                    fontSize: 19,
                                     fontWeight: FontWeight.w300,
                                     color: Colors.white, // White text
                                   ),
@@ -322,45 +327,31 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                     hintText: 'Email',
                                     hintStyle: TextStyle(
                                       fontFamily: 'Nunito Sans',
-                                      fontSize: ResponsiveHelper.getResponsiveFontSize(context, 19),
+                                      fontSize: 19,
                                       fontWeight: FontWeight.w300,
                                       color: const Color(0xFFD2D2D2), // Light gray hint
                                     ),
                                     filled: true,
                                     fillColor: Colors.black.withOpacity(0.4), // Black 40% opacity
-                                    contentPadding: ResponsiveHelper.getResponsiveSymmetricPadding(
-                                      context,
-                                      horizontal: 24,
-                                      vertical: 18,
-                                    ),
+                                    contentPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 18),
                                     border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(
-                                        ResponsiveHelper.getResponsiveRadius(context, 30),
-                                      ),
+                                      borderRadius: BorderRadius.circular(30),
                                       borderSide: BorderSide.none, // No border
                                     ),
                                     enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(
-                                        ResponsiveHelper.getResponsiveRadius(context, 30),
-                                      ),
+                                      borderRadius: BorderRadius.circular(30),
                                       borderSide: BorderSide.none, // No border
                                     ),
                                     focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(
-                                        ResponsiveHelper.getResponsiveRadius(context, 30),
-                                      ),
+                                      borderRadius: BorderRadius.circular(30),
                                       borderSide: BorderSide.none, // No border
                                     ),
                                     errorBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(
-                                        ResponsiveHelper.getResponsiveRadius(context, 30),
-                                      ),
+                                      borderRadius: BorderRadius.circular(30),
                                       borderSide: BorderSide.none,
                                     ),
                                     focusedErrorBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(
-                                        ResponsiveHelper.getResponsiveRadius(context, 30),
-                                      ),
+                                      borderRadius: BorderRadius.circular(30),
                                       borderSide: BorderSide.none, // No border even when error and focused
                                     ),
                                     errorStyle: const TextStyle(
@@ -370,25 +361,22 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                   ),
                                 ),
                                 // Fixed-height error container
-                                SizedBox(
-                                  height: ResponsiveHelper.getResponsiveSpacing(context, 24),
-                                  child: _emailError != null
-                                      ? Padding(
-                                          padding: ResponsiveHelper.getResponsivePadding(
-                                            context,
-                                            const EdgeInsets.only(left: 24, top: 4),
-                                          ),
-                                          child: Text(
-                                            _emailError!,
-                                            style: TextStyle(
-                                              color: Colors.red,
-                                              fontSize: ResponsiveHelper.getResponsiveFontSize(context, 12),
-                                              fontFamily: 'Nunito Sans',
-                                            ),
-                                          ),
-                                        )
-                                      : const SizedBox.shrink(),
+                                const SizedBox(
+                                  height: 24,
+                                  child: SizedBox.shrink(),
                                 ),
+                                if (_emailError != null)
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 24, top: 4),
+                                    child: Text(
+                                      _emailError!,
+                                      style: const TextStyle(
+                                        color: Colors.red,
+                                        fontSize: 12,
+                                        fontFamily: 'Nunito Sans',
+                                      ),
+                                    ),
+                                  ),
                               ],
                             ),
                           ),
@@ -401,34 +389,32 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                             scale: _buttonScaleAnimation,
                             child: SizedBox(
                               width: double.infinity,
-                              height: ResponsiveHelper.getResponsiveHeight(context, 60),
+                              height: 60,
                               child: FilledButton(
                                 onPressed: _isLoading ? null : _handleNext,
                                 style: FilledButton.styleFrom(
                                   backgroundColor: Colors.black,
                                   foregroundColor: Colors.white,
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(
-                                      ResponsiveHelper.getResponsiveRadius(context, 32),
-                                    ),
+                                    borderRadius: BorderRadius.circular(32),
                                   ),
                                   elevation: 4,
                                   shadowColor: Colors.black.withOpacity(0.3),
                                 ),
                                 child: _isLoading
-                                    ? SizedBox(
-                                        width: ResponsiveHelper.getResponsiveIconSize(context, 24),
-                                        height: ResponsiveHelper.getResponsiveIconSize(context, 24),
+                                    ? const SizedBox(
+                                        width: 24,
+                                        height: 24,
                                         child: CircularProgressIndicator(
-                                          valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                                           strokeWidth: 2.5,
                                         ),
                                       )
-                                    : Text(
+                                    : const Text(
                                         'Next',
                                         style: TextStyle(
                                           fontFamily: 'Nunito Sans',
-                                          fontSize: ResponsiveHelper.getResponsiveFontSize(context, 19),
+                                          fontSize: 19,
                                           fontWeight: FontWeight.w500,
                                         ),
                                       ),
@@ -437,7 +423,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                           ),
                         ),
                         
-                        SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context, 18)),
+                        const SizedBox(height: 18),
                         
                         // Animated Social Icons Row - Custom Icons
                         FadeTransition(
@@ -457,19 +443,17 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                     child: BackdropFilter(
                                       filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                                       child: Container(
-                                        width: ResponsiveHelper.getResponsiveSquareSize(context, 52),
-                                        height: ResponsiveHelper.getResponsiveSquareSize(context, 52),
-                                        padding: EdgeInsets.all(
-                                          ResponsiveHelper.getResponsiveSpacing(context, 12),
-                                        ),
+                                        width: 52,
+                                        height: 52,
+                                        padding: const EdgeInsets.all(12),
                                         decoration: BoxDecoration(
                                           color: Colors.white.withOpacity(0.28),
                                           shape: BoxShape.circle,
                                         ),
                                         child: Image.asset(
                                           'assets/images/Google.png',
-                                          width: ResponsiveHelper.getResponsiveIconSize(context, 28),
-                                          height: ResponsiveHelper.getResponsiveIconSize(context, 28),
+                                          width: 28,
+                                          height: 28,
                                           fit: BoxFit.contain,
                                         ),
                                       ),
@@ -478,7 +462,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                 ),
                               ),
                               
-                              SizedBox(width: ResponsiveHelper.getResponsiveSpacing(context, 24, isHorizontal: true)),
+                              const SizedBox(width: 24),
                               
                               // Apple IconButton with custom image and blur
                               Material(
@@ -492,19 +476,17 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                     child: BackdropFilter(
                                       filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                                       child: Container(
-                                        width: ResponsiveHelper.getResponsiveSquareSize(context, 52),
-                                        height: ResponsiveHelper.getResponsiveSquareSize(context, 52),
-                                        padding: EdgeInsets.all(
-                                          ResponsiveHelper.getResponsiveSpacing(context, 12),
-                                        ),
+                                        width: 52,
+                                        height: 52,
+                                        padding: const EdgeInsets.all(12),
                                         decoration: BoxDecoration(
                                           color: Colors.white.withOpacity(0.28),
                                           shape: BoxShape.circle,
                                         ),
                                         child: Image.asset(
                                           'assets/images/apple.png',
-                                          width: ResponsiveHelper.getResponsiveIconSize(context, 26),
-                                          height: ResponsiveHelper.getResponsiveIconSize(context, 26),
+                                          width: 26,
+                                          height: 26,
                                           fit: BoxFit.contain,
                                         ),
                                       ),
@@ -516,7 +498,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                           ),
                         ),
                         
-                        SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context, 18)),
+                        const SizedBox(height: 18),
                         
                         // Animated Register Button - Material Design
                         Center(
@@ -524,24 +506,24 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                             opacity: _socialFadeAnimation,
                             child: ElevatedButton.icon(
                               onPressed: _handleRegister,
-                              icon: Text(
+                              icon: const Text(
                                 'Register',
                                 style: TextStyle(
                                   fontFamily: 'Raleway',
-                                  fontSize: ResponsiveHelper.getResponsiveFontSize(context, 19),
+                                  fontSize: 19,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
                               label: Container(
-                                width: ResponsiveHelper.getResponsiveSquareSize(context, 30),
-                                height: ResponsiveHelper.getResponsiveSquareSize(context, 30),
+                                width: 30,
+                                height: 30,
                                 decoration: const BoxDecoration(
                                   shape: BoxShape.circle,
                                   color: Colors.black,
                                 ),
-                                child: Icon(
+                                child: const Icon(
                                   Icons.arrow_forward_rounded,
-                                  size: ResponsiveHelper.getResponsiveIconSize(context, 16),
+                                  size: 16,
                                   color: Colors.white,
                                 ),
                               ),
@@ -550,15 +532,12 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                 foregroundColor: Colors.black,
                                 elevation: 0,
                                 shadowColor: Colors.transparent,
-                                padding: ResponsiveHelper.getResponsiveSymmetricPadding(
-                                  context,
+                                padding: const EdgeInsets.symmetric(
                                   horizontal: 20,
                                   vertical: 12,
                                 ),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(
-                                    ResponsiveHelper.getResponsiveRadius(context, 22),
-                                  ),
+                                  borderRadius: BorderRadius.circular(22),
                                 ),
                               ),
                             ),

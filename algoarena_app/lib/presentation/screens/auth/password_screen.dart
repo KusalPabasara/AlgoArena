@@ -299,44 +299,43 @@ class _PasswordScreenState extends State<PasswordScreen> with TickerProviderStat
 
           // Content
           SafeArea(
-            child: Column(
-              children: [
-                // Back button
-                Padding(
-                  padding: ResponsiveHelper.getResponsivePadding(
-                    context,
-                    const EdgeInsets.all(16.0),
-                  ),
-                  child: Align(
-                    alignment: Alignment.topLeft,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Colors.white,
-                          width: ResponsiveHelper.getResponsiveWidth(context, 2),
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom + 20, // Extra padding for keyboard
+              ),
+              child: Column(
+                children: [
+                  // Back button
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Align(
+                      alignment: Alignment.topLeft,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.white,
+                            width: 2,
+                          ),
                         ),
-                      ),
-                      child: IconButton(
-                        icon: Icon(
-                          Icons.arrow_back,
-                          color: Colors.white,
-                          size: ResponsiveHelper.getResponsiveIconSize(context, 24),
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.arrow_back,
+                            color: Colors.white,
+                            size: 24,
+                          ),
+                          onPressed: _handleBack,
                         ),
-                        onPressed: _handleBack,
                       ),
                     ),
                   ),
-                ),
 
-                SizedBox(height: ResponsiveHelper.getPercentageHeight(context, 0.31)),
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.31),
 
                 // Greeting and Avatar
                 Padding(
-                  padding: ResponsiveHelper.getResponsiveSymmetricPadding(
-                    context,
-                    horizontal: 32.0,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 32.0),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.center,
@@ -353,21 +352,21 @@ class _PasswordScreenState extends State<PasswordScreen> with TickerProviderStat
                                 'Hello,',
                                 style: Theme.of(context).textTheme.displayMedium?.copyWith(
                                       fontFamily: 'Raleway',
-                                      fontSize: ResponsiveHelper.getResponsiveFontSize(context, 52),
+                                      fontSize: 52,
                                       fontWeight: FontWeight.w700,
                                       color: const Color(0xFF202020),
-                                      letterSpacing: ResponsiveHelper.getResponsiveFontSize(context, -0.52),
+                                      letterSpacing: -0.52,
                                       height: 1.17,
                                     ),
                               ),
-                              SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context, 4)),
+                              const SizedBox(height: 4),
                               Text(
                                 '$displayName!',
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontFamily: 'Nunito Sans',
-                                  fontSize: ResponsiveHelper.getResponsiveFontSize(context, 19),
+                                  fontSize: 19,
                                   fontWeight: FontWeight.w300,
-                                  color: const Color(0xFF202020),
+                                  color: Color(0xFF202020),
                                   height: 35 / 19,
                                 ),
                               ),
@@ -378,13 +377,13 @@ class _PasswordScreenState extends State<PasswordScreen> with TickerProviderStat
 
                       // Avatar with gold border
                       Container(
-                        width: ResponsiveHelper.getResponsiveSquareSize(context, 100),
-                        height: ResponsiveHelper.getResponsiveSquareSize(context, 100),
+                        width: 100,
+                        height: 100,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(
                             color: const Color(0xFFB8860B),
-                            width: ResponsiveHelper.getResponsiveWidth(context, 4),
+                            width: 4,
                           ),
                           image: const DecorationImage(
                             image: AssetImage('assets/images/avatar.png'),
@@ -396,7 +395,7 @@ class _PasswordScreenState extends State<PasswordScreen> with TickerProviderStat
                   ),
                 ),
 
-                SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context, 40)),
+                const SizedBox(height: 40),
 
                 // Form inputs
                 SlideTransition(
@@ -404,10 +403,7 @@ class _PasswordScreenState extends State<PasswordScreen> with TickerProviderStat
                   child: FadeTransition(
                     opacity: _inputFadeAnimation,
                     child: Padding(
-                      padding: ResponsiveHelper.getResponsiveSymmetricPadding(
-                        context,
-                        horizontal: 32.0,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 32.0),
                       child: Form(
                         key: _formKey,
                         child: Column(
@@ -420,6 +416,8 @@ class _PasswordScreenState extends State<PasswordScreen> with TickerProviderStat
                                 TextFormField(
                                   controller: _passwordController,
                                   obscureText: _obscurePassword,
+                                  textInputAction: TextInputAction.done,
+                                  autofocus: false,
                                   validator: (value) {
                                     String? error;
                                     if (value == null || value.isEmpty) {
@@ -438,9 +436,15 @@ class _PasswordScreenState extends State<PasswordScreen> with TickerProviderStat
                                       });
                                     }
                                   },
-                                  style: TextStyle(
+                                  onFieldSubmitted: (_) {
+                                    // Submit form when done
+                                    if (_formKey.currentState!.validate()) {
+                                      _handleLogin();
+                                    }
+                                  },
+                                  style: const TextStyle(
                                     fontFamily: 'Nunito Sans',
-                                    fontSize: ResponsiveHelper.getResponsiveFontSize(context, 19),
+                                    fontSize: 19,
                                     fontWeight: FontWeight.w300,
                                     color: Colors.white, // White text
                                   ),
@@ -449,47 +453,36 @@ class _PasswordScreenState extends State<PasswordScreen> with TickerProviderStat
                                     hintStyle: TextStyle(
                                       color: const Color(0xFFD2D2D2), // Light gray hint
                                       fontFamily: 'Nunito Sans',
-                                      fontSize: ResponsiveHelper.getResponsiveFontSize(context, 19),
+                                      fontSize: 19,
                                       fontWeight: FontWeight.w300,
                                     ),
                                     filled: true,
                                     fillColor: Colors.black.withOpacity(0.4), // Black 40% opacity
                                     border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(
-                                        ResponsiveHelper.getResponsiveRadius(context, 30),
-                                      ),
+                                      borderRadius: BorderRadius.circular(30),
                                       borderSide: BorderSide.none, // No border
                                     ),
                                     enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(
-                                        ResponsiveHelper.getResponsiveRadius(context, 30),
-                                      ),
+                                      borderRadius: BorderRadius.circular(30),
                                       borderSide: BorderSide.none, // No border
                                     ),
                                     focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(
-                                        ResponsiveHelper.getResponsiveRadius(context, 30),
-                                      ),
+                                      borderRadius: BorderRadius.circular(30),
                                       borderSide: BorderSide.none, // No border even when focused
                                     ),
                                     errorBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(
-                                        ResponsiveHelper.getResponsiveRadius(context, 30),
-                                      ),
+                                      borderRadius: BorderRadius.circular(30),
                                       borderSide: BorderSide.none,
                                     ),
                                     focusedErrorBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(
-                                        ResponsiveHelper.getResponsiveRadius(context, 30),
-                                      ),
+                                      borderRadius: BorderRadius.circular(30),
                                       borderSide: BorderSide.none,
                                     ),
                                     errorStyle: const TextStyle(
                                       height: 0, // Hide default error text
                                       fontSize: 0,
                                     ),
-                                    contentPadding: ResponsiveHelper.getResponsiveSymmetricPadding(
-                                      context,
+                                    contentPadding: const EdgeInsets.symmetric(
                                       horizontal: 24,
                                       vertical: 18,
                                     ),
@@ -513,22 +506,24 @@ class _PasswordScreenState extends State<PasswordScreen> with TickerProviderStat
                                 SizedBox(
                                   height: ResponsiveHelper.getResponsiveSpacing(context, 24),
                                   child: _passwordError != null
-                                      ? Padding(
-                                          padding: ResponsiveHelper.getResponsivePadding(
-                                            context,
-                                            const EdgeInsets.only(left: 24, top: 4),
-                                          ),
-                                          child: Text(
-                                            _passwordError!,
-                                            style: TextStyle(
-                                              color: Colors.red,
-                                              fontSize: ResponsiveHelper.getResponsiveFontSize(context, 12),
-                                              fontFamily: 'Nunito Sans',
-                                            ),
-                                          ),
+                                      ? const Padding(
+                                          padding: EdgeInsets.only(left: 24, top: 4),
+                                          child: SizedBox.shrink(),
                                         )
                                       : const SizedBox.shrink(),
                                 ),
+                                if (_passwordError != null)
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 24, top: 4),
+                                    child: Text(
+                                      _passwordError!,
+                                      style: const TextStyle(
+                                        color: Colors.red,
+                                        fontSize: 12,
+                                        fontFamily: 'Nunito Sans',
+                                      ),
+                                    ),
+                                  ),
                               ],
                             ),
                         
@@ -537,34 +532,32 @@ class _PasswordScreenState extends State<PasswordScreen> with TickerProviderStat
                               scale: _buttonScaleAnimation,
                               child: SizedBox(
                                 width: double.infinity,
-                                height: ResponsiveHelper.getResponsiveHeight(context, 56),
+                                height: 56,
                                 child: FilledButton(
                                   onPressed: _isLoading ? null : _handleLogin,
                                   style: FilledButton.styleFrom(
                                     backgroundColor: Colors.black,
                                     foregroundColor: Colors.white,
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(
-                                        ResponsiveHelper.getResponsiveRadius(context, 28),
-                                      ),
+                                      borderRadius: BorderRadius.circular(28),
                                     ),
                                     elevation: 8,
                                     shadowColor: Colors.black.withOpacity(0.3),
                                   ),
                                   child: _isLoading
-                                      ? SizedBox(
-                                          width: ResponsiveHelper.getResponsiveIconSize(context, 24),
-                                          height: ResponsiveHelper.getResponsiveIconSize(context, 24),
-                                          child: const CircularProgressIndicator(
+                                      ? const SizedBox(
+                                          width: 24,
+                                          height: 24,
+                                          child: CircularProgressIndicator(
                                             valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                                             strokeWidth: 2,
                                           ),
                                         )
-                                      : Text(
+                                      : const Text(
                                           'Next',
                                           style: TextStyle(
                                             fontFamily: 'Nunito Sans',
-                                            fontSize: ResponsiveHelper.getResponsiveFontSize(context, 19),
+                                            fontSize: 19,
                                             fontWeight: FontWeight.w500,
                                             height: 35 / 19,
                                           ),
@@ -572,15 +565,15 @@ class _PasswordScreenState extends State<PasswordScreen> with TickerProviderStat
                                 ),
                               ),
                             ),
-                            SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context, 10)),
+                            const SizedBox(height: 10),
                             // Forgot Password - Aligned to bottom
                             TextButton(
                               onPressed: _handleForgotPassword,
-                              child: Text(
+                              child: const Text(
                                 'Forgot Password?',
                                 style: TextStyle(
                                   color: Colors.black,
-                                  fontSize: ResponsiveHelper.getResponsiveFontSize(context, 15),
+                                  fontSize: 15,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -592,7 +585,7 @@ class _PasswordScreenState extends State<PasswordScreen> with TickerProviderStat
                   ),
                 ),
 
-                SizedBox(height: ResponsiveHelper.getResponsiveSpacing(context, 40)),
+                const SizedBox(height: 40),
               ],
             ),
           ),

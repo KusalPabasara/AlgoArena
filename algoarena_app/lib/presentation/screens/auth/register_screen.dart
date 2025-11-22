@@ -790,6 +790,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
     
     return Scaffold(
       backgroundColor: Colors.white,
+      resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
           // Register screen bubbles - only show when not showing success
@@ -869,12 +870,14 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                 ),
                 
                 Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: shouldScale ? 35 * scale : 35),
-                    child: Form(
-                      key: _formKey,
-                      child: SlideTransition(
-                        position: _contentSlideAnimation,
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: shouldScale ? 35 * scale : 35),
+                      child: Form(
+                        key: _formKey,
+                        child: SlideTransition(
+                          position: _contentSlideAnimation,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -933,6 +936,8 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                         child: TextFormField(
                             controller: _nameController,
                             keyboardType: TextInputType.name,
+                            textInputAction: TextInputAction.next,
+                            autofocus: false,
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'Name is required';
@@ -994,6 +999,8 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                         child: TextFormField(
                             controller: _emailController,
                             keyboardType: TextInputType.emailAddress,
+                            textInputAction: TextInputAction.next,
+                            autofocus: false,
                             validator: Validators.validateEmail,
                             style: TextStyle(
                                fontFamily: 'Nunito Sans',
@@ -1047,6 +1054,8 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                         child: TextFormField(
                             controller: _passwordController,
                             obscureText: _obscurePassword,
+                            textInputAction: TextInputAction.next,
+                            autofocus: false,
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'Password is required';
@@ -1115,11 +1124,19 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                         child: TextFormField(
                             controller: _confirmPasswordController,
                             obscureText: _obscureConfirmPassword,
+                            textInputAction: TextInputAction.done,
+                            autofocus: false,
                             validator: (value) {
                               if (value != _passwordController.text) {
                                 return 'Passwords do not match';
                               }
                               return null;
+                            },
+                            onFieldSubmitted: (_) {
+                              // Submit form when done
+                              if (_formKey.currentState!.validate()) {
+                                _handleRegister();
+                              }
                             },
                             style: TextStyle(
                                fontFamily: 'Nunito Sans',
@@ -1180,6 +1197,8 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                         child: TextFormField(
                             controller: _phoneController,
                             keyboardType: TextInputType.phone,
+                            textInputAction: TextInputAction.next,
+                            autofocus: false,
                             style: TextStyle(
                                fontFamily: 'Nunito Sans',
                                     fontSize: shouldScale ? 19 * scale : 19,
@@ -1378,7 +1397,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                           ),
                         ),
                       ),
-                ),
+                    ),
                   ],
                 ),
               ),
