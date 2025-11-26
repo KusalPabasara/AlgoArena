@@ -4,6 +4,7 @@ class Post {
   final String authorName;
   final String? authorPhoto;
   final String content;
+  final String? pageId; // Page ID if post is for a specific page
   final List<String> images;
   final List<String> likes;
   final List<Comment> comments;
@@ -16,6 +17,7 @@ class Post {
     required this.authorName,
     this.authorPhoto,
     required this.content,
+    this.pageId,
     required this.images,
     required this.likes,
     required this.comments,
@@ -30,6 +32,7 @@ class Post {
       authorName: json['author']?['fullName'] ?? 'Unknown User',
       authorPhoto: json['author']?['profilePhoto'],
       content: json['content'] ?? '',
+      pageId: json['pageId'],
       images: List<String>.from(json['images'] ?? []),
       likes: List<String>.from(json['likes'] ?? []),
       comments: (json['comments'] as List?)
@@ -46,6 +49,7 @@ class Post {
       '_id': id,
       'author': authorId,
       'content': content,
+      if (pageId != null) 'pageId': pageId,
       'images': images,
       'likes': likes,
       'comments': comments.map((c) => c.toJson()).toList(),

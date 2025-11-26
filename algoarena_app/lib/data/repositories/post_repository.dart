@@ -26,6 +26,7 @@ class PostRepository {
   Future<Post> createPost({
     required String content,
     List<String>? imagePaths,
+    String? pageId, // Optional page ID for page-specific posts
   }) async {
     try {
       final response = await _apiService.post(
@@ -33,11 +34,12 @@ class PostRepository {
         {
           'content': content,
           if (imagePaths != null) 'images': imagePaths,
+          if (pageId != null) 'pageId': pageId,
         },
         withAuth: true,
       );
       
-      return Post.fromJson(response['post']);
+      return Post.fromJson(response['post'] ?? response);
     } catch (e) {
       throw Exception('Failed to create post: $e');
     }

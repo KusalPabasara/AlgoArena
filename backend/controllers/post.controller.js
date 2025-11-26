@@ -75,8 +75,30 @@ exports.getFeed = async (req, res) => {
 // @access  Private
 exports.createPost = async (req, res) => {
   try {
-    const { content } = req.body;
+    const { content, pageId } = req.body;
     let imageUrls = [];
+
+    // If pageId is provided, check if user is webmaster of that page
+    if (pageId) {
+      const page = await firestoreService.getById('pages', pageId);
+      if (!page) {
+        return res.status(404).json({ message: 'Page not found' });
+      }
+
+      // Get user's Leo ID
+      const userData = await firestoreService.getById('users', req.user.id);
+      const userLeoId = userData?.leoId;
+
+      // Check if user is webmaster or super admin
+      const isWebmaster = userLeoId && (page.webmasterIds || []).includes(userLeoId);
+      const isSuperAdmin = req.user.role === 'superadmin' || req.user.role === 'super_admin';
+
+      if (!isWebmaster && !isSuperAdmin) {
+        return res.status(403).json({ 
+          message: 'Only webmasters of this page can create posts for it' 
+        });
+      }
+    }
 
     // Upload images to Firebase Storage if any
     if (req.files && req.files.length > 0) {
@@ -88,6 +110,7 @@ exports.createPost = async (req, res) => {
       authorId: req.user.id,
       content,
       images: imageUrls,
+      pageId: pageId || null,
       likes: [],
       likesCount: 0,
       commentsCount: 0

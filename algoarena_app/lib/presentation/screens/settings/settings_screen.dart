@@ -10,6 +10,8 @@ import 'display_settings_screen.dart';
 import 'security_settings_screen.dart';
 import 'passkeys_screen.dart';
 import 'two_step_verification_screen.dart';
+import '../admin/leo_id_management_screen.dart';
+import '../pages/create_page_screen.dart';
 
 /// Settings Screen - Exact Implementation matching screenshot
 class SettingsScreen extends StatefulWidget {
@@ -240,6 +242,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           isDestructive: true,
                           onTap: () => _showDeleteAccountConfirmation(),
                         ),
+                        // Admin Section (only for superadmin)
+                        if (Provider.of<AuthProvider>(context).isSuperAdmin) ...[
+                          const SizedBox(height: 15),
+                          _buildSectionTitle('Admin'),
+                          const SizedBox(height: 6),
+                          _buildSettingItem(
+                            icon: Icons.person_add_outlined,
+                            title: 'Manage Leo IDs',
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const LeoIdManagementScreen(),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          _buildSettingItem(
+                            icon: Icons.add_business_outlined,
+                            title: 'Create Page',
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const CreatePageScreen(),
+                              ),
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: 30),
                       ],
                     ),

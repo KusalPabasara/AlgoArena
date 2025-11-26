@@ -14,6 +14,7 @@ class AuthProvider with ChangeNotifier {
   bool get isAuthenticated => _isAuthenticated;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  bool get isSuperAdmin => _user?.role == 'superadmin' || _user?.role == 'super_admin';
 
   // Check if user is authenticated on app start
   Future<void> checkAuthStatus() async {
