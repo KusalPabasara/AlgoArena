@@ -11,6 +11,7 @@ const {
 const { protect } = require('../middleware/auth');
 const upload = require('../middleware/upload');
 
+router.get('/', protect, getFeed);  // Support /posts for Flutter app
 router.get('/feed', protect, getFeed);
 router.post('/', protect, upload.array('images', 5), createPost);
 router.put('/:id/like', protect, toggleLike);

@@ -1,385 +1,440 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 
-class NotificationsScreen extends StatefulWidget {
-  const NotificationsScreen({Key? key}) : super(key: key);
-
-  @override
-  State<NotificationsScreen> createState() => _NotificationsScreenState();
-}
-
-class _NotificationsScreenState extends State<NotificationsScreen>
-    with TickerProviderStateMixin {
-  late AnimationController _bubblesController;
-  late AnimationController _listController;
-  late AnimationController _headerController;
-  
-  @override
-  void initState() {
-    super.initState();
-    
-    // Animated bubbles in background
-    _bubblesController = AnimationController(
-      duration: const Duration(seconds: 20),
-      vsync: this,
-    )..repeat();
-    
-    // Staggered list animation
-    _listController = AnimationController(
-      duration: const Duration(milliseconds: 1200),
-      vsync: this,
-    );
-    
-    // Header slide animation
-    _headerController = AnimationController(
-      duration: const Duration(milliseconds: 800),
-      vsync: this,
-    );
-    
-    _headerController.forward();
-    _listController.forward();
-  }
-  
-  @override
-  void dispose() {
-    _bubblesController.dispose();
-    _listController.dispose();
-    _headerController.dispose();
-    super.dispose();
-  }
+/// Notifications Screen - Exact Figma Implementation
+/// Source: notification/src/imports/Notifications.tsx
+class NotificationsScreen extends StatelessWidget {
+  const NotificationsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Stack(
+      body: SizedBox(
+        width: screenWidth,
+        height: screenHeight,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            // Yellow Bubble (Bubbles) - left-[-179.79px] top-[-276.58px]
+            // viewBox="0 0 551 513" - pf4ece00
+            Positioned(
+              left: -179.79,
+              top: -276.58,
+              child: TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0.0, end: 1.0),
+                duration: const Duration(milliseconds: 600),
+                curve: Curves.easeOut,
+                builder: (context, value, child) {
+                  return Opacity(
+                    opacity: value,
+                    child: SizedBox(
+                      width: 550.345,
+                      height: 512.152,
+                      child: CustomPaint(
+                        painter: _YellowBubblePainter(),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            // Black Bubble 01 - left-[-97.03px] top-[-298.88px], rotated 232.009°
+            // viewBox="0 0 403 443" - p36b3a180
+            Positioned(
+              left: -97.03,
+              top: -298.88,
+              child: TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0.0, end: 1.0),
+                duration: const Duration(milliseconds: 600),
+                curve: Curves.easeOut,
+                builder: (context, value, child) {
+                  return Opacity(
+                    opacity: value,
+                    child: SizedBox(
+                      width: 596.838,
+                      height: 589.973,
+                      child: Center(
+                        child: Transform.rotate(
+                          angle: 232.009 * math.pi / 180,
+                          child: SizedBox(
+                            width: 402.871,
+                            height: 442.65,
+                            child: CustomPaint(
+                              painter: _BlackBubblePainter(),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            // Back button - left-[10px] top-[50px]
+            Positioned(
+              left: 10,
+              top: 50,
+              child: GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: SizedBox(
+                  width: 50,
+                  height: 53,
+                  child: Image.asset(
+                    'assets/images/notifications/a6c3b1de0238b60ae5f0966181a9108216c6d648.png',
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(25),
+                      ),
+                      child: const Center(
+                        child: Icon(Icons.arrow_back, color: Colors.white, size: 24),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            // "Notifications" title - left-[calc(16.67%+2px)] top-[48px]
+            Positioned(
+              left: screenWidth * 0.1667 + 2,
+              top: 48,
+              child: const Text(
+                'Notifications',
+                style: TextStyle(
+                  fontFamily: 'Raleway',
+                  fontSize: 50,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  letterSpacing: -0.52,
+                ),
+              ),
+            ),
+
+            // Announcement Section Header - top-[168px]
+            Positioned(
+              left: screenWidth * 0.0833 + 1.5,
+              top: 168,
+              child: const SizedBox(
+                width: 332,
+                height: 32,
+                child: Text(
+                  'Announcement :',
+                  style: TextStyle(
+                    fontFamily: 'Raleway',
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                    height: 31 / 26,
+                  ),
+                ),
+              ),
+            ),
+
+            // Announcement Frame - top-[210px]
+            Positioned(
+              left: screenWidth * 0.0833 + 1.5,
+              top: 210,
+              child: SizedBox(
+                width: 332,
+                height: 143,
+                child: Column(
+                  children: [
+                    _buildNotificationCard(
+                      'Monthly meeting schedule for November is now available.',
+                      'assets/images/notifications/4cab12f568771ad0b3afa40dc378bc7ed480eb86.png',
+                    ),
+                    const SizedBox(height: 11),
+                    _buildNotificationCard(
+                      'Attendance policy updated — please read the new guidelines.',
+                      'assets/images/notifications/31d07557884264b1b070f971cc49466a561b5a39.png',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // See more button for Announcement - top-[363px]
+            Positioned(
+              left: screenWidth * 0.0833 + 1.5,
+              top: 363,
+              child: _buildSeeMoreButton(),
+            ),
+
+            // News Section Header - top-[422px]
+            Positioned(
+              left: screenWidth * 0.0833 + 1.5,
+              top: 422,
+              child: const SizedBox(
+                width: 332,
+                height: 32,
+                child: Text(
+                  'News :',
+                  style: TextStyle(
+                    fontFamily: 'Raleway',
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                    height: 31 / 26,
+                  ),
+                ),
+              ),
+            ),
+
+            // News Frame - top-[464px]
+            Positioned(
+              left: screenWidth * 0.0833 + 1.5,
+              top: 464,
+              child: _buildNotificationCardRich(
+                'Leo Club of Colombo',
+                ' recognized as Best Community Service Club 2025!',
+                'assets/images/notifications/c6d5f9dff52b37a28977be041de113bc88dfa388.png',
+              ),
+            ),
+
+            // See more button for News - top-[540px]
+            Positioned(
+              left: screenWidth * 0.0833 + 1.5,
+              top: 540,
+              child: _buildSeeMoreButton(),
+            ),
+
+            // Notifications Section Header - top-[599px]
+            Positioned(
+              left: screenWidth * 0.0833 + 1.5,
+              top: 599,
+              child: const SizedBox(
+                width: 332,
+                height: 32,
+                child: Text(
+                  'Notifications :',
+                  style: TextStyle(
+                    fontFamily: 'Raleway',
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                    height: 31 / 26,
+                  ),
+                ),
+              ),
+            ),
+
+            // Notifications Frame - top-[641px]
+            Positioned(
+              left: screenWidth * 0.0833 + 1.5,
+              top: 641,
+              child: SizedBox(
+                width: 332,
+                height: 143,
+                child: Column(
+                  children: [
+                    _buildNotificationCard(
+                      "Membership renewal due soon. Don't forget to renew before Nov 15",
+                      'assets/images/notifications/4816b29d2caebc6a6bd478c7c78d68fe9b858b82.png',
+                    ),
+                    const SizedBox(height: 11),
+                    _buildNotificationCard(
+                      'New message from Club President.',
+                      'assets/images/notifications/6cd6f189d2f86fcc32f0d234e0416b42a8dcf4dd.png',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // See more button for Notifications - top-[794px]
+            Positioned(
+              left: screenWidth * 0.0833 + 1.5,
+              top: 794,
+              child: _buildSeeMoreButton(),
+            ),
+
+            // Bottom bar - left-[calc(33.33%-3px)] top-[863px]
+            Positioned(
+              left: screenWidth * 0.3333 - 3,
+              top: 863,
+              child: Container(
+                width: 145.848,
+                height: 5.442,
+                decoration: BoxDecoration(
+                  color: Colors.black,
+                  borderRadius: BorderRadius.circular(34),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNotificationCard(String text, String avatarImage) {
+    return Container(
+      width: 332,
+      height: 66,
+      decoration: BoxDecoration(
+        color: const Color(0x1A000000), // rgba(0,0,0,0.1)
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
         children: [
-          // Animated Bubbles Background - matching Figma (377:1466)
-          AnimatedBuilder(
-            animation: _bubblesController,
-            builder: (context, child) {
-              return Stack(
-                children: [
-                  // Large yellow bubble - top left with floating animation
-                  Positioned(
-                    left: -179.79 + math.sin(_bubblesController.value * 2 * math.pi) * 20,
-                    top: -276.58 + math.cos(_bubblesController.value * 2 * math.pi) * 15,
-                    child: Transform.rotate(
-                      angle: _bubblesController.value * 2 * math.pi * 0.5,
-                      child: Container(
-                        width: 550.345,
-                        height: 512.152,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: RadialGradient(
-                            colors: [
-                              const Color(0xFFFFD700).withOpacity(0.25),
-                              const Color(0xFFFFD700).withOpacity(0.05),
-                              Colors.transparent,
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  
-                  // Black/dark bubble - rotating with breathing effect
-                  Positioned(
-                    left: -97.03,
-                    top: -298.88 + math.sin(_bubblesController.value * 2 * math.pi * 0.7) * 25,
-                    child: Transform.rotate(
-                      angle: 232 * math.pi / 180 + _bubblesController.value * 2 * math.pi * 0.3,
-                      child: Transform.scale(
-                        scale: 1.0 + math.sin(_bubblesController.value * 2 * math.pi) * 0.05,
-                        child: Container(
-                          width: 442.65,
-                          height: 402.871,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.black.withOpacity(0.12),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
-          
-          // Main Content
-          SafeArea(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          const SizedBox(width: 9),
+          // Avatar with drop shadow and image - 46x46
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.16),
+                  blurRadius: 5,
+                  spreadRadius: 0,
+                ),
+              ],
+            ),
+            child: Stack(
               children: [
-                // Animated Header with back button and title
-                SlideTransition(
-                  position: Tween<Offset>(
-                    begin: const Offset(0, -1),
-                    end: Offset.zero,
-                  ).animate(CurvedAnimation(
-                    parent: _headerController,
-                    curve: Curves.easeOutCubic,
-                  )),
-                  child: Container(
-                    height: 140,
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [Colors.black, Color(0xFFFFD700)],
-                      ),
-                      borderRadius: BorderRadius.only(
-                        bottomLeft: Radius.circular(50),
-                        bottomRight: Radius.circular(50),
-                      ),
-                    ),
-                    child: Stack(
-                      children: [
-                        // Back button with ripple effect
-                        Positioned(
-                          left: 10,
-                          top: 20,
-                          child: Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(24),
-                              onTap: () => Navigator.pop(context),
-                              child: Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: const Icon(
-                                  Icons.arrow_back,
-                                  color: Colors.white,
-                                  size: 28,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        
-                        // Title - "Notifications"
-                        const Positioned(
-                          left: 67,
-                          top: 58,
-                          child: Text(
-                            'Notifications',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontFamily: 'Raleway',
-                              fontSize: 50,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: -0.52,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                // Ellipse background - #8F7902
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Color(0xFF8F7902),
                   ),
                 ),
-                
-                const SizedBox(height: 20),
-                
-                // Scrollable content with sections
-                Expanded(
-                  child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 35),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Announcement Section
-                        _buildSectionHeader('Announcement :', 0),
-                        const SizedBox(height: 11),
-                        _buildNotificationsList([
-                          'Monthly meeting schedule for November is now available.',
-                          'Attendance policy updated — please read the new guidelines.',
-                        ], 0),
-                        
-                        const SizedBox(height: 10),
-                        _buildSeeMoreButton(2),
-                        
-                        const SizedBox(height: 20),
-                        
-                        // News Section  
-                        _buildSectionHeader('News :', 3),
-                        const SizedBox(height: 11),
-                        _buildNotificationsList([
-                          'Leo Club of Colombo recognized as Best Community Service Club 2025!',
-                        ], 3),
-                        
-                        const SizedBox(height: 10),
-                        _buildSeeMoreButton(4),
-                        
-                        const SizedBox(height: 20),
-                        
-                        // Notifications Section
-                        _buildSectionHeader('Notifications :', 5),
-                        const SizedBox(height: 11),
-                        _buildNotificationsList([
-                          'Membership renewal due soon. Don\'t forget to renew before Nov 15',
-                          'New message from Club President.',
-                        ], 5),
-                        
-                        const SizedBox(height: 10),
-                        _buildSeeMoreButton(7),
-                        
-                        const SizedBox(height: 40),
-                      ],
-                    ),
-                  ),
-                ),
-                
-                // Bottom Bar Indicator
-                Center(
-                  child: Container(
-                    width: 145.848,
-                    height: 5.442,
-                    margin: const EdgeInsets.only(bottom: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.black,
-                      borderRadius: BorderRadius.circular(34),
+                // Avatar image
+                ClipOval(
+                  child: Image.asset(
+                    avatarImage,
+                    width: 46,
+                    height: 46,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      width: 46,
+                      height: 46,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Color(0xFF8F7902),
+                      ),
+                      child: const Icon(Icons.person, color: Colors.white, size: 28),
                     ),
                   ),
                 ),
               ],
             ),
           ),
+          const SizedBox(width: 6),
+          // Text - ml-[61px] mt-[21px] w-[255px]
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(right: 10, top: 9, bottom: 9),
+              child: Text(
+                text,
+                style: const TextStyle(
+                  fontFamily: 'Nunito Sans',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black,
+                  height: 1.0,
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
-  
-  Widget _buildSectionHeader(String title, int animationIndex) {
-    final animation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _listController,
-        curve: Interval(
-          animationIndex * 0.08,
-          animationIndex * 0.08 + 0.3,
-          curve: Curves.easeOut,
-        ),
+
+  Widget _buildNotificationCardRich(String boldText, String normalText, String avatarImage) {
+    return Container(
+      width: 332,
+      height: 66,
+      decoration: BoxDecoration(
+        color: const Color(0x1A000000), // rgba(0,0,0,0.1)
+        borderRadius: BorderRadius.circular(20),
       ),
-    );
-    
-    return AnimatedBuilder(
-      animation: animation,
-      builder: (context, child) {
-        return Transform.translate(
-          offset: Offset(-30 * (1 - animation.value), 0),
-          child: Opacity(
-            opacity: animation.value,
-            child: child,
-          ),
-        );
-      },
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontFamily: 'Raleway',
-          fontSize: 26,
-          fontWeight: FontWeight.w700,
-          color: Colors.black,
-          height: 32 / 26,
-        ),
-      ),
-    );
-  }
-  
-  Widget _buildNotificationsList(List<String> items, int startIndex) {
-    return Column(
-      children: items.asMap().entries.map((entry) {
-        final index = entry.key;
-        final text = entry.value;
-        final overallIndex = startIndex + index;
-        
-        // Staggered animation for each item
-        final animation = Tween<double>(begin: 0.0, end: 1.0).animate(
-          CurvedAnimation(
-            parent: _listController,
-            curve: Interval(
-              overallIndex * 0.08,
-              overallIndex * 0.08 + 0.4,
-              curve: Curves.easeOut,
+      child: Row(
+        children: [
+          const SizedBox(width: 9),
+          // Avatar with drop shadow and image
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.16),
+                  blurRadius: 5,
+                  spreadRadius: 0,
+                ),
+              ],
+            ),
+            child: Stack(
+              children: [
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Color(0xFF8F7902),
+                  ),
+                ),
+                ClipOval(
+                  child: Image.asset(
+                    avatarImage,
+                    width: 46,
+                    height: 46,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      width: 46,
+                      height: 46,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Color(0xFF8F7902),
+                      ),
+                      child: const Icon(Icons.person, color: Colors.white, size: 28),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-        );
-        
-        return AnimatedBuilder(
-          animation: animation,
-          builder: (context, child) {
-            return Transform.translate(
-              offset: Offset(0, 30 * (1 - animation.value)),
-              child: Opacity(
-                opacity: animation.value,
-                child: child,
-              ),
-            );
-          },
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () {
-                // Handle notification tap
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(text),
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
-              },
-              borderRadius: BorderRadius.circular(20),
-              child: Container(
-                width: 332,
-                height: 66,
-                margin: const EdgeInsets.only(bottom: 11),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                decoration: BoxDecoration(
-                  color: const Color(0x1A000000), // rgba(0,0,0,0.1)
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
+          const SizedBox(width: 6),
+          // Text with rich formatting
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(right: 10, top: 9, bottom: 9),
+              child: RichText(
+                text: TextSpan(
                   children: [
-                    // Avatar circle with Leo logo
-                    Hero(
-                      tag: 'notification_avatar_$overallIndex',
-                      child: Container(
-                        width: 46,
-                        height: 46,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: const Color(0xFFFFD700).withOpacity(0.3),
-                          border: Border.all(
-                            color: const Color(0xFFFFD700),
-                            width: 2,
-                          ),
-                        ),
-                        child: const Icon(
-                          Icons.notifications_active,
-                          size: 24,
-                          color: Color(0xFF8F7902),
-                        ),
+                    TextSpan(
+                      text: boldText,
+                      style: const TextStyle(
+                        fontFamily: 'Nunito Sans',
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.black,
+                        height: 1.0,
                       ),
                     ),
-                    
-                    const SizedBox(width: 15),
-                    
-                    // Notification text
-                    Expanded(
-                      child: Text(
-                        text,
-                        style: const TextStyle(
-                          fontFamily: 'Nunito Sans',
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black,
-                          height: 12 / 12,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                    TextSpan(
+                      text: normalText,
+                      style: const TextStyle(
+                        fontFamily: 'Nunito Sans',
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black,
+                        height: 1.0,
                       ),
                     ),
                   ],
@@ -387,69 +442,119 @@ class _NotificationsScreenState extends State<NotificationsScreen>
               ),
             ),
           ),
-        );
-      }).toList(),
-    );
-  }
-  
-  Widget _buildSeeMoreButton(int animationIndex) {
-    final animation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _listController,
-        curve: Interval(
-          animationIndex * 0.08,
-          animationIndex * 0.08 + 0.3,
-          curve: Curves.easeOut,
-        ),
+        ],
       ),
     );
-    
-    return AnimatedBuilder(
-      animation: animation,
-      builder: (context, child) {
-        return Transform.scale(
-          scale: animation.value,
-          child: Opacity(
-            opacity: animation.value,
-            child: child,
-          ),
-        );
-      },
-      child: Material(
+  }
+
+  Widget _buildSeeMoreButton() {
+    return Container(
+      width: 332,
+      height: 39,
+      decoration: BoxDecoration(
         color: const Color(0xFFE6E6E6),
         borderRadius: BorderRadius.circular(14),
-        elevation: 0,
-        child: InkWell(
-          onTap: () {
-            // Animate and show more notifications
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Loading more...'),
-                behavior: SnackBarBehavior.floating,
-                duration: Duration(seconds: 1),
-              ),
-            );
-          },
-          borderRadius: BorderRadius.circular(14),
-          splashColor: const Color(0xFFFFD700).withOpacity(0.3),
-          highlightColor: const Color(0xFFFFD700).withOpacity(0.1),
-          child: Container(
-            width: 332,
-            height: 39,
-            alignment: Alignment.center,
-            child: const Text(
-              'See more...',
-              style: TextStyle(
-                fontFamily: 'Nunito Sans',
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                color: Colors.black,
-                height: 31 / 15,
-              ),
-            ),
+      ),
+      child: const Center(
+        child: Text(
+          'See more...',
+          style: TextStyle(
+            fontFamily: 'Nunito Sans',
+            fontSize: 15,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+            height: 31 / 15,
           ),
         ),
       ),
     );
   }
+}
+
+/// Yellow Bubble Painter - Exact Figma SVG path pf4ece00
+/// viewBox="0 0 551 513"
+class _YellowBubblePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFFFFD700)
+      ..style = PaintingStyle.fill;
+
+    final path = Path();
+    final scaleX = size.width / 551;
+    final scaleY = size.height / 513;
+
+    // M448.995 310.483C533.605 447.601 289.917 463.466 186.768 421.792C83.619 380.117 33.7843 262.714 75.4592 159.564C117.134 56.4154 225.428 43.8604 322.495 74.3444C419.562 104.828 364.385 173.365 448.995 310.483Z
+    path.moveTo(448.995 * scaleX, 310.483 * scaleY);
+    path.cubicTo(
+      533.605 * scaleX, 447.601 * scaleY,
+      289.917 * scaleX, 463.466 * scaleY,
+      186.768 * scaleX, 421.792 * scaleY,
+    );
+    path.cubicTo(
+      83.619 * scaleX, 380.117 * scaleY,
+      33.7843 * scaleX, 262.714 * scaleY,
+      75.4592 * scaleX, 159.564 * scaleY,
+    );
+    path.cubicTo(
+      117.134 * scaleX, 56.4154 * scaleY,
+      225.428 * scaleX, 43.8604 * scaleY,
+      322.495 * scaleX, 74.3444 * scaleY,
+    );
+    path.cubicTo(
+      419.562 * scaleX, 104.828 * scaleY,
+      364.385 * scaleX, 173.365 * scaleY,
+      448.995 * scaleX, 310.483 * scaleY,
+    );
+    path.close();
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// Black Bubble 01 Painter - Exact Figma SVG path p36b3a180
+/// viewBox="0 0 403 443"
+class _BlackBubblePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.black
+      ..style = PaintingStyle.fill;
+
+    final path = Path();
+    final scaleX = size.width / 403;
+    final scaleY = size.height / 443;
+
+    // M201.436 39.7783C296.874 -90.0363 402.871 129.964 402.871 241.214C402.871 352.464 312.686 442.65 201.436 442.65C90.1858 442.65 0 352.464 0 241.214C0 129.964 105.998 169.593 201.436 39.7783Z
+    path.moveTo(201.436 * scaleX, 39.7783 * scaleY);
+    path.cubicTo(
+      296.874 * scaleX, -90.0363 * scaleY,
+      402.871 * scaleX, 129.964 * scaleY,
+      402.871 * scaleX, 241.214 * scaleY,
+    );
+    path.cubicTo(
+      402.871 * scaleX, 352.464 * scaleY,
+      312.686 * scaleX, 442.65 * scaleY,
+      201.436 * scaleX, 442.65 * scaleY,
+    );
+    path.cubicTo(
+      90.1858 * scaleX, 442.65 * scaleY,
+      0 * scaleX, 352.464 * scaleY,
+      0 * scaleX, 241.214 * scaleY,
+    );
+    path.cubicTo(
+      0 * scaleX, 129.964 * scaleY,
+      105.998 * scaleX, 169.593 * scaleY,
+      201.436 * scaleX, 39.7783 * scaleY,
+    );
+    path.close();
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
