@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'dart:math' as math;
 
 class PasswordRecoveryScreen extends StatefulWidget {
-  const PasswordRecoveryScreen({Key? key}) : super(key: key);
+  const PasswordRecoveryScreen({super.key});
 
   @override
   State<PasswordRecoveryScreen> createState() => _PasswordRecoveryScreenState();
@@ -106,6 +107,7 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
           // Organic shape top-left (yellow)
@@ -198,8 +200,10 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen>
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(color: const Color(0xFFB8860B), width: 4),
-                      image: const DecorationImage(
-                        image: AssetImage('assets/images/avatar.png'),
+                    ),
+                    child: ClipOval(
+                      child: SvgPicture.asset(
+                        'assets/images/avatar_circle.svg',
                         fit: BoxFit.cover,
                       ),
                     ),
@@ -394,7 +398,7 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen>
 
 // Password Recovery Code Entry Screen
 class PasswordRecoveryCodeScreen extends StatefulWidget {
-  const PasswordRecoveryCodeScreen({Key? key}) : super(key: key);
+  const PasswordRecoveryCodeScreen({super.key});
 
   @override
   State<PasswordRecoveryCodeScreen> createState() => _PasswordRecoveryCodeScreenState();
@@ -507,6 +511,7 @@ class _PasswordRecoveryCodeScreenState extends State<PasswordRecoveryCodeScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
           // Organic shape top-left (yellow)
@@ -599,8 +604,10 @@ class _PasswordRecoveryCodeScreenState extends State<PasswordRecoveryCodeScreen>
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(color: const Color(0xFFB8860B), width: 4),
-                      image: const DecorationImage(
-                        image: AssetImage('assets/images/avatar.png'),
+                    ),
+                    child: ClipOval(
+                      child: SvgPicture.asset(
+                        'assets/images/avatar_circle.svg',
                         fit: BoxFit.cover,
                       ),
                     ),
@@ -823,7 +830,7 @@ class _PasswordRecoveryCodeScreenState extends State<PasswordRecoveryCodeScreen>
 
 // Success Dialog
 class SuccessDialog extends StatefulWidget {
-  const SuccessDialog({Key? key}) : super(key: key);
+  const SuccessDialog({super.key});
 
   @override
   State<SuccessDialog> createState() => _SuccessDialogState();
@@ -888,11 +895,11 @@ class _SuccessDialogState extends State<SuccessDialog>
                     child: Container(
                       width: 400,
                       height: 350,
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            const Color(0xFF8B7D2B),
-                            const Color(0xFF6B5D1B),
+                            Color(0xFF8B7D2B),
+                            Color(0xFF6B5D1B),
                           ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
@@ -949,12 +956,12 @@ class _SuccessDialogState extends State<SuccessDialog>
                           Container(
                             width: 90,
                             height: 90,
-                            decoration: BoxDecoration(
+                            decoration: const BoxDecoration(
                               shape: BoxShape.circle,
                               gradient: LinearGradient(
                                 colors: [
-                                  const Color(0xFF4ADE80),
-                                  const Color(0xFF22C55E),
+                                  Color(0xFF4ADE80),
+                                  Color(0xFF22C55E),
                                 ],
                               ),
                             ),

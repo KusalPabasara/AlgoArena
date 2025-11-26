@@ -1,9 +1,10 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../../core/utils/validators.dart';
+import '../../../utils/responsive_utils.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({Key? key}) : super(key: key);
+  const LoginScreen({super.key});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -12,7 +13,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
-  bool _isLoading = false;
+  final bool _isLoading = false;
   String? _emailError; // Store email error message
   
   // Animation controllers
@@ -161,6 +162,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
           // Bubble 04 - Large Bottom Yellow (Static with rotation)
@@ -235,311 +237,337 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
           FadeTransition(
             opacity: _fadeOutAnimation,
             child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 35),
-                child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                      SizedBox(height: MediaQuery.of(context).size.height * 0.40),
-                        
-                        // Animated "Login" Title
-                        SlideTransition(
-                          position: _titleSlideAnimation,
-                          child: FadeTransition(
-                            opacity: _titleFadeAnimation,
-                            child: const Text(
-                              'Login',
-                              style: TextStyle(
-                                fontFamily: 'Raleway',
-                                fontSize: 52,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF202020),
-                                letterSpacing: -0.52,
-                                height: 1.17,
-                              ),
-                            ),
-                          ),
-                        ),
-                        
-                        const SizedBox(height: 5),
-                        
-                        // Animated subtitle
-                        FadeTransition(
-                          opacity: _titleFadeAnimation,
-                          child: const Text(
-                            'Good to see you back!',
-                            style: TextStyle(
-                              fontFamily: 'Nunito Sans',
-                              fontSize: 19,
-                              fontWeight: FontWeight.w300,
-                              color: Color(0xFF202020),
-                              height: 35 / 19,
-                            ),
-                          ),
-                        ),
-                        
-                        const SizedBox(height: 30),
-                        
-                        // Animated Email Input Field with fixed-height error container
-                        SlideTransition(
-                          position: _inputSlideAnimation,
-                          child: FadeTransition(
-                            opacity: _inputFadeAnimation,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                TextFormField(
-                                  controller: _emailController,
-                                  keyboardType: TextInputType.emailAddress,
-                                  validator: (value) {
-                                    final error = Validators.validateEmail(value);
-                                    setState(() {
-                                      _emailError = error;
-                                    });
-                                    return error;
-                                  },
-                                  onChanged: (value) {
-                                    // Clear error on typing
-                                    if (_emailError != null) {
-                                      setState(() {
-                                        _emailError = null;
-                                      });
-                                    }
-                                  },
-                                  style: const TextStyle(
-                                    fontFamily: 'Nunito Sans',
-                                    fontSize: 19,
-                                    fontWeight: FontWeight.w300,
-                                    color: Colors.white, // White text
-                                  ),
-                                  decoration: InputDecoration(
-                                    hintText: 'Email',
-                                    hintStyle: const TextStyle(
-                                      fontFamily: 'Nunito Sans',
-                                      fontSize: 19,
-                                      fontWeight: FontWeight.w300,
-                                      color: Color(0xFFD2D2D2), // Light gray hint
-                                    ),
-                                    filled: true,
-                                    fillColor: Colors.black.withOpacity(0.4), // Black 40% opacity
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(30),
-                                      borderSide: BorderSide.none, // No border
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(30),
-                                      borderSide: BorderSide.none, // No border
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(30),
-                                      borderSide: BorderSide.none, // No border
-                                    ),
-                                    errorBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(30),
-                                      borderSide: BorderSide.none,
-                                    ),
-                                    focusedErrorBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(30),
-                                      borderSide: BorderSide.none, // No border even when error and focused
-                                    ),
-                                    errorStyle: const TextStyle(
-                                      height: 0, // Hide default error text
-                                      fontSize: 0,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  // Initialize responsive utilities
+                  ResponsiveUtils.init(context);
+                  
+                  return SingleChildScrollView(
+                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                    physics: const ClampingScrollPhysics(),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
+                      ),
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: ResponsiveUtils.adaptiveHorizontalPadding),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SizedBox(height: MediaQuery.of(context).size.height * 0.38),
+                              
+                              // Animated "Login" Title
+                              SlideTransition(
+                                position: _titleSlideAnimation,
+                                child: FadeTransition(
+                                  opacity: _titleFadeAnimation,
+                                  child: Text(
+                                    'Login',
+                                    style: TextStyle(
+                                      fontFamily: 'Raleway',
+                                      fontSize: ResponsiveUtils.sp(48),
+                                      fontWeight: FontWeight.w700,
+                                      color: const Color(0xFF202020),
+                                      letterSpacing: -0.52,
+                                      height: 1.17,
                                     ),
                                   ),
                                 ),
-                                // Fixed-height error container
-                                SizedBox(
-                                  height: 24, // Fixed height always reserved
-                                  child: _emailError != null
-                                      ? Padding(
-                                          padding: const EdgeInsets.only(left: 24, top: 4),
-                                          child: Text(
-                                            _emailError!,
-                                            style: const TextStyle(
-                                              color: Colors.red,
-                                              fontSize: 12,
+                              ),
+                              
+                              SizedBox(height: ResponsiveUtils.spacingXS),
+                              
+                              // Animated subtitle
+                              FadeTransition(
+                                opacity: _titleFadeAnimation,
+                                child: Text(
+                                  'Good to see you back!',
+                                  style: TextStyle(
+                                    fontFamily: 'Nunito Sans',
+                                    fontSize: ResponsiveUtils.bodyLarge,
+                                    fontWeight: FontWeight.w300,
+                                    color: const Color(0xFF202020),
+                                    height: 1.5,
+                                  ),
+                                ),
+                              ),
+                              
+                              SizedBox(height: ResponsiveUtils.spacingL),
+                              
+                              // Animated Email Input Field with fixed-height error container
+                              SlideTransition(
+                                position: _inputSlideAnimation,
+                                child: FadeTransition(
+                                  opacity: _inputFadeAnimation,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      SizedBox(
+                                        height: ResponsiveUtils.inputHeight,
+                                        child: TextFormField(
+                                          controller: _emailController,
+                                          keyboardType: TextInputType.emailAddress,
+                                          validator: (value) {
+                                            final error = Validators.validateEmail(value);
+                                            setState(() {
+                                              _emailError = error;
+                                            });
+                                            return error;
+                                          },
+                                          onChanged: (value) {
+                                            // Clear error on typing
+                                            if (_emailError != null) {
+                                              setState(() {
+                                                _emailError = null;
+                                              });
+                                            }
+                                          },
+                                          style: TextStyle(
+                                            fontFamily: 'Nunito Sans',
+                                            fontSize: ResponsiveUtils.bodyLarge,
+                                            fontWeight: FontWeight.w400,
+                                            color: Colors.white,
+                                          ),
+                                          decoration: InputDecoration(
+                                            hintText: 'Email',
+                                            hintStyle: TextStyle(
                                               fontFamily: 'Nunito Sans',
+                                              fontSize: ResponsiveUtils.bodyLarge,
+                                              fontWeight: FontWeight.w400,
+                                              color: const Color(0xFFD2D2D2),
+                                            ),
+                                            filled: true,
+                                            fillColor: Colors.black.withOpacity(0.4),
+                                            contentPadding: EdgeInsets.symmetric(
+                                              horizontal: ResponsiveUtils.spacingL,
+                                              vertical: ResponsiveUtils.spacingM,
+                                            ),
+                                            border: OutlineInputBorder(
+                                              borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                              borderSide: BorderSide.none,
+                                            ),
+                                            enabledBorder: OutlineInputBorder(
+                                              borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                              borderSide: BorderSide.none,
+                                            ),
+                                            focusedBorder: OutlineInputBorder(
+                                              borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                              borderSide: BorderSide.none,
+                                            ),
+                                            errorBorder: OutlineInputBorder(
+                                              borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                              borderSide: BorderSide.none,
+                                            ),
+                                            focusedErrorBorder: OutlineInputBorder(
+                                              borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                              borderSide: BorderSide.none,
+                                            ),
+                                            errorStyle: const TextStyle(
+                                              height: 0,
+                                              fontSize: 0,
                                             ),
                                           ),
-                                        )
-                                      : const SizedBox.shrink(),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        
-                        // Animated Next Button - Material Design
-                        FadeTransition(
-                          opacity: _inputFadeAnimation,
-                          child: ScaleTransition(
-                            scale: _buttonScaleAnimation,
-                            child: SizedBox(
-                              width: double.infinity,
-                              height: 60,
-                              child: FilledButton(
-                                onPressed: _isLoading ? null : _handleNext,
-                                style: FilledButton.styleFrom(
-                                  backgroundColor: Colors.black,
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(32),
-                                  ),
-                                  elevation: 4,
-                                  shadowColor: Colors.black.withOpacity(0.3),
-                                ),
-                                child: _isLoading
-                                    ? const SizedBox(
-                                        width: 24,
-                                        height: 24,
-                                        child: CircularProgressIndicator(
-                                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                          strokeWidth: 2.5,
-                                        ),
-                                      )
-                                    : const Text(
-                                        'Next',
-                                        style: TextStyle(
-                                          fontFamily: 'Nunito Sans',
-                                          fontSize: 19,
-                                          fontWeight: FontWeight.w500,
-                                
                                         ),
                                       ),
+                                      // Fixed-height error container
+                                      SizedBox(
+                                        height: ResponsiveUtils.spacingL,
+                                        child: _emailError != null
+                                            ? Padding(
+                                                padding: EdgeInsets.only(
+                                                  left: ResponsiveUtils.spacingL,
+                                                  top: ResponsiveUtils.spacingXS,
+                                                ),
+                                                child: Text(
+                                                  _emailError!,
+                                                  style: TextStyle(
+                                                    color: Colors.red,
+                                                    fontSize: ResponsiveUtils.bodySmall,
+                                                    fontFamily: 'Nunito Sans',
+                                                  ),
+                                                ),
+                                              )
+                                            : const SizedBox.shrink(),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
-                        ),
-                        
-                        const SizedBox(height: 18),
-                        
-                        // Animated Social Icons Row - Custom Icons
-                        FadeTransition(
-                          opacity: _socialFadeAnimation,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              // Google IconButton with custom image and blur
-                              Material(
-                                elevation: 4,
-                                shape: const CircleBorder(),
-                                shadowColor: Colors.black26,
-                                child: InkWell(
-                                  onTap: () => _handleSocialLogin('Google'),
-                                  customBorder: const CircleBorder(),
-                                  child: ClipOval(
-                                    child: BackdropFilter(
-                                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                                      child: Container(
-                                        width: 52,
-                                        height: 52,
-                                        padding: const EdgeInsets.all(12),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white.withOpacity(0.28),
-                                          shape: BoxShape.circle,
+                              
+                              // Animated Next Button - Material Design
+                              FadeTransition(
+                                opacity: _inputFadeAnimation,
+                                child: ScaleTransition(
+                                  scale: _buttonScaleAnimation,
+                                  child: SizedBox(
+                                    width: double.infinity,
+                                    height: ResponsiveUtils.buttonHeight,
+                                    child: FilledButton(
+                                      onPressed: _isLoading ? null : _handleNext,
+                                      style: FilledButton.styleFrom(
+                                        backgroundColor: Colors.black,
+                                        foregroundColor: Colors.white,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
                                         ),
-                                        child: Image.asset(
-                                          'assets/images/Google.png',
-                                          width: 28,
-                                          height: 28,
-                                          fit: BoxFit.contain,
+                                        elevation: 4,
+                                        shadowColor: Colors.black.withOpacity(0.3),
+                                      ),
+                                      child: _isLoading
+                                          ? SizedBox(
+                                              width: ResponsiveUtils.iconSize,
+                                              height: ResponsiveUtils.iconSize,
+                                              child: const CircularProgressIndicator(
+                                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                                strokeWidth: 2.5,
+                                              ),
+                                            )
+                                          : Text(
+                                              'Next',
+                                              style: TextStyle(
+                                                fontFamily: 'Nunito Sans',
+                                                fontSize: ResponsiveUtils.bodyLarge,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              
+                              SizedBox(height: ResponsiveUtils.spacingM),
+                              
+                              // Animated Social Icons Row - Custom Icons
+                              FadeTransition(
+                                opacity: _socialFadeAnimation,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    // Google IconButton with custom image and blur
+                                    Material(
+                                      elevation: 4,
+                                      shape: const CircleBorder(),
+                                      shadowColor: Colors.black26,
+                                      child: InkWell(
+                                        onTap: () => _handleSocialLogin('Google'),
+                                        customBorder: const CircleBorder(),
+                                        child: ClipOval(
+                                          child: BackdropFilter(
+                                            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                                            child: Container(
+                                              width: ResponsiveUtils.dp(52),
+                                              height: ResponsiveUtils.dp(52),
+                                              padding: EdgeInsets.all(ResponsiveUtils.spacingS + 4),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white.withOpacity(0.28),
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: Image.asset(
+                                                'assets/images/Google.png',
+                                                width: ResponsiveUtils.iconSize,
+                                                height: ResponsiveUtils.iconSize,
+                                                fit: BoxFit.contain,
+                                              ),
+                                            ),
+                                          ),
                                         ),
+                                      ),
+                                    ),
+                                    
+                                    SizedBox(width: ResponsiveUtils.spacingL),
+                                    
+                                    // Apple IconButton with custom image and blur
+                                    Material(
+                                      elevation: 4,
+                                      shape: const CircleBorder(),
+                                      shadowColor: Colors.black26,
+                                      child: InkWell(
+                                        onTap: () => _handleSocialLogin('Apple'),
+                                        customBorder: const CircleBorder(),
+                                        child: ClipOval(
+                                          child: BackdropFilter(
+                                            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                                            child: Container(
+                                              width: ResponsiveUtils.dp(52),
+                                              height: ResponsiveUtils.dp(52),
+                                              padding: EdgeInsets.all(ResponsiveUtils.spacingS + 4),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white.withOpacity(0.28),
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: Image.asset(
+                                                'assets/images/apple.png',
+                                                width: ResponsiveUtils.iconSize,
+                                                height: ResponsiveUtils.iconSize,
+                                                fit: BoxFit.contain,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              
+                              SizedBox(height: ResponsiveUtils.spacingM),
+                              
+                              // Animated Register Button - Material Design
+                              Center(
+                                child: FadeTransition(
+                                  opacity: _socialFadeAnimation,
+                                  child: ElevatedButton.icon(
+                                    onPressed: _handleRegister,
+                                    icon: Text(
+                                      'Register',
+                                      style: TextStyle(
+                                        fontFamily: 'Raleway',
+                                        fontSize: ResponsiveUtils.bodyLarge,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    label: Container(
+                                      width: ResponsiveUtils.dp(30),
+                                      height: ResponsiveUtils.dp(30),
+                                      decoration: const BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: Colors.black,
+                                      ),
+                                      child: Icon(
+                                        Icons.arrow_forward_rounded,
+                                        size: ResponsiveUtils.iconSizeSmall - 4,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFFFFD700),
+                                      foregroundColor: Colors.black,
+                                      elevation: 0,
+                                      shadowColor: Colors.transparent,
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: ResponsiveUtils.spacingM + 4,
+                                        vertical: ResponsiveUtils.spacingS + 4,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(ResponsiveUtils.dp(22)),
                                       ),
                                     ),
                                   ),
                                 ),
                               ),
                               
-                              const SizedBox(width: 24),
-                              
-                              // Apple IconButton with custom image and blur
-                              Material(
-                                elevation: 4,
-                                shape: const CircleBorder(),
-                                shadowColor: Colors.black26,
-                                child: InkWell(
-                                  onTap: () => _handleSocialLogin('Apple'),
-                                  customBorder: const CircleBorder(),
-                                  child: ClipOval(
-                                    child: BackdropFilter(
-                                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                                      child: Container(
-                                        width: 52,
-                                        height: 52,
-                                        padding: const EdgeInsets.all(12),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white.withOpacity(0.28),
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: Image.asset(
-                                          'assets/images/apple.png',
-                                          width: 26,
-                                          height: 26,
-                                          fit: BoxFit.contain,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
+                              // Bottom padding
+                              SizedBox(height: ResponsiveUtils.spacingXL),
                             ],
                           ),
                         ),
-                        
-                        const SizedBox(height: 18),
-                        
-                        // Animated Register Button - Material Design
-                        Center(
-                          child: FadeTransition(
-                            opacity: _socialFadeAnimation,
-                            child: ElevatedButton.icon(
-                              onPressed: _handleRegister,
-                              icon: const Text(
-                                'Register',
-                                style: TextStyle(
-                                  fontFamily: 'Raleway',
-                                  fontSize: 19,
-                                  fontWeight: FontWeight.w700,
-                                
-                                ),
-                              ),
-                              label: Container(
-                                width: 30,
-                                height: 30,
-                                decoration: const BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Colors.black,
-                                ),
-                                child: const Icon(
-                                  Icons.arrow_forward_rounded,
-                                  size: 16,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFFFD700),
-                                foregroundColor: Colors.black,
-                                elevation: 0,
-                                shadowColor: Colors.transparent,
-                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(22),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        
-                        
-                        
-                      ],
+                      ),
                     ),
-                  ),
-                ),
+                  );
+                },
+              ),
             ),
           ),
         ],

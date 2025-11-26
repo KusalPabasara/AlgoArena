@@ -4,9 +4,9 @@ class PasswordEntryScreen extends StatefulWidget {
   final String username;
 
   const PasswordEntryScreen({
-    Key? key,
+    super.key,
     required this.username,
-  }) : super(key: key);
+  });
 
   @override
   State<PasswordEntryScreen> createState() => _PasswordEntryScreenState();
@@ -107,6 +107,7 @@ class _PasswordEntryScreenState extends State<PasswordEntryScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
           // Large gray organic shape top-left
@@ -130,12 +131,12 @@ class _PasswordEntryScreenState extends State<PasswordEntryScreen>
             child: Container(
               width: 500,
               height: 500,
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: LinearGradient(
                   colors: [
-                    const Color(0xFFFFF8DC),
-                    const Color(0xFFFFF4B3),
+                    Color(0xFFFFF8DC),
+                    Color(0xFFFFF4B3),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,

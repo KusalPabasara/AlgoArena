@@ -7,7 +7,7 @@ import '../../../core/utils/validators.dart';
 import '../../../data/repositories/auth_repository.dart';
 
 class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({Key? key}) : super(key: key);
+  const RegisterScreen({super.key});
 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
@@ -788,6 +788,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
     
     return Scaffold(
       backgroundColor: Colors.white,
+      resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
           // Register screen bubbles - only show when not showing success
@@ -867,7 +868,10 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                 ),
                 
                 Expanded(
-                  child: Padding(
+                  child: SingleChildScrollView(
+                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                    physics: const ClampingScrollPhysics(),
+                    child: Padding(
                     padding: EdgeInsets.symmetric(horizontal: shouldScale ? 35 * scale : 35),
                     child: Form(
                       key: _formKey,
@@ -876,7 +880,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              SizedBox(height: 0),
+                              const SizedBox(height: 0),
                         
                         // Animated "Create Account" Title
                         FadeTransition(
@@ -887,7 +891,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                               fontFamily: 'Raleway',
                                 fontSize: shouldScale ? 52 * scale : 52,
                                 fontWeight: FontWeight.w700,
-                                color: Color(0xFF202020),
+                                color: const Color(0xFF202020),
                                 letterSpacing: shouldScale ? -0.52 * scale : -0.52,
                                 height: 1.17,
                             ),
@@ -1284,13 +1288,13 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                                        fontFamily: 'Nunito Sans',
                                     fontSize: shouldScale ? 16 * scale : 16,
                                     fontWeight: FontWeight.w300,
-                                    color: Color.fromARGB(255, 0, 0, 0), // W,
+                                    color: const Color.fromARGB(255, 0, 0, 0), // W,
                                     ),
                                     children: [
                                       TextSpan(
                                         text: 'Terms and Conditions',
                                         style: TextStyle(
-                                          color: Color(0xFF0088FF),
+                                          color: const Color(0xFF0088FF),
                                           decoration: TextDecoration.underline,
                                           fontWeight: FontWeight.w500,
                                           fontSize: shouldScale ? 16 * scale : 16,
@@ -1369,13 +1373,15 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                         ),
                       ),
                       
-                      
+                      // Add bottom padding for keyboard
+                      SizedBox(height: MediaQuery.of(context).viewInsets.bottom > 0 ? 20 : 0),
                     
                               ],
                             ),
                           ),
                         ),
                       ),
+                    ),
                 ),
                   ],
                 ),
@@ -1391,14 +1397,14 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                   BackdropFilter(
                     filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                     child: Container(
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         gradient: LinearGradient(
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                           colors: [
-                            const Color(0xFFF5F5F5),
-                            const Color(0xFFFFFFFF),
-                            const Color(0xFFF0F9FF),
+                            Color(0xFFF5F5F5),
+                            Color(0xFFFFFFFF),
+                            Color(0xFFF0F9FF),
                           ],
                         ),
                       ),
@@ -1568,12 +1574,12 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                                   child: Container(
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(28),
-                                      gradient: LinearGradient(
+                                      gradient: const LinearGradient(
                                         begin: Alignment.topLeft,
                                         end: Alignment.bottomRight,
                                         colors: [
                                           Colors.white,
-                                          const Color(0xFFFAFAFA),
+                                          Color(0xFFFAFAFA),
                                         ],
                                       ),
                                       boxShadow: [
@@ -1731,7 +1737,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                                                     borderRadius: BorderRadius.circular(20),
                                                     color: const Color(0xFF4CAF50).withOpacity(0.1),
                                                   ),
-                                                  child: Row(
+                                                  child: const Row(
                                                     mainAxisSize: MainAxisSize.min,
                                                     children: [
                                                       SizedBox(
@@ -1740,12 +1746,12 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                                                         child: CircularProgressIndicator(
                                                           strokeWidth: 2.5,
                                                           valueColor: AlwaysStoppedAnimation<Color>(
-                                                            const Color(0xFF4CAF50),
+                                                            Color(0xFF4CAF50),
                                                           ),
                                                         ),
                                                       ),
-                                                      const SizedBox(width: 12),
-                                                      const Text(
+                                                      SizedBox(width: 12),
+                                                      Text(
                                                         'Redirecting to login...',
                                                         style: TextStyle(
                                                           fontFamily: 'Nunito Sans',
@@ -1785,7 +1791,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
 
 // Success Dialog Widget
 class _SuccessDialog extends StatefulWidget {
-  const _SuccessDialog({Key? key}) : super(key: key);
+  const _SuccessDialog({super.key});
 
   @override
   State<_SuccessDialog> createState() => _SuccessDialogState();

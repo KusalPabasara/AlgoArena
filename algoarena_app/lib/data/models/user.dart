@@ -90,4 +90,19 @@ class User {
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
+
+  // Role helper getters
+  bool get isSuperAdmin => role.toLowerCase() == 'superadmin' || role.toLowerCase() == 'super_admin';
+  bool get isWebmaster => role.toLowerCase() == 'webmaster' || isSuperAdmin;
+  bool get isAdmin => role.toLowerCase() == 'admin' || isWebmaster;
+  bool get canCreatePages => isSuperAdmin;
+  bool get canCreatePosts => isAdmin || isWebmaster || isSuperAdmin;
+
+  // Display role for UI
+  String get displayRole {
+    if (isSuperAdmin) return 'Super Admin';
+    if (isWebmaster) return 'Webmaster';
+    if (isAdmin) return 'Admin';
+    return role.isNotEmpty ? role[0].toUpperCase() + role.substring(1) : 'Member';
+  }
 }

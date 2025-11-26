@@ -127,24 +127,32 @@ class _VerifySmsScreenState extends State<VerifySmsScreen> {
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // Yellow and black bubbles at top
+          // Yellow and black bubbles at top with fade-in transition
           Positioned(
             left: -8.43,
             top: -297.58,
-            child: Image.asset(
-              'assets/images/bubbles.png',
-              width: 566.388,
-              height: 620.085,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  width: 566.388,
-                  height: 620.085,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFD700),
-                    borderRadius: BorderRadius.circular(500),
-                  ),
-                );
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0.0, end: 1.0),
+              duration: const Duration(milliseconds: 600),
+              curve: Curves.easeOut,
+              builder: (context, opacity, child) {
+                return Opacity(opacity: opacity, child: child);
               },
+              child: Image.asset(
+                'assets/images/bubbles.png',
+                width: 566.388,
+                height: 620.085,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    width: 566.388,
+                    height: 620.085,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFD700),
+                      borderRadius: BorderRadius.circular(500),
+                    ),
+                  );
+                },
+              ),
             ),
           ),
 

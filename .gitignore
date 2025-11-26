@@ -1,0 +1,37 @@
+# Ignore Markdown files (keep them locally, don't push)
+*.md
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor directories
+.vscode/
+.idea/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Flutter / Dart
+/.dart_tool/
+/.pub/
+/build/
+/ios/Flutter/Flutter.framework
+/ios/Flutter/Flutter.podspec
+/ios/Pods/
+/ios/Runner.xcworkspace/
+/android/.gradle/
+/android/app/build/
+**/build/
+
+# Java / Gradle
+/.gradle/
+/gradle-app.setting
+
+# Misc
+/coverage/
+*.log
+*.lock

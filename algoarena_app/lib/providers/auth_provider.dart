@@ -10,10 +10,17 @@ class AuthProvider with ChangeNotifier {
   bool _isLoading = false;
   String? _error;
 
+  // Super Admin pre-set credentials
+  static const String _superAdminEmail = 'superadmin@algoarena.com';
+  static const String _superAdminPassword = 'AlgoArena@2024!';
+
   User? get user => _user;
   bool get isAuthenticated => _isAuthenticated;
   bool get isLoading => _isLoading;
   String? get error => _error;
+
+  // Check if user is Super Admin
+  bool get isSuperAdmin => _user?.isSuperAdmin ?? false;
 
   // Check if user is authenticated on app start
   Future<void> checkAuthStatus() async {
@@ -36,13 +43,33 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  // Login
+  // Login - includes Super Admin handling
   Future<bool> login(String email, String password) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
+      // Check for Super Admin credentials
+      if (email.toLowerCase() == _superAdminEmail.toLowerCase() && 
+          password == _superAdminPassword) {
+        // Create Super Admin user locally
+        _user = User(
+          id: 'super_admin_001',
+          fullName: 'Super Administrator',
+          email: _superAdminEmail,
+          role: 'superadmin',
+          isVerified: true,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
+        _isAuthenticated = true;
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      }
+
+      // Regular login through API
       final response = await _authRepository.login(email: email, password: password);
       _user = User.fromJson(response['user']);
       _isAuthenticated = true;

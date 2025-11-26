@@ -26,9 +26,12 @@ class AppBottomNav extends StatelessWidget {
             Navigator.pushReplacementNamed(context, '/search');
             break;
           case 2:
-            Navigator.pushReplacementNamed(context, '/pages');
+            Navigator.pushReplacementNamed(context, '/events');
             break;
           case 3:
+            Navigator.pushReplacementNamed(context, '/pages');
+            break;
+          case 4:
             Navigator.pushReplacementNamed(context, '/profile');
             break;
         }
@@ -38,7 +41,7 @@ class AppBottomNav extends StatelessWidget {
       unselectedItemColor: AppColors.textHint,
       items: [
         BottomNavigationBarItem(
-          icon: CustomIcons.calendar(
+          icon: CustomIcons.home(
             size: 24,
             color: currentIndex == 0 ? AppColors.primary : AppColors.textHint,
           ),
@@ -52,16 +55,23 @@ class AppBottomNav extends StatelessWidget {
           label: AppStrings.search,
         ),
         BottomNavigationBarItem(
+          icon: CustomIcons.calendar(
+            size: 24,
+            color: currentIndex == 2 ? AppColors.primary : AppColors.textHint,
+          ),
+          label: 'Events',
+        ),
+        BottomNavigationBarItem(
           icon: CustomIcons.pages(
             size: 28,
-            color: currentIndex == 2 ? AppColors.primary : const Color(0xFF141B34),
+            color: currentIndex == 3 ? AppColors.primary : const Color(0xFF141B34),
           ),
           label: AppStrings.pages,
         ),
         BottomNavigationBarItem(
           icon: CustomIcons.profile(
             size: 24,
-            color: currentIndex == 3 ? AppColors.primary : AppColors.textHint,
+            color: currentIndex == 4 ? AppColors.primary : AppColors.textHint,
           ),
           label: AppStrings.profile,
         ),

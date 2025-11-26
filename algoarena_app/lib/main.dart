@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'config/environment.dart';
 import 'core/theme/app_theme.dart';
 import 'presentation/screens/splash/splash_screen.dart';
 import 'presentation/screens/auth/login_screen.dart';
@@ -27,12 +29,44 @@ import 'providers/auth_provider.dart';
 import 'providers/post_provider.dart';
 import 'providers/club_provider.dart';
 
-void main() {
+void main() async {
+  // Ensure Flutter bindings are initialized for async operations
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // ========================================
+  // 🔧 ENVIRONMENT CONFIGURATION
+  // ========================================
+  // For DEVELOPMENT (local backend): Use EnvironmentType.development
+  // For PRODUCTION (deployed backend): Use EnvironmentType.production
+  // 
+  // Before building production APK:
+  // 1. Deploy your backend to Railway/Render/etc
+  // 2. Update the URL in lib/config/environment.dart
+  // 3. Change this to EnvironmentType.production
+  // ========================================
+  Environment.init(EnvironmentType.production);  // <-- CHANGED TO PRODUCTION
+  
+  // Log environment for debugging
+  debugPrint('🌍 Environment: ${Environment.name}');
+  debugPrint('🔗 API URL: ${Environment.apiBaseUrl}');
+  
+  // Optimize system UI
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: Brightness.dark,
+  ));
+  
+  // Lock to portrait mode for consistent UI
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+  
   runApp(const AlgoArenaApp());
 }
 
 class AlgoArenaApp extends StatelessWidget {
-  const AlgoArenaApp({Key? key}) : super(key: key);
+  const AlgoArenaApp({super.key});
 
   @override
   Widget build(BuildContext context) {
