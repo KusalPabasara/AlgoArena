@@ -116,4 +116,14 @@ class AuthRepository {
     final token = await _apiService.getToken();
     return token != null;
   }
+
+  // Delete account
+  Future<void> deleteAccount() async {
+    try {
+      await _apiService.delete('/auth/account', withAuth: true);
+      await _apiService.deleteToken();
+    } catch (e) {
+      throw Exception('Failed to delete account: $e');
+    }
+  }
 }
