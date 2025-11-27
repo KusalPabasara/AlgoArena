@@ -1,42 +1,17 @@
-const firestoreService = require('../services/firestore.service');
+const District = require('../models/District');
 
 // @desc    Get all districts
 // @route   GET /api/districts
 // @access  Private
 exports.getAllDistricts = async (req, res) => {
   try {
-    const districts = await firestoreService.getAll('districts', {
-      orderBy: ['name', 'asc']
-    });
+    const districts = await District.find()
+      .populate('admin', 'fullName email')
+      .populate('clubs', 'name logo location')
+      .sort({ name: 1 });
 
-    // Populate admin and clubs data
-    const districtsWithData = await Promise.all(
-      districts.map(async (district) => {
-        const admin = await firestoreService.getById('users', district.adminId);
-        
-        const clubs = await Promise.all(
-          (district.clubIds || []).map(async (clubId) => {
-            const club = await firestoreService.getById('clubs', clubId);
-            return club ? {
-              id: clubId,
-              name: club.name,
-              logo: club.logo,
-              location: club.location
-            } : null;
-          })
-        );
-
-        return {
-          ...district,
-          admin: admin ? { id: district.adminId, fullName: admin.fullName, email: admin.email } : null,
-          clubs: clubs.filter(Boolean)
-        };
-      })
-    );
-
-    res.json(districtsWithData);
+    res.json(districts);
   } catch (error) {
-    console.error('Get all districts error:', error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -46,36 +21,16 @@ exports.getAllDistricts = async (req, res) => {
 // @access  Private
 exports.getDistrictById = async (req, res) => {
   try {
-    const district = await firestoreService.getById('districts', req.params.id);
+    const district = await District.findById(req.params.id)
+      .populate('admin', 'fullName email profilePhoto')
+      .populate('clubs', 'name logo description location members');
 
     if (!district) {
       return res.status(404).json({ message: 'District not found' });
     }
 
-    // Populate admin and clubs data
-    const admin = await firestoreService.getById('users', district.adminId);
-    
-    const clubs = await Promise.all(
-      (district.clubIds || []).map(async (clubId) => {
-        const club = await firestoreService.getById('clubs', clubId);
-        return club ? {
-          id: clubId,
-          name: club.name,
-          logo: club.logo,
-          description: club.description,
-          location: club.location,
-          members: club.memberIds || []
-        } : null;
-      })
-    );
-
-    res.json({
-      ...district,
-      admin: admin ? { id: district.adminId, fullName: admin.fullName, email: admin.email, profilePhoto: admin.profilePhoto } : null,
-      clubs: clubs.filter(Boolean)
-    });
+    res.json(district);
   } catch (error) {
-    console.error('Get district by ID error:', error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -87,24 +42,17 @@ exports.createDistrict = async (req, res) => {
   try {
     const { name, location } = req.body;
 
-    const districtData = {
+    const district = await District.create({
       name,
       location,
-      adminId: req.user.id,
-      clubIds: []
-    };
-
-    const district = await firestoreService.create('districts', districtData);
-
-    // Populate admin data
-    const admin = await firestoreService.getById('users', req.user.id);
-
-    res.status(201).json({
-      ...district,
-      admin: admin ? { id: req.user.id, fullName: admin.fullName, email: admin.email } : null
+      admin: req.user.id
     });
+
+    const populatedDistrict = await District.findById(district._id)
+      .populate('admin', 'fullName email');
+
+    res.status(201).json(populatedDistrict);
   } catch (error) {
-    console.error('Create district error:', error);
     res.status(500).json({ message: error.message });
   }
 };

@@ -2,17 +2,6 @@ import 'package:flutter/material.dart';
 
 /// Custom SVG icons from Figma design
 class CustomIcons {
-  // Home icon - house shape
-  static Widget home({double size = 24, Color color = Colors.black}) {
-    return SizedBox(
-      width: size,
-      height: size,
-      child: CustomPaint(
-        painter: _HomePainter(color: color),
-      ),
-    );
-  }
-
   // Calendar icon - exact from Figma
   static Widget calendar({double size = 24, Color color = Colors.black}) {
     return SizedBox(
@@ -306,48 +295,4 @@ class _MinusPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_MinusPainter oldDelegate) => oldDelegate.color != color;
-}
-
-/// Home icon painter - house shape
-class _HomePainter extends CustomPainter {
-  final Color color;
-
-  _HomePainter({required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.8
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-
-    // Draw house roof (triangle)
-    final roofPath = Path()
-      ..moveTo(size.width * 0.5, size.height * 0.1)  // Top center
-      ..lineTo(size.width * 0.1, size.height * 0.45) // Bottom left
-      ..lineTo(size.width * 0.9, size.height * 0.45) // Bottom right
-      ..close();
-    canvas.drawPath(roofPath, paint);
-
-    // Draw house body (rectangle)
-    final bodyPath = Path()
-      ..moveTo(size.width * 0.2, size.height * 0.45)
-      ..lineTo(size.width * 0.2, size.height * 0.85)
-      ..lineTo(size.width * 0.8, size.height * 0.85)
-      ..lineTo(size.width * 0.8, size.height * 0.45);
-    canvas.drawPath(bodyPath, paint);
-
-    // Draw door
-    final doorPath = Path()
-      ..moveTo(size.width * 0.4, size.height * 0.85)
-      ..lineTo(size.width * 0.4, size.height * 0.6)
-      ..lineTo(size.width * 0.6, size.height * 0.6)
-      ..lineTo(size.width * 0.6, size.height * 0.85);
-    canvas.drawPath(doorPath, paint);
-  }
-
-  @override
-  bool shouldRepaint(_HomePainter oldDelegate) => oldDelegate.color != color;
 }

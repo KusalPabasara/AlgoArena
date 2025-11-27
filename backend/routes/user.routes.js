@@ -1,39 +1,24 @@
 const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/auth');
-const firestoreService = require('../services/firestore.service');
+const User = require('../models/User');
 
 // @desc    Get user by ID
 // @route   GET /api/users/:id
 // @access  Private
 router.get('/:id', protect, async (req, res) => {
   try {
-    const user = await firestoreService.getById('users', req.params.id);
+    const user = await User.findById(req.params.id)
+      .select('-password')
+      .populate('club', 'name logo')
+      .populate('district', 'name location');
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Get club and district data if they exist
-    let club = null;
-    let district = null;
-
-    if (user.clubId) {
-      club = await firestoreService.getById('clubs', user.clubId);
-    }
-
-    if (user.districtId) {
-      district = await firestoreService.getById('districts', user.districtId);
-    }
-
-    res.json({
-      id: req.params.id,
-      ...user,
-      club: club ? { id: user.clubId, name: club.name, logo: club.logo } : null,
-      district: district ? { id: user.districtId, name: district.name, location: district.location } : null
-    });
+    res.json(user);
   } catch (error) {
-    console.error('Get user error:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -47,28 +32,18 @@ router.put('/:id', protect, async (req, res) => {
       return res.status(403).json({ message: 'Not authorized' });
     }
 
-    const { fullName, bio, profilePhoto, clubId, districtId } = req.body;
+    const { fullName, bio, profilePhoto } = req.body;
 
-    const updateData = {};
-    if (fullName !== undefined) updateData.fullName = fullName;
-    if (bio !== undefined) updateData.bio = bio;
-    if (profilePhoto !== undefined) updateData.profilePhoto = profilePhoto;
-    if (clubId !== undefined) updateData.clubId = clubId;
-    if (districtId !== undefined) updateData.districtId = districtId;
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { fullName, bio, profilePhoto },
+      { new: true, runValidators: true }
+    ).select('-password');
 
-    await firestoreService.update('users', req.params.id, updateData);
-
-    const updatedUser = await firestoreService.getById('users', req.params.id);
-
-    res.json({
-      id: req.params.id,
-      ...updatedUser
-    });
+    res.json(user);
   } catch (error) {
-    console.error('Update user error:', error);
     res.status(500).json({ message: error.message });
   }
 });
 
 module.exports = router;
-

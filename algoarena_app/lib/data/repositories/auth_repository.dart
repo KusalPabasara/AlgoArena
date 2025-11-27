@@ -96,21 +96,6 @@ class AuthRepository {
     }
   }
   
-  // Verify Leo ID
-  Future<User> verifyLeoId(String leoId) async {
-    try {
-      final response = await _apiService.post(
-        '/auth/verify-leo-id',
-        {'leoId': leoId},
-        withAuth: true,
-      );
-      
-      return User.fromJson(response['user']);
-    } catch (e) {
-      throw Exception('Failed to verify Leo ID: $e');
-    }
-  }
-  
   // Check if user is authenticated
   Future<bool> isAuthenticated() async {
     final token = await _apiService.getToken();

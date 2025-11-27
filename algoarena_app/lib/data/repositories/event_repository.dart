@@ -13,8 +13,8 @@ class EventRepository {
         organizer: 'Leo Club of\nUniversity of Sri Jayewardenepura',
         date: '23',
         month: 'Nov',
-        imageUrl: 'assets/images/Events/artist-2 1 (2).png',
-        bannerImageUrl: 'assets/images/Event_interior/Rectangle 2359.png',
+        imageUrl: 'https://via.placeholder.com/56',
+        bannerImageUrl: 'https://via.placeholder.com/121',
         description: '''
 
 Step into the core of modern computing as we uncover,
@@ -52,7 +52,7 @@ IG: https://www.instagram.com/p/DPx5dhCE8Vs/?igsh=MTdoeTI4bjk3c3lrMg==
 #IEEESB
 
 .''',
-        isJoined: true,
+        isJoined: false,
         colorTheme: EventColor.purple,
       ),
       Event(
@@ -62,7 +62,7 @@ IG: https://www.instagram.com/p/DPx5dhCE8Vs/?igsh=MTdoeTI4bjk3c3lrMg==
         organizer: 'Leo Club of\nUniversity of Colombo',
         date: '1',
         month: 'Dec',
-        imageUrl: 'assets/images/Events/artist-2 1 (1).png',
+        imageUrl: 'https://via.placeholder.com/56',
         colorTheme: EventColor.black,
       ),
       Event(
@@ -72,7 +72,7 @@ IG: https://www.instagram.com/p/DPx5dhCE8Vs/?igsh=MTdoeTI4bjk3c3lrMg==
         organizer: 'Leo District 306 D2',
         date: '7',
         month: 'Dec',
-        imageUrl: 'assets/images/Events/artist-2 1 (3).png',
+        imageUrl: 'https://via.placeholder.com/56',
         colorTheme: EventColor.cyan,
       ),
       Event(
@@ -82,7 +82,7 @@ IG: https://www.instagram.com/p/DPx5dhCE8Vs/?igsh=MTdoeTI4bjk3c3lrMg==
         organizer: 'Leo Club of Colombo',
         date: '10',
         month: 'Dec',
-        imageUrl: 'assets/images/Events/artist-2 1.png',
+        imageUrl: 'https://via.placeholder.com/56',
         colorTheme: EventColor.red,
       ),
       Event(
@@ -92,7 +92,7 @@ IG: https://www.instagram.com/p/DPx5dhCE8Vs/?igsh=MTdoeTI4bjk3c3lrMg==
         organizer: 'Leo District 306 D2',
         date: '15',
         month: 'Dec',
-        imageUrl: 'assets/images/Events/artist-2 1 (3).png',
+        imageUrl: 'https://via.placeholder.com/56',
         colorTheme: EventColor.cyan,
       ),
     ];

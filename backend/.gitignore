@@ -4,11 +4,3 @@ uploads/*
 !uploads/.gitkeep
 *.log
 .DS_Store
-
-# Firebase credentials
-serviceAccountKey.json
-firebase-adminsdk-*.json
-
-# Documentation files (Markdown)
-*.md
-!README.md

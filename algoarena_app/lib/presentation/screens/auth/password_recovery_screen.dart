@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'dart:math' as math;
 
 class PasswordRecoveryScreen extends StatefulWidget {
@@ -199,10 +198,8 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen>
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(color: const Color(0xFFB8860B), width: 4),
-                    ),
-                    child: ClipOval(
-                      child: SvgPicture.asset(
-                        'assets/images/avatar_circle.svg',
+                      image: const DecorationImage(
+                        image: AssetImage('assets/images/avatar.png'),
                         fit: BoxFit.cover,
                       ),
                     ),
@@ -602,10 +599,8 @@ class _PasswordRecoveryCodeScreenState extends State<PasswordRecoveryCodeScreen>
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(color: const Color(0xFFB8860B), width: 4),
-                    ),
-                    child: ClipOval(
-                      child: SvgPicture.asset(
-                        'assets/images/avatar_circle.svg',
+                      image: const DecorationImage(
+                        image: AssetImage('assets/images/avatar.png'),
                         fit: BoxFit.cover,
                       ),
                     ),

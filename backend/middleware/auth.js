@@ -1,5 +1,5 @@
-const authService = require('../services/auth.service');
-const firestoreService = require('../services/firestore.service');
+const jwt = require('jsonwebtoken');
+const User = require('../models/User');
 
 exports.protect = async (req, res, next) => {
   try {
@@ -15,58 +15,21 @@ exports.protect = async (req, res, next) => {
     }
 
     try {
-      let decodedToken;
+      // Verify token
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
       
-      // Try to verify as session token (JWT) first - for app authentication
-      try {
-        decodedToken = await authService.verifySessionToken(token);
-        
-        // Get user data from Firestore
-        const userData = await firestoreService.getById('users', decodedToken.uid);
-        
-        if (!userData) {
-          return res.status(401).json({ message: 'User not found' });
-        }
-
-        // Attach user to request
-        req.user = {
-          id: decodedToken.uid,
-          ...userData,
-          role: userData.role || 'member'
-        };
-
-        return next();
-      } catch (sessionError) {
-        // If session token fails, try Firebase ID token (for future Firebase client SDK integration)
-        try {
-          decodedToken = await authService.verifyToken(token);
-          
-          // Get user data from Firestore
-          const userData = await firestoreService.getById('users', decodedToken.uid);
-          
-          if (!userData) {
-            return res.status(401).json({ message: 'User not found' });
-          }
-
-          // Attach user to request
-          req.user = {
-            id: decodedToken.uid,
-            ...userData,
-            role: userData.role || 'member'
-          };
-
-          return next();
-        } catch (idTokenError) {
-          console.error('Token verification failed:', sessionError.message, idTokenError.message);
-          return res.status(401).json({ message: 'Invalid or expired token' });
-        }
+      // Get user from token
+      req.user = await User.findById(decoded.id).select('-password');
+      
+      if (!req.user) {
+        return res.status(401).json({ message: 'User not found' });
       }
+
+      next();
     } catch (err) {
-      console.error('Auth error:', err.message);
       return res.status(401).json({ message: 'Not authorized to access this route' });
     }
   } catch (error) {
-    console.error('Server error in auth middleware:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
