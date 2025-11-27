@@ -7,11 +7,16 @@ const otpStorage = new Map();
 const OTP_EXPIRY = 5 * 60 * 1000;
 
 // SendGrid Configuration - Uses HTTPS API (bypasses SMTP blocks on VPS)
-const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || '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';
+// IMPORTANT: Do NOT hardcode API keys. Use environment variables instead.
+const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
 const FROM_EMAIL = process.env.FROM_EMAIL || 'kusalpabasararcg@gmail.com';
 
-// Initialize SendGrid
-sgMail.setApiKey(SENDGRID_API_KEY);
+// Initialize SendGrid (only if API key is present)
+if (SENDGRID_API_KEY) {
+  sgMail.setApiKey(SENDGRID_API_KEY);
+} else {
+  console.warn('⚠️ SENDGRID_API_KEY is not set. Email sending will fail if attempted.');
+}
 
 class EmailService {
   constructor() {
