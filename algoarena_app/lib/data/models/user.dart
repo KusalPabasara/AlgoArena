@@ -7,6 +7,7 @@ class User {
   final String? phoneNumber;
   final String? leoClubId;
   final String? districtId;
+  final String? leoId; // Leo ID for webmaster permissions
   final String role;
   final bool isVerified;
   final DateTime createdAt;
@@ -21,6 +22,7 @@ class User {
     this.phoneNumber,
     this.leoClubId,
     this.districtId,
+    this.leoId,
     required this.role,
     required this.isVerified,
     required this.createdAt,
@@ -37,6 +39,7 @@ class User {
       phoneNumber: json['phoneNumber'],
       leoClubId: json['leoClub'],
       districtId: json['district'],
+      leoId: json['leoId'],
       role: json['role'] ?? 'member',
       isVerified: json['isVerified'] ?? false,
       createdAt: DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
@@ -54,6 +57,7 @@ class User {
       'phoneNumber': phoneNumber,
       'leoClub': leoClubId,
       'district': districtId,
+      'leoId': leoId,
       'role': role,
       'isVerified': isVerified,
       'createdAt': createdAt.toIso8601String(),
@@ -70,6 +74,7 @@ class User {
     String? phoneNumber,
     String? leoClubId,
     String? districtId,
+    String? leoId,
     String? role,
     bool? isVerified,
     DateTime? createdAt,
@@ -84,6 +89,7 @@ class User {
       phoneNumber: phoneNumber ?? this.phoneNumber,
       leoClubId: leoClubId ?? this.leoClubId,
       districtId: districtId ?? this.districtId,
+      leoId: leoId ?? this.leoId,
       role: role ?? this.role,
       isVerified: isVerified ?? this.isVerified,
       createdAt: createdAt ?? this.createdAt,

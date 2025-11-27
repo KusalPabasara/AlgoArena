@@ -1,10 +1,8 @@
 import '../models/user.dart';
 import '../services/api_service.dart';
-import '../services/google_auth_service.dart';
 
 class AuthRepository {
   final ApiService _apiService = ApiService();
-  final GoogleAuthService _googleAuthService = GoogleAuthService();
   
   // Register new user
   Future<Map<String, dynamic>> register({
@@ -24,22 +22,6 @@ class AuthRepository {
       return response;
     } catch (e) {
       throw Exception('Registration failed: $e');
-    }
-  }
-  
-  // Check if user exists and get display info
-  Future<Map<String, dynamic>> checkUser(String email) async {
-    try {
-      final response = await _apiService.post('/auth/check-user', {
-        'email': email,
-      });
-      return response;
-    } catch (e) {
-      // Return not found for any error
-      return {
-        'exists': false,
-        'message': 'User not found'
-      };
     }
   }
   
@@ -134,25 +116,14 @@ class AuthRepository {
     final token = await _apiService.getToken();
     return token != null;
   }
-  
-  // Google Sign-In
-  Future<Map<String, dynamic>> googleSignIn() async {
+
+  // Delete account
+  Future<void> deleteAccount() async {
     try {
-      // GoogleAuthService handles everything: Google sign-in, Firebase auth, backend call, token storage
-      final result = await _googleAuthService.signInWithGoogle();
-      return result;
-    } catch (e) {
-      throw Exception('Google Sign-In failed: $e');
-    }
-  }
-  
-  // Google Sign-Out
-  Future<void> googleSignOut() async {
-    try {
-      await _googleAuthService.signOut();
+      await _apiService.delete('/auth/account', withAuth: true);
       await _apiService.deleteToken();
     } catch (e) {
-      throw Exception('Google Sign-Out failed: $e');
+      throw Exception('Failed to delete account: $e');
     }
   }
 }

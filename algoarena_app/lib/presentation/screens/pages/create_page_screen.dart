@@ -1,96 +1,76 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
 import '../../../core/constants/colors.dart';
+import '../../../data/repositories/page_repository.dart';
+import '../../../data/repositories/leo_id_repository.dart';
+import '../../../data/models/leo_id.dart';
+import '../../../providers/auth_provider.dart';
 
+/// Create Page Screen - For Super Admin to create pages with webmaster assignment
 class CreatePageScreen extends StatefulWidget {
-  const CreatePageScreen({super.key});
+  const CreatePageScreen({Key? key}) : super(key: key);
 
   @override
   State<CreatePageScreen> createState() => _CreatePageScreenState();
 }
 
-class _CreatePageScreenState extends State<CreatePageScreen>
-    with TickerProviderStateMixin {
-  final _pageNameController = TextEditingController();
+class _CreatePageScreenState extends State<CreatePageScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
-  final _imagePicker = ImagePicker();
+  final _pageRepository = PageRepository();
+  final _leoIdRepository = LeoIdRepository();
   
-  XFile? _selectedImage;
+  String _selectedType = 'club'; // 'club' or 'district'
+  List<String> _selectedWebmasterIds = [];
+  List<LeoId> _availableLeoIds = [];
   bool _isLoading = false;
-  String _selectedPageType = 'club'; // 'club' or 'district'
-  
-  late AnimationController _bubbleController;
-  late AnimationController _fabController;
-  late Animation<double> _bubbleAnimation;
-  late Animation<double> _fabScaleAnimation;
+  bool _isLoadingLeoIds = true;
 
   @override
   void initState() {
     super.initState();
-    
-    // Background bubble animation
-    _bubbleController = AnimationController(
-      duration: const Duration(seconds: 3),
-      vsync: this,
-    )..repeat(reverse: true);
-    
-    _bubbleAnimation = Tween<double>(begin: -10, end: 10).animate(
-      CurvedAnimation(parent: _bubbleController, curve: Curves.easeInOut),
-    );
-    
-    // FAB pulse animation
-    _fabController = AnimationController(
-      duration: const Duration(milliseconds: 200),
-      vsync: this,
-    );
-    
-    _fabScaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
-      CurvedAnimation(parent: _fabController, curve: Curves.easeInOut),
-    );
+    _loadLeoIds();
   }
-  
+
   @override
   void dispose() {
-    _pageNameController.dispose();
+    _nameController.dispose();
     _descriptionController.dispose();
-    _bubbleController.dispose();
-    _fabController.dispose();
     super.dispose();
   }
 
-  Future<void> _pickImage() async {
-    _fabController.forward().then((_) => _fabController.reverse());
-    
+  Future<void> _loadLeoIds() async {
+    setState(() => _isLoadingLeoIds = true);
     try {
-      final image = await _imagePicker.pickImage(source: ImageSource.gallery);
-      if (image != null) {
-        setState(() {
-          _selectedImage = image;
-        });
-      }
+      final leoIds = await _leoIdRepository.getAllLeoIds();
+      setState(() {
+        _availableLeoIds = leoIds;
+        _isLoadingLeoIds = false;
+      });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to pick image'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      setState(() => _isLoadingLeoIds = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load Leo IDs: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
-  void _removeImage() {
-    setState(() {
-      _selectedImage = null;
-    });
-  }
-
   Future<void> _createPage() async {
-    if (_pageNameController.text.trim().isEmpty) {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    if (_selectedWebmasterIds.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please enter a page name'),
-          backgroundColor: AppColors.error,
+          content: Text('Please select at least one webmaster'),
+          backgroundColor: Colors.orange,
         ),
       );
       return;
@@ -99,402 +79,250 @@ class _CreatePageScreenState extends State<CreatePageScreen>
     setState(() => _isLoading = true);
 
     try {
-      // Simulate API call - In production, connect to backend
-      await Future.delayed(const Duration(seconds: 1));
-      
-      // Create page data
-      final newPage = {
-        'name': _pageNameController.text.trim(),
-        'description': _descriptionController.text.trim(),
-        'type': _selectedPageType,
-        'image': _selectedImage?.path,
-        'followers': 0,
-        'createdAt': DateTime.now().toIso8601String(),
-      };
+      await _pageRepository.createPage(
+        name: _nameController.text.trim(),
+        type: _selectedType,
+        description: _descriptionController.text.trim().isEmpty
+            ? null
+            : _descriptionController.text.trim(),
+        webmasterIds: _selectedWebmasterIds,
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${_selectedPageType == 'club' ? 'Club' : 'District'} page "${newPage['name']}" created successfully!'),
-            backgroundColor: const Color(0xFF8F7902),
+          const SnackBar(
+            content: Text('Page created successfully'),
+            backgroundColor: Colors.green,
           ),
         );
-        Navigator.pop(context, newPage); // Return the new page data
+        Navigator.pop(context, true);
       }
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString().replaceAll('Exception: ', '')),
-            backgroundColor: AppColors.error,
+            content: Text('Failed to create page: ${e.toString().replaceAll('Exception: ', '')}'),
+            backgroundColor: Colors.red,
           ),
         );
       }
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.white,
-      body: Stack(
-        children: [
-          // Animated Background Bubbles
-          AnimatedBuilder(
-            animation: _bubbleAnimation,
-            builder: (context, child) {
-              return Positioned(
-                right: -120,
-                top: 100 + _bubbleAnimation.value,
-                child: Opacity(
-                  opacity: 0.08,
-                  child: Container(
-                    width: 350,
-                    height: 350,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: const Color(0xFFFFD700).withOpacity(0.5),
+  void _showWebmasterSelector() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Select Webmasters'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: _isLoadingLeoIds
+              ? const Center(child: CircularProgressIndicator())
+              : _availableLeoIds.isEmpty
+                  ? const Text('No Leo IDs available')
+                  : StatefulBuilder(
+                      builder: (context, setDialogState) {
+                        return ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: _availableLeoIds.length,
+                          itemBuilder: (context, index) {
+                            final leoId = _availableLeoIds[index];
+                            final isSelected = _selectedWebmasterIds.contains(leoId.leoId);
+                            return CheckboxListTile(
+                              title: Text(leoId.leoId),
+                              subtitle: Text(leoId.email),
+                              value: isSelected,
+                              onChanged: (value) {
+                                setDialogState(() {
+                                  if (value == true) {
+                                    _selectedWebmasterIds.add(leoId.leoId);
+                                  } else {
+                                    _selectedWebmasterIds.remove(leoId.leoId);
+                                  }
+                                });
+                              },
+                            );
+                          },
+                        );
+                      },
                     ),
-                  ),
-                ),
-              );
-            },
-          ),
-          AnimatedBuilder(
-            animation: _bubbleAnimation,
-            builder: (context, child) {
-              return Positioned(
-                left: -100,
-                bottom: 150 - _bubbleAnimation.value * 0.7,
-                child: Opacity(
-                  opacity: 0.06,
-                  child: Container(
-                    width: 280,
-                    height: 280,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.black.withOpacity(0.3),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-          
-          // Main Content
-          SafeArea(
-            child: Column(
-              children: [
-                // Custom AppBar
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.arrow_back),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                      const Text(
-                        'Create Page',
-                        style: TextStyle(
-                          fontFamily: 'Raleway',
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.black,
-                        ),
-                      ),
-                      const Spacer(),
-                      TextButton(
-                        onPressed: _isLoading ? null : _createPage,
-                        child: Text(
-                          'Create',
-                          style: TextStyle(
-                            color: _isLoading ? AppColors.disabled : const Color(0xFF8F7902),
-                            fontFamily: 'Nunito Sans',
-                            fontWeight: FontWeight.w700,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                
-                // Scrollable content
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Page Type Selection
-                          const Text(
-                            'Page Type',
-                            style: TextStyle(
-                              fontFamily: 'Raleway',
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.black,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              _buildPageTypeButton('club', 'Club Page'),
-                              const SizedBox(width: 12),
-                              _buildPageTypeButton('district', 'District Page'),
-                            ],
-                          ),
-                          
-                          const SizedBox(height: 24),
-                          
-                          // Page Logo/Image
-                          const Text(
-                            'Page Logo',
-                            style: TextStyle(
-                              fontFamily: 'Raleway',
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.black,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          
-                          if (_selectedImage != null) ...[
-                            Stack(
-                              children: [
-                                Container(
-                                  width: 120,
-                                  height: 120,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(
-                                      color: const Color(0xFF8F7902),
-                                      width: 3,
-                                    ),
-                                    image: DecorationImage(
-                                      image: FileImage(File(_selectedImage!.path)),
-                                      fit: BoxFit.cover,
-                                    ),
-                                  ),
-                                ),
-                                Positioned(
-                                  top: 4,
-                                  right: 4,
-                                  child: GestureDetector(
-                                    onTap: _removeImage,
-                                    child: Container(
-                                      padding: const EdgeInsets.all(4),
-                                      decoration: const BoxDecoration(
-                                        color: Colors.red,
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Icon(
-                                        Icons.close,
-                                        size: 16,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                          ],
-                          
-                          ScaleTransition(
-                            scale: _fabScaleAnimation,
-                            child: OutlinedButton.icon(
-                              onPressed: _isLoading ? null : _pickImage,
-                              icon: const Icon(Icons.photo_library),
-                              label: Text(
-                                _selectedImage == null
-                                    ? 'Add Logo'
-                                    : 'Change Logo',
-                                style: const TextStyle(
-                                  fontFamily: 'Nunito Sans',
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: const Color(0xFF8F7902),
-                                side: const BorderSide(color: Color(0xFF8F7902), width: 2),
-                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(25),
-                                ),
-                              ),
-                            ),
-                          ),
-                          
-                          const SizedBox(height: 24),
-                          
-                          // Page name field
-                          const Text(
-                            'Page Name *',
-                            style: TextStyle(
-                              fontFamily: 'Raleway',
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.black,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          TextField(
-                            controller: _pageNameController,
-                            decoration: InputDecoration(
-                              hintText: _selectedPageType == 'club'
-                                  ? 'e.g., Leo Club of Colombo'
-                                  : 'e.g., Leo District 306 D2',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: Colors.grey),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: Color(0xFF8F7902), width: 2),
-                              ),
-                              hintStyle: const TextStyle(
-                                fontFamily: 'Nunito Sans',
-                                fontSize: 14,
-                                color: AppColors.textHint,
-                              ),
-                            ),
-                            style: const TextStyle(
-                              fontFamily: 'Nunito Sans',
-                              fontSize: 16,
-                            ),
-                          ),
-                          
-                          const SizedBox(height: 24),
-                          
-                          // Description field
-                          const Text(
-                            'Description',
-                            style: TextStyle(
-                              fontFamily: 'Raleway',
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.black,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          TextField(
-                            controller: _descriptionController,
-                            maxLines: 4,
-                            decoration: InputDecoration(
-                              hintText: 'Tell people about this page...',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: Colors.grey),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: Color(0xFF8F7902), width: 2),
-                              ),
-                              hintStyle: const TextStyle(
-                                fontFamily: 'Nunito Sans',
-                                fontSize: 14,
-                                color: AppColors.textHint,
-                              ),
-                            ),
-                            style: const TextStyle(
-                              fontFamily: 'Nunito Sans',
-                              fontSize: 16,
-                            ),
-                          ),
-                          
-                          const SizedBox(height: 32),
-                          
-                          // Create Page Button
-                          SizedBox(
-                            width: double.infinity,
-                            height: 50,
-                            child: ElevatedButton(
-                              onPressed: _isLoading ? null : _createPage,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF8F7902),
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                                elevation: 0,
-                              ),
-                              child: _isLoading
-                                  ? const SizedBox(
-                                      width: 24,
-                                      height: 24,
-                                      child: CircularProgressIndicator(
-                                        color: Colors.white,
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : const Text(
-                                      'Create Page',
-                                      style: TextStyle(
-                                        fontFamily: 'Nunito Sans',
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                            ),
-                          ),
-                          
-                          const SizedBox(height: 80),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Done'),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildPageTypeButton(String type, String label) {
-    final isSelected = _selectedPageType == type;
+  @override
+  Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
     
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedPageType = type;
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF8F7902) : Colors.white,
-          borderRadius: BorderRadius.circular(25),
-          border: Border.all(
-            color: isSelected ? const Color(0xFF8F7902) : Colors.grey.shade300,
-            width: 2,
-          ),
+    // Check if user is super admin
+    if (!authProvider.isSuperAdmin) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Create Page'),
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontFamily: 'Nunito Sans',
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-            color: isSelected ? Colors.white : Colors.black,
+        body: const Center(
+          child: Text('Access denied. Super admin only.'),
+        ),
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Create Page'),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Page Name
+              TextFormField(
+                controller: _nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Page Name *',
+                  hintText: 'Enter page name',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please enter a page name';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+
+              // Page Type
+              const Text(
+                'Page Type *',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: RadioListTile<String>(
+                      title: const Text('Club'),
+                      value: 'club',
+                      groupValue: _selectedType,
+                      onChanged: (value) {
+                        setState(() => _selectedType = value!);
+                      },
+                    ),
+                  ),
+                  Expanded(
+                    child: RadioListTile<String>(
+                      title: const Text('District'),
+                      value: 'district',
+                      groupValue: _selectedType,
+                      onChanged: (value) {
+                        setState(() => _selectedType = value!);
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // Description
+              TextFormField(
+                controller: _descriptionController,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  labelText: 'Description (Optional)',
+                  hintText: 'Enter page description',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Webmasters
+              const Text(
+                'Webmasters *',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              InkWell(
+                onTap: _showWebmasterSelector,
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.people_outline),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _selectedWebmasterIds.isEmpty
+                            ? const Text('Select webmasters')
+                            : Text('${_selectedWebmasterIds.length} webmaster(s) selected'),
+                      ),
+                      const Icon(Icons.arrow_forward_ios, size: 16),
+                    ],
+                  ),
+                ),
+              ),
+              if (_selectedWebmasterIds.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _selectedWebmasterIds.map((leoId) {
+                    return Chip(
+                      label: Text(leoId),
+                      onDeleted: () {
+                        setState(() {
+                          _selectedWebmasterIds.remove(leoId);
+                        });
+                      },
+                    );
+                  }).toList(),
+                ),
+              ],
+              const SizedBox(height: 24),
+
+              // Create Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _createPage,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text(
+                          'Create Page',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 }
+
