@@ -34,6 +34,12 @@ dependencies:
   timeago: ^3.6.0
   flutter_svg: ^2.0.9
   url_launcher: ^6.3.2
+  
+  # Performance & Connectivity
+  connectivity_plus: ^5.0.2
+  
+  # Authentication (Google Sign-In only - Firebase verification happens on backend)
+  google_sign_in: ^6.1.6
 
 dev_dependencies:
   flutter_test:
@@ -46,6 +52,15 @@ flutter:
   
   assets:
     - assets/images/
+    - assets/images/profile/
+    - assets/images/pages/
+    - assets/images/Events/
+    - assets/images/Event_interior/
+    - assets/images/Home/
+    - assets/images/search/
+    - assets/images/notifications/
+    - assets/images/leo_assist/
+    - assets/images/forgot_password/
 
 flutter_launcher_icons:
   android: true

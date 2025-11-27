@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
-import 'dart:math' as math;
-import '../../../core/constants/colors.dart';
-import '../../../data/models/club.dart';
-import '../../widgets/loading_indicator.dart';
+import 'package:provider/provider.dart';
+import '../../../providers/auth_provider.dart';
+import '../../widgets/custom_back_button.dart';
+import 'club_pages_list_screen.dart';
+import 'district_pages_list_screen.dart';
+import 'create_page_screen.dart';
 
 class PagesScreen extends StatefulWidget {
-  const PagesScreen({Key? key}) : super(key: key);
+  const PagesScreen({super.key});
 
   @override
   State<PagesScreen> createState() => _PagesScreenState();
@@ -13,348 +15,467 @@ class PagesScreen extends StatefulWidget {
 
 class _PagesScreenState extends State<PagesScreen>
     with TickerProviderStateMixin {
-  bool _isLoading = true;
-  List<Club> _clubs = [];
-  late AnimationController _bubblesController;
-  late AnimationController _listController;
-  late AnimationController _headerController;
+  AnimationController? _fadeController;
+  Animation<double>? _fadeAnimation;
+  bool _isInitialized = false;
+
+  // Club pages data - Using Figma assets
+  final List<Map<String, dynamic>> _clubPages = [
+    {
+      'name': 'Leo Club of Colombo',
+      'followers': 102,
+      'isFollowing': false,
+      'image': 'assets/images/pages/c6d5f9dff52b37a28977be041de113bc88dfa388.png',
+    },
+    {
+      'name': 'Leo Club of Katuwawala',
+      'followers': 97,
+      'isFollowing': false,
+      'image': 'assets/images/pages/6cd6f189d2f86fcc32f0d234e0416b42a8dcf4dd.png',
+    },
+  ];
+
+  // District pages data - Using Figma assets
+  final List<Map<String, dynamic>> _districtPages = [
+    {
+      'name': 'Leo District 306 D2',
+      'followers': 209,
+      'isFollowing': false,
+      'image': 'assets/images/pages/cba507d80d35e8876a479cce78f72f4bb9d95def.png',
+    },
+  ];
 
   @override
   void initState() {
     super.initState();
-    
-    // Floating bubbles animation
-    _bubblesController = AnimationController(
-      duration: const Duration(seconds: 25),
-      vsync: this,
-    )..repeat();
-    
-    // List items stagger animation
-    _listController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 400),
       vsync: this,
     );
-    
-    // Header animation
-    _headerController = AnimationController(
-      duration: const Duration(milliseconds: 600),
-      vsync: this,
+    _fadeAnimation = CurvedAnimation(
+      parent: _fadeController!,
+      curve: Curves.easeOut,
     );
-    
-    _headerController.forward();
-    _loadClubs();
+    _fadeController!.forward();
+    _isInitialized = true;
   }
-  
+
   @override
   void dispose() {
-    _bubblesController.dispose();
-    _listController.dispose();
-    _headerController.dispose();
+    _fadeController?.dispose();
     super.dispose();
   }
 
-  Future<void> _loadClubs() async {
-    // Mock data for now
-    await Future.delayed(const Duration(milliseconds: 500));
-    
-    if (mounted) {
-      setState(() {
-        final now = DateTime.now();
-        _clubs = [
-          Club(
-            id: '1',
-            name: 'Leo Club of Katuwawala',
-            logo: 'assets/images/pages/club1.png',
-            description: 'Leo Club serving Katuwawala area',
-            districtId: 'd1',
-            members: [],
-            adminId: 'a1',
-            location: Location(country: 'Sri Lanka', city: 'Katuwawala'),
-            createdAt: now,
-            updatedAt: now,
-            mutualCount: 97,
-            isFollowing: false,
-          ),
-          Club(
-            id: '2',
-            name: 'Leo Club of Colombo',
-            logo: 'assets/images/pages/club2.png',
-            description: 'Leo Club serving Colombo area',
-            districtId: 'd1',
-            members: [],
-            adminId: 'a1',
-            location: Location(country: 'Sri Lanka', city: 'Colombo'),
-            createdAt: now,
-            updatedAt: now,
-            mutualCount: 102,
-            isFollowing: false,
-          ),
-          Club(
-            id: '3',
-            name: 'Leo Club of University of Moratuwa',
-            logo: 'assets/images/pages/club3.png',
-            description: 'Leo Club at University of Moratuwa',
-            districtId: 'd1',
-            members: [],
-            adminId: 'a1',
-            location: Location(country: 'Sri Lanka', city: 'Moratuwa'),
-            createdAt: now,
-            updatedAt: now,
-            mutualCount: 97,
-            isFollowing: false,
-          ),
-          Club(
-            id: '4',
-            name: 'Leo Club of Gampaha',
-            logo: 'assets/images/pages/club1.png',
-            description: 'Leo Club serving Gampaha area',
-            districtId: 'd1',
-            members: [],
-            adminId: 'a1',
-            location: Location(country: 'Sri Lanka', city: 'Gampaha'),
-            createdAt: now,
-            updatedAt: now,
-            mutualCount: 97,
-            isFollowing: false,
-          ),
-          Club(
-            id: '5',
-            name: 'Leo Club of Kandy',
-            logo: 'assets/images/pages/club1.png',
-            description: 'Leo Club serving Kandy area',
-            districtId: 'd1',
-            members: [],
-            adminId: 'a1',
-            location: Location(country: 'Sri Lanka', city: 'Kandy'),
-            createdAt: now,
-            updatedAt: now,
-            mutualCount: 85,
-            isFollowing: false,
-          ),
-        ];
-        _isLoading = false;
-      });
-      
-      // Start list animation after data loaded
-      _listController.forward();
-    }
-  }
-
-  void _toggleFollow(String clubId) {
+  void _toggleFollow(List<Map<String, dynamic>> list, int index) {
     setState(() {
-      final index = _clubs.indexWhere((c) => c.id == clubId);
-      if (index != -1) {
-        final newFollowingState = !(_clubs[index].isFollowing ?? false);
-        _clubs[index] = _clubs[index].copyWith(
-          isFollowing: newFollowingState,
-        );
-        
-        // Show snackbar with animation
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              newFollowingState
-                  ? 'Following ${_clubs[index].name}'
-                  : 'Unfollowed ${_clubs[index].name}',
-            ),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-            duration: const Duration(seconds: 2),
-            backgroundColor: newFollowingState
-                ? AppColors.success
-                : AppColors.textSecondary,
-          ),
-        );
-      }
+      list[index]['isFollowing'] = !(list[index]['isFollowing'] as bool);
     });
+    
+    final name = list[index]['name'];
+    final isFollowing = list[index]['isFollowing'] as bool;
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(isFollowing ? 'Following $name' : 'Unfollowed $name'),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        duration: const Duration(seconds: 2),
+        backgroundColor: isFollowing ? const Color(0xFF8F7902) : Colors.grey,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    // Wait for animation to be initialized
+    if (!_isInitialized || _fadeAnimation == null) {
+      return const Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+    
+    // Check if user is Super Admin
+    final authProvider = Provider.of<AuthProvider>(context);
+    final isSuperAdmin = authProvider.user?.isSuperAdmin ?? false;
+    
     return Scaffold(
-      backgroundColor: AppColors.white,
+      backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // Animated Decorative bubbles background - Figma 337:657
-          AnimatedBuilder(
-            animation: _bubblesController,
-            builder: (context, child) {
-              return Stack(
+          // Bubbles background - matching Figma positions
+          _buildBubbles(),
+          
+          // Main content
+          SafeArea(
+            child: FadeTransition(
+              opacity: _fadeAnimation!,
+              child: Column(
                 children: [
-                  // Yellow/gold bubble - floating animation
-                  Positioned(
-                    left: -189.94 + math.sin(_bubblesController.value * 2 * math.pi) * 25,
-                    top: -336.1 + math.cos(_bubblesController.value * 2 * math.pi * 0.8) * 20,
-                    child: Transform.rotate(
-                      angle: _bubblesController.value * 2 * math.pi * 0.4,
-                      child: Container(
-                        width: 570.671,
-                        height: 579.191,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: RadialGradient(
-                            colors: [
-                              const Color(0xFFFFD700).withOpacity(0.22),
-                              const Color(0xFFFFD700).withOpacity(0.08),
-                              Colors.transparent,
-                            ],
+                  // Scrollable content
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 120), // More space to push content below bubbles
+                          
+                          // Club Pages section title - Figma: left:35, top:169
+                          const Padding(
+                            padding: EdgeInsets.only(left: 35),
+                            child: Text(
+                              'Club Pages :',
+                              style: TextStyle(
+                                fontFamily: 'Raleway',
+                                fontSize: 26,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.black,
+                                height: 32 / 26,
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  
-                  // Secondary bubble - slower rotation
-                  Positioned(
-                    right: -120,
-                    bottom: 100 + math.sin(_bubblesController.value * 2 * math.pi * 0.6) * 30,
-                    child: Transform.rotate(
-                      angle: -_bubblesController.value * 2 * math.pi * 0.2,
-                      child: Container(
-                        width: 400,
-                        height: 400,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.black.withOpacity(0.06),
-                        ),
+                          
+                          const SizedBox(height: 12),
+                          
+                          // Club Pages list - Figma: left:35, top:211, h:245
+                          SizedBox(
+                            height: 256, // 245 + 11 separator
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 35),
+                              child: ListView.separated(
+                                physics: const ClampingScrollPhysics(),
+                                itemCount: _clubPages.length,
+                                separatorBuilder: (_, __) => const SizedBox(height: 11),
+                                itemBuilder: (context, index) {
+                                  return _buildPageCard(
+                                    _clubPages[index],
+                                    () => _toggleFollow(_clubPages, index),
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                          
+                          const SizedBox(height: 6),
+                          
+                          // See more button for clubs - navigates to ClubPagesListScreen with bubble transition
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 35),
+                            child: _buildSeeMoreButton(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  PageRouteBuilder(
+                                    pageBuilder: (context, animation, secondaryAnimation) => 
+                                        const ClubPagesListScreen(),
+                                    transitionDuration: const Duration(milliseconds: 500),
+                                    reverseTransitionDuration: const Duration(milliseconds: 400),
+                                    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                                      // Fade transition for smooth bubble transition effect
+                                      return FadeTransition(
+                                        opacity: CurvedAnimation(
+                                          parent: animation,
+                                          curve: Curves.easeOut,
+                                        ),
+                                        child: child,
+                                      );
+                                    },
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          
+                          const SizedBox(height: 28),
+                          
+                          // District Pages section title - Figma: left:35, top:543
+                          const Padding(
+                            padding: EdgeInsets.only(left: 35),
+                            child: Text(
+                              'District Pages :',
+                              style: TextStyle(
+                                fontFamily: 'Raleway',
+                                fontSize: 26,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.black,
+                                height: 34 / 26,
+                              ),
+                            ),
+                          ),
+                          
+                          const SizedBox(height: 12),
+                          
+                          // District Pages list - Figma: left:29, top:584
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 29),
+                            child: _buildPageCard(
+                              _districtPages[0],
+                              () => _toggleFollow(_districtPages, 0),
+                            ),
+                          ),
+                          
+                          const SizedBox(height: 6),
+                          
+                          // See more button for districts - navigates to DistrictPagesListScreen with bubble transition
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 29),
+                            child: _buildSeeMoreButton(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  PageRouteBuilder(
+                                    pageBuilder: (context, animation, secondaryAnimation) => 
+                                        const DistrictPagesListScreen(),
+                                    transitionDuration: const Duration(milliseconds: 500),
+                                    reverseTransitionDuration: const Duration(milliseconds: 400),
+                                    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                                      // Fade transition for smooth bubble morphing effect
+                                      return FadeTransition(
+                                        opacity: CurvedAnimation(
+                                          parent: animation,
+                                          curve: Curves.easeOut,
+                                        ),
+                                        child: child,
+                                      );
+                                    },
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          
+                          const SizedBox(height: 80),
+                        ],
                       ),
                     ),
                   ),
                 ],
-              );
-            },
+              ),
+            ),
           ),
           
-          SafeArea(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          // Back button - top left (routes to home)
+          CustomBackButton(
+            backgroundColor: Colors.black, // Dark area (bubbles background)
+            iconSize: 24, // Consistent size
+            navigateToHome: true,
+          ),
+          
+          // "Pages" title - Figma: left:69, top:48, 50px Raleway Bold
+          // White text on the bubbles
+          const Positioned(
+            left: 69,
+            top: 48,
+            child: Text(
+              'Pages',
+              style: TextStyle(
+                fontFamily: 'Raleway',
+                fontSize: 50,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+                letterSpacing: -0.52,
+              ),
+            ),
+          ),
+        ],
+      ),
+      // Floating Action Button for Super Admin to create pages
+      floatingActionButton: isSuperAdmin
+          ? FloatingActionButton(
+              onPressed: () async {
+                final result = await Navigator.push(
+                  context,
+                  PageRouteBuilder(
+                    pageBuilder: (context, animation, secondaryAnimation) =>
+                        const CreatePageScreen(),
+                    transitionDuration: const Duration(milliseconds: 400),
+                    reverseTransitionDuration: const Duration(milliseconds: 300),
+                    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                      return FadeTransition(
+                        opacity: CurvedAnimation(
+                          parent: animation,
+                          curve: Curves.easeOut,
+                        ),
+                        child: SlideTransition(
+                          position: Tween<Offset>(
+                            begin: const Offset(0, 0.1),
+                            end: Offset.zero,
+                          ).animate(CurvedAnimation(
+                            parent: animation,
+                            curve: Curves.easeOut,
+                          )),
+                          child: child,
+                        ),
+                      );
+                    },
+                  ),
+                );
+                
+                // Handle newly created page
+                if (result != null && result is Map) {
+                  // Add the new page to the appropriate list
+                  setState(() {
+                    if (result['type'] == 'club') {
+                      _clubPages.add({
+                        'name': result['name'],
+                        'followers': result['followers'] ?? 0,
+                        'isFollowing': false,
+                        'image': result['image'] ?? 'assets/images/pages/c6d5f9dff52b37a28977be041de113bc88dfa388.png',
+                      });
+                    } else {
+                      _districtPages.add({
+                        'name': result['name'],
+                        'followers': result['followers'] ?? 0,
+                        'isFollowing': false,
+                        'image': result['image'] ?? 'assets/images/pages/cba507d80d35e8876a479cce78f72f4bb9d95def.png',
+                      });
+                    }
+                  });
+                }
+              },
+              backgroundColor: const Color(0xFF8F7902),
+              elevation: 4,
+              child: const Icon(
+                Icons.add,
+                color: Colors.white,
+                size: 32,
+              ),
+            )
+          : null,
+    );
+  }
+
+  Widget _buildBubbles() {
+    // Exact Figma values: left:-239.41px, top:-332.78px, w:609.977px, h:570.222px
+    // viewBox="0 0 610 571" with fade-in transition
+    return Positioned(
+      left: -239.41,
+      top: -332.78,
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0.0, end: 1.0),
+        duration: const Duration(milliseconds: 600),
+        curve: Curves.easeOut,
+        builder: (context, opacity, child) {
+          return Opacity(
+            opacity: opacity,
+            child: child,
+          );
+        },
+        child: SizedBox(
+          width: 609.977,
+          height: 570.222,
+          child: CustomPaint(
+            size: const Size(609.977, 570.222),
+            painter: _BubblesPainter(),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPageCard(Map<String, dynamic> page, VoidCallback onFollowTap) {
+    final isFollowing = page['isFollowing'] as bool;
+    
+    return Container(
+      height: 117,
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Stack(
+        children: [
+          // Logo with gold border - Figma: left:15, top:14
+          Positioned(
+            left: 15,
+            top: 14,
+            child: Stack(
               children: [
-                // Animated Header with back button and title
-                SlideTransition(
-                  position: Tween<Offset>(
-                    begin: const Offset(-1, 0),
-                    end: Offset.zero,
-                  ).animate(CurvedAnimation(
-                    parent: _headerController,
-                    curve: Curves.easeOutCubic,
-                  )),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(10, 2, 10, 0),
-                    child: Row(
-                      children: [
-                        // Material back button with ripple
-                        Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(25),
-                            onTap: () => Navigator.pop(context),
-                            child: Container(
-                              width: 50,
-                              height: 53,
-                              padding: const EdgeInsets.all(12),
-                              child: const Icon(
-                                Icons.arrow_back,
-                                size: 28,
-                                color: Colors.black,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 9),
-                        // Title with shadow effect
-                        Stack(
-                          children: [
-                            // White shadow layer
-                            Text(
-                              'Pages',
-                              style: TextStyle(
-                                fontFamily: 'Raleway',
-                                fontSize: 50,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white.withOpacity(0.8),
-                                letterSpacing: -0.52,
-                              ),
-                            ),
-                            // Black foreground layer
-                            Text(
-                              'Pages',
-                              style: const TextStyle(
-                                fontFamily: 'Raleway',
-                                fontSize: 50,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.black,
-                                letterSpacing: -0.52,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                // Gold border background
+                Container(
+                  width: 91,
+                  height: 91,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF8F7902),
+                    borderRadius: BorderRadius.circular(18),
                   ),
                 ),
-                
-                const SizedBox(height: 60),
-                
-                // "Club Pages :" section title with animation
-                FadeTransition(
-                  opacity: _headerController,
-                  child: SlideTransition(
-                    position: Tween<Offset>(
-                      begin: const Offset(-0.3, 0),
-                      end: Offset.zero,
-                    ).animate(CurvedAnimation(
-                      parent: _headerController,
-                      curve: const Interval(0.3, 1.0, curve: Curves.easeOut),
-                    )),
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 35),
-                      child: Text(
-                        'Club Pages :',
-                        style: TextStyle(
-                          fontFamily: 'Raleway',
-                          fontSize: 26,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.black,
-                          height: 32 / 26,
-                        ),
+                // Image
+                Positioned(
+                  left: 5,
+                  top: 5,
+                  child: Container(
+                    width: 81,
+                    height: 81,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(15),
+                      image: DecorationImage(
+                        image: AssetImage(page['image'] as String),
+                        fit: BoxFit.cover,
                       ),
                     ),
                   ),
                 ),
-                
-                const SizedBox(height: 11),
-                
-                // Scrollable club list with staggered animations
-                Expanded(
-                  child: _isLoading
-                      ? const LoadingIndicator()
-                      : ListView.separated(
-                          physics: const BouncingScrollPhysics(),
-                          padding: const EdgeInsets.symmetric(horizontal: 35),
-                          itemCount: _clubs.length,
-                          separatorBuilder: (context, index) => const SizedBox(height: 11),
-                          itemBuilder: (context, index) {
-                            final club = _clubs[index];
-                            return _buildAnimatedClubCard(club, index);
-                          },
-                        ),
+              ],
+            ),
+          ),
+          
+          // Page name - Figma: left:121, top:14
+          Positioned(
+            left: 121,
+            top: 14,
+            child: Text(
+              page['name'] as String,
+              style: const TextStyle(
+                fontFamily: 'Nunito Sans',
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: Colors.black,
+                height: 31 / 16,
+              ),
+            ),
+          ),
+          
+          // Followers count - Figma: left:121, top:33
+          Positioned(
+            left: 121,
+            top: 33,
+            child: Text(
+              '${page['followers']} followers',
+              style: const TextStyle(
+                fontFamily: 'Nunito Sans',
+                fontSize: 10,
+                fontWeight: FontWeight.w400,
+                color: Colors.black,
+                height: 31 / 10,
+              ),
+            ),
+          ),
+          
+          // Follow/Unfollow button - Figma: left:121, top:66
+          Positioned(
+            left: 121,
+            top: 66,
+            child: GestureDetector(
+              onTap: onFollowTap,
+              child: Container(
+                width: 196,
+                height: 39,
+                decoration: BoxDecoration(
+                  color: isFollowing ? const Color(0xFF8F7902) : Colors.black,
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                
-                // Bottom indicator
-                Center(
-                  child: Container(
-                    width: 145.848,
-                    height: 5.442,
-                    margin: const EdgeInsets.only(bottom: 12, top: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.black,
-                      borderRadius: BorderRadius.circular(34),
-                    ),
+                alignment: Alignment.center,
+                child: Text(
+                  isFollowing ? 'Unfollow' : 'Follow',
+                  style: const TextStyle(
+                    fontFamily: 'Nunito Sans',
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFFF3F3F3),
+                    height: 31 / 15,
                   ),
                 ),
-              ],
+              ),
             ),
           ),
         ],
@@ -362,188 +483,80 @@ class _PagesScreenState extends State<PagesScreen>
     );
   }
 
-  Widget _buildAnimatedClubCard(Club club, int index) {
-    // Staggered animation for each card
-    final animation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _listController,
-        curve: Interval(
-          index * 0.1,
-          index * 0.1 + 0.5,
-          curve: Curves.easeOutCubic,
-        ),
-      ),
-    );
-    
-    // Check if club name needs two lines
-    final isTwoLines = club.name.length > 25;
-    final cardHeight = isTwoLines ? 134.0 : 117.0;
-    
-    return AnimatedBuilder(
-      animation: animation,
-      builder: (context, child) {
-        return Transform.translate(
-          offset: Offset(50 * (1 - animation.value), 0),
-          child: Opacity(
-            opacity: animation.value,
-            child: child,
+  Widget _buildSeeMoreButton({VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap ?? () {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Loading more pages...'),
+            duration: Duration(seconds: 1),
           ),
         );
       },
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {
-            // Navigate to club detail
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Opening ${club.name}'),
-                duration: const Duration(seconds: 1),
-              ),
-            );
-          },
-          borderRadius: BorderRadius.circular(20),
-          child: Container(
-            height: cardHeight,
-            decoration: BoxDecoration(
-              color: const Color.fromRGBO(0, 0, 0, 0.1),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Stack(
-              children: [
-                // Club logo with gold border and hero animation
-                Positioned(
-                  left: 15,
-                  top: 14,
-                  child: Hero(
-                    tag: 'club_logo_${club.id}',
-                    child: Stack(
-                      children: [
-                        // Gold border background
-                        Container(
-                          width: 91,
-                          height: 91,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF8F7902),
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                        ),
-                        // Club image
-                        Positioned(
-                          left: 5,
-                          top: 5,
-                          child: Container(
-                            width: 81,
-                            height: 81,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(15),
-                              image: DecorationImage(
-                                image: AssetImage(club.imageUrl ?? 'assets/images/pages/club1.png'),
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                
-                // Club info and button
-                Positioned(
-                  left: 121,
-                  top: 14,
-                  right: 15,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Club name
-                      if (isTwoLines) ...[
-                        Text(
-                          club.name.contains(' of ') ? club.name.split(' of ')[0] + ' of' : club.name,
-                          style: const TextStyle(
-                            fontFamily: 'Nunito Sans',
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.black,
-                            height: 1.94,
-                          ),
-                        ),
-                        if (club.name.contains(' of '))
-                          Text(
-                            club.name.split(' of ')[1],
-                            style: const TextStyle(
-                              fontFamily: 'Nunito Sans',
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.black,
-                              height: 1.94,
-                            ),
-                          ),
-                      ] else
-                        Text(
-                          club.name,
-                          style: const TextStyle(
-                            fontFamily: 'Nunito Sans',
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.black,
-                            height: 1.94,
-                          ),
-                        ),
-                      
-                      const SizedBox(height: 3),
-                      
-                      // Mutual count
-                      Text(
-                        '${club.mutualCount ?? 0} mutuals',
-                        style: const TextStyle(
-                          fontFamily: 'Nunito Sans',
-                          fontSize: 10,
-                          fontWeight: FontWeight.w400,
-                          color: AppColors.black,
-                          height: 3.1,
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 10),
-                      
-                      // Follow/Unfollow button with Material ripple
-                      Material(
-                        color: (club.isFollowing ?? false)
-                            ? const Color(0xFF8F7902)
-                            : AppColors.black,
-                        borderRadius: BorderRadius.circular(14),
-                        child: InkWell(
-                          onTap: () => _toggleFollow(club.id),
-                          borderRadius: BorderRadius.circular(14),
-                          splashColor: Colors.white.withOpacity(0.3),
-                          highlightColor: Colors.white.withOpacity(0.1),
-                          child: Container(
-                            width: 196,
-                            height: 39,
-                            alignment: Alignment.center,
-                            child: Text(
-                              (club.isFollowing ?? false) ? 'Following' : 'Follow',
-                              style: const TextStyle(
-                                fontFamily: 'Nunito Sans',
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFFF3F3F3),
-                                height: 2.07,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+      child: Container(
+        width: 332,
+        height: 39,
+        decoration: BoxDecoration(
+          color: const Color(0xFFE6E6E6),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        alignment: Alignment.center,
+        child: const Text(
+          'See more...',
+          style: TextStyle(
+            fontFamily: 'Nunito Sans',
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+            color: Colors.black,
+            height: 31 / 15,
           ),
         ),
       ),
     );
   }
+}
+
+// Custom painter to draw the exact Figma bubble shapes
+class _BubblesPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Scale factor from viewBox (610x571) to actual size
+    final scaleX = size.width / 610;
+    final scaleY = size.height / 571;
+    
+    canvas.scale(scaleX, scaleY);
+    
+    // Yellow bubble (bubble 02) - exact SVG path from Figma
+    final yellowPath = Path();
+    yellowPath.moveTo(508.626, 340.687);
+    yellowPath.cubicTo(593.237, 477.805, 349.548, 493.671, 246.399, 451.996);
+    yellowPath.cubicTo(143.25, 410.321, 93.4156, 292.918, 135.091, 189.768);
+    yellowPath.cubicTo(176.766, 86.6194, 285.06, 74.0645, 382.127, 104.548);
+    yellowPath.cubicTo(479.194, 135.032, 424.016, 203.569, 508.626, 340.687);
+    yellowPath.close();
+    
+    final yellowPaint = Paint()
+      ..color = const Color(0xFFFFD700)
+      ..style = PaintingStyle.fill;
+    
+    canvas.drawPath(yellowPath, yellowPaint);
+    
+    // Black bubble (bubble 01) - exact SVG path from Figma
+    final blackPath = Path();
+    blackPath.moveTo(135.167, 375.884);
+    blackPath.cubicTo(-24.975, 358.14, 112.552, 156.343, 208.897, 100.718);
+    blackPath.cubicTo(305.243, 45.0929, 428.439, 78.1032, 484.064, 174.448);
+    blackPath.cubicTo(539.689, 270.794, 506.678, 393.99, 410.333, 449.615);
+    blackPath.cubicTo(313.988, 505.24, 295.309, 393.629, 135.167, 375.884);
+    blackPath.close();
+    
+    final blackPaint = Paint()
+      ..color = Colors.black
+      ..style = PaintingStyle.fill;
+    
+    canvas.drawPath(blackPath, blackPaint);
+  }
+  
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

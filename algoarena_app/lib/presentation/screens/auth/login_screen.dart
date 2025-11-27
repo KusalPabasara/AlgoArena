@@ -1,9 +1,11 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../../core/utils/validators.dart';
+import '../../../utils/responsive_utils.dart';
+import '../../../data/repositories/auth_repository.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({Key? key}) : super(key: key);
+  const LoginScreen({super.key});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -12,7 +14,9 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
+  final _authRepository = AuthRepository();
   bool _isLoading = false;
+  bool _isGoogleLoading = false;
   String? _emailError; // Store email error message
   
   // Animation controllers
@@ -123,34 +127,125 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
   Future<void> _handleNext() async {
     if (!_formKey.currentState!.validate()) return;
     
+    setState(() {
+      _isLoading = true;
+      _emailError = null;
+    });
+    
     // Button press animation
     await _buttonController.forward();
     await _buttonController.reverse();
     
-    // Fade out content before navigating
-    await _fadeOutController.forward();
-    
-    if (!mounted) return;
-    
-    // Navigate to password screen
-    await Navigator.pushNamed(
-      context,
-      '/password',
-      arguments: {
-        'email': _emailController.text.trim(),
-      },
-    );
-    
-    // When user comes back, fade content back in
-    if (mounted) {
-      await _fadeOutController.reverse();
+    try {
+      // Check if user exists and get their name
+      final email = _emailController.text.trim();
+      final result = await _authRepository.checkUser(email);
+      
+      if (!mounted) return;
+      
+      if (result['exists'] != true) {
+        setState(() {
+          _isLoading = false;
+          _emailError = 'No account found with this email';
+        });
+        return;
+      }
+      
+      // Get user info
+      final userInfo = result['user'] as Map<String, dynamic>?;
+      final userName = userInfo?['fullName'] as String?;
+      final profilePhoto = userInfo?['profilePhoto'] as String?;
+      
+      // Fade out content before navigating
+      await _fadeOutController.forward();
+      
+      if (!mounted) return;
+      
+      // Navigate to password screen with user info
+      await Navigator.pushNamed(
+        context,
+        '/password',
+        arguments: {
+          'email': email,
+          'userName': userName,
+          'profilePhoto': profilePhoto,
+        },
+      );
+      
+      // When user comes back, fade content back in
+      if (mounted) {
+        await _fadeOutController.reverse();
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _emailError = 'Failed to check user';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
   Future<void> _handleSocialLogin(String provider) async {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$provider login not implemented yet')),
-    );
+    if (provider == 'Google') {
+      await _handleGoogleSignIn();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$provider login not implemented yet')),
+      );
+    }
+  }
+  
+  Future<void> _handleGoogleSignIn() async {
+    if (_isGoogleLoading) return;
+    
+    setState(() {
+      _isGoogleLoading = true;
+    });
+    
+    try {
+      final result = await _authRepository.googleSignIn();
+      
+      if (!mounted) return;
+      
+      if (result['success'] == true) {
+        // Navigate to home screen on successful login
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/home',
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      
+      String errorMessage = e.toString();
+      // Clean up error message
+      if (errorMessage.contains('cancelled')) {
+        // User cancelled, don't show error
+        return;
+      }
+      
+      errorMessage = errorMessage.replaceAll('Exception: ', '');
+      errorMessage = errorMessage.replaceAll('Google Sign-In failed: ', '');
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isGoogleLoading = false;
+        });
+      }
+    }
   }
 
   void _handleRegister() {
@@ -159,21 +254,26 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
+    // Initialize responsive utilities at the start of build
+    ResponsiveUtils.init(context);
+    
     return Scaffold(
       backgroundColor: Colors.white,
+      resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
           // Bubble 04 - Large Bottom Yellow (Static with rotation)
+          // Using top positioning so it doesn't move with keyboard
           Positioned(
-            left: MediaQuery.of(context).size.width * 0.3,
-            bottom: -250,
+            left: ResponsiveUtils.bw(206), // 50% of 412 reference width
+            top: ResponsiveUtils.screenHeight - ResponsiveUtils.bs(650) + ResponsiveUtils.bh(70),
             child: Transform.rotate(
-              angle: 0 * 3.14159 / 180, // 0 degrees for Login screen
+              angle:-600*3.14159 / 1450, // degrees for Login screen
               child: ClipPath(
                 clipper: _Bubble04Clipper(),
                 child: Container(
-                  width: 500,
-                  height: 650,
+                  width: ResponsiveUtils.bs(500),
+                  height: ResponsiveUtils.bs(650),
                   color: const Color(0xFFFFD700),
                 ),
               ),
@@ -182,15 +282,15 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
           
           // Bubble 03 - Top Right Small Black Organic Shape (Static with rotation)
           Positioned(
-            right: -20,
-            top: 280,
+            right: ResponsiveUtils.bw(-70),
+            top: ResponsiveUtils.bh(280),
             child: Transform.rotate(
-              angle: 156 * 3.14159 / 180, // 156 degrees for Login screen
+              angle: 156 * 3.14159 / 5000, // degrees for Login screen
               child: ClipPath(
                 clipper: _Bubble03Clipper(),
                 child: Container(
-                  width: 180,
-                  height: 180,
+                  width: ResponsiveUtils.bs(180),
+                  height: ResponsiveUtils.bs(180),
                   color: Colors.black,
                 ),
               ),
@@ -199,15 +299,15 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
           
           // Bubble 02 - Top Yellow Organic Shape (Static with rotation)
           Positioned(
-            left: -200,
-            top: -150,
+            left: ResponsiveUtils.bw(-190),
+            top: ResponsiveUtils.bh(-210),
             child: Transform.rotate(
-              angle: 140 * 3.14159 / 180, // 140 degrees for Login screen
+              angle: 350 * 5.123/290, // degrees for Login screen
               child: ClipPath(
                 clipper: _Bubble02Clipper(),
                 child: Container(
-                  width: 500,
-                  height: 600,
+                  width: ResponsiveUtils.bs(500),
+                  height: ResponsiveUtils.bs(600),
                   color: const Color(0xFFFFD700),
                 ),
               ),
@@ -216,15 +316,15 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
           
           // Bubble 01 - Large Top Left Black Organic Shape (Static with rotation)
           Positioned(
-            left: -250,
-            top: -200,
+            left: ResponsiveUtils.bw(-300),
+            top: ResponsiveUtils.bh(-250),
             child: Transform.rotate(
               angle: 260 * 3.14159 / 180, // 260 degrees for Login screen
               child: ClipPath(
                 clipper: _Bubble01Clipper(),
                 child: Container(
-                  width: 550,
-                  height: 550,
+                  width: ResponsiveUtils.bs(550),
+                  height: ResponsiveUtils.bs(550),
                   color: Colors.black,
                 ),
               ),
@@ -235,311 +335,301 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
           FadeTransition(
             opacity: _fadeOutAnimation,
             child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 35),
-                child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                      SizedBox(height: MediaQuery.of(context).size.height * 0.40),
-                        
-                        // Animated "Login" Title
-                        SlideTransition(
-                          position: _titleSlideAnimation,
-                          child: FadeTransition(
-                            opacity: _titleFadeAnimation,
-                            child: const Text(
-                              'Login',
-                              style: TextStyle(
-                                fontFamily: 'Raleway',
-                                fontSize: 52,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF202020),
-                                letterSpacing: -0.52,
-                                height: 1.17,
-                              ),
-                            ),
-                          ),
-                        ),
-                        
-                        const SizedBox(height: 5),
-                        
-                        // Animated subtitle
-                        FadeTransition(
-                          opacity: _titleFadeAnimation,
-                          child: const Text(
-                            'Good to see you back!',
-                            style: TextStyle(
-                              fontFamily: 'Nunito Sans',
-                              fontSize: 19,
-                              fontWeight: FontWeight.w300,
-                              color: Color(0xFF202020),
-                              height: 35 / 19,
-                            ),
-                          ),
-                        ),
-                        
-                        const SizedBox(height: 30),
-                        
-                        // Animated Email Input Field with fixed-height error container
-                        SlideTransition(
-                          position: _inputSlideAnimation,
-                          child: FadeTransition(
-                            opacity: _inputFadeAnimation,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                TextFormField(
-                                  controller: _emailController,
-                                  keyboardType: TextInputType.emailAddress,
-                                  validator: (value) {
-                                    final error = Validators.validateEmail(value);
-                                    setState(() {
-                                      _emailError = error;
-                                    });
-                                    return error;
-                                  },
-                                  onChanged: (value) {
-                                    // Clear error on typing
-                                    if (_emailError != null) {
-                                      setState(() {
-                                        _emailError = null;
-                                      });
-                                    }
-                                  },
-                                  style: const TextStyle(
-                                    fontFamily: 'Nunito Sans',
-                                    fontSize: 19,
-                                    fontWeight: FontWeight.w300,
-                                    color: Colors.white, // White text
-                                  ),
-                                  decoration: InputDecoration(
-                                    hintText: 'Email',
-                                    hintStyle: const TextStyle(
-                                      fontFamily: 'Nunito Sans',
-                                      fontSize: 19,
-                                      fontWeight: FontWeight.w300,
-                                      color: Color(0xFFD2D2D2), // Light gray hint
-                                    ),
-                                    filled: true,
-                                    fillColor: Colors.black.withOpacity(0.4), // Black 40% opacity
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(30),
-                                      borderSide: BorderSide.none, // No border
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(30),
-                                      borderSide: BorderSide.none, // No border
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(30),
-                                      borderSide: BorderSide.none, // No border
-                                    ),
-                                    errorBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(30),
-                                      borderSide: BorderSide.none,
-                                    ),
-                                    focusedErrorBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(30),
-                                      borderSide: BorderSide.none, // No border even when error and focused
-                                    ),
-                                    errorStyle: const TextStyle(
-                                      height: 0, // Hide default error text
-                                      fontSize: 0,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  // Initialize responsive utilities
+                  ResponsiveUtils.init(context);
+                  
+                  return SingleChildScrollView(
+                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                    physics: const ClampingScrollPhysics(),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
+                      ),
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: ResponsiveUtils.adaptiveHorizontalPadding),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SizedBox(height: MediaQuery.of(context).size.height * 0.38),
+                              
+                              // Animated "Login" Title
+                              SlideTransition(
+                                position: _titleSlideAnimation,
+                                child: FadeTransition(
+                                  opacity: _titleFadeAnimation,
+                                  child: Text(
+                                    'Login',
+                                    style: TextStyle(
+                                      fontFamily: 'Raleway',
+                                      fontSize: ResponsiveUtils.sp(48),
+                                      fontWeight: FontWeight.w700,
+                                      color: const Color(0xFF202020),
+                                      letterSpacing: -0.52,
+                                      height: 1.17,
                                     ),
                                   ),
                                 ),
-                                // Fixed-height error container
-                                SizedBox(
-                                  height: 24, // Fixed height always reserved
-                                  child: _emailError != null
-                                      ? Padding(
-                                          padding: const EdgeInsets.only(left: 24, top: 4),
-                                          child: Text(
-                                            _emailError!,
-                                            style: const TextStyle(
-                                              color: Colors.red,
-                                              fontSize: 12,
+                              ),
+                              
+                              SizedBox(height: ResponsiveUtils.spacingXS),
+                              
+                              // Animated subtitle
+                              FadeTransition(
+                                opacity: _titleFadeAnimation,
+                                child: Text(
+                                  'Good to see you back!',
+                                  style: TextStyle(
+                                    fontFamily: 'Nunito Sans',
+                                    fontSize: ResponsiveUtils.bodyLarge,
+                                    fontWeight: FontWeight.w300,
+                                    color: const Color(0xFF202020),
+                                    height: 1.5,
+                                  ),
+                                ),
+                              ),
+                              
+                              SizedBox(height: ResponsiveUtils.spacingL),
+                              
+                              // Animated Email Input Field with fixed-height error container
+                              SlideTransition(
+                                position: _inputSlideAnimation,
+                                child: FadeTransition(
+                                  opacity: _inputFadeAnimation,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      SizedBox(
+                                        height: ResponsiveUtils.inputHeight,
+                                        child: TextFormField(
+                                          controller: _emailController,
+                                          keyboardType: TextInputType.emailAddress,
+                                          validator: (value) {
+                                            final error = Validators.validateEmail(value);
+                                            setState(() {
+                                              _emailError = error;
+                                            });
+                                            return error;
+                                          },
+                                          onChanged: (value) {
+                                            // Clear error on typing
+                                            if (_emailError != null) {
+                                              setState(() {
+                                                _emailError = null;
+                                              });
+                                            }
+                                          },
+                                          style: TextStyle(
+                                            fontFamily: 'Nunito Sans',
+                                            fontSize: ResponsiveUtils.bodyLarge,
+                                            fontWeight: FontWeight.w400,
+                                            color: Colors.white,
+                                          ),
+                                          decoration: InputDecoration(
+                                            hintText: 'Email',
+                                            hintStyle: TextStyle(
                                               fontFamily: 'Nunito Sans',
+                                              fontSize: ResponsiveUtils.bodyLarge,
+                                              fontWeight: FontWeight.w400,
+                                              color: const Color(0xFFD2D2D2),
+                                            ),
+                                            filled: true,
+                                            fillColor: Colors.black.withOpacity(0.4),
+                                            contentPadding: EdgeInsets.symmetric(
+                                              horizontal: ResponsiveUtils.spacingL,
+                                              vertical: ResponsiveUtils.spacingM,
+                                            ),
+                                            border: OutlineInputBorder(
+                                              borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                              borderSide: BorderSide.none,
+                                            ),
+                                            enabledBorder: OutlineInputBorder(
+                                              borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                              borderSide: BorderSide.none,
+                                            ),
+                                            focusedBorder: OutlineInputBorder(
+                                              borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                              borderSide: BorderSide.none,
+                                            ),
+                                            errorBorder: OutlineInputBorder(
+                                              borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                              borderSide: BorderSide.none,
+                                            ),
+                                            focusedErrorBorder: OutlineInputBorder(
+                                              borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                              borderSide: BorderSide.none,
+                                            ),
+                                            errorStyle: const TextStyle(
+                                              height: 0,
+                                              fontSize: 0,
                                             ),
                                           ),
-                                        )
-                                      : const SizedBox.shrink(),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        
-                        // Animated Next Button - Material Design
-                        FadeTransition(
-                          opacity: _inputFadeAnimation,
-                          child: ScaleTransition(
-                            scale: _buttonScaleAnimation,
-                            child: SizedBox(
-                              width: double.infinity,
-                              height: 60,
-                              child: FilledButton(
-                                onPressed: _isLoading ? null : _handleNext,
-                                style: FilledButton.styleFrom(
-                                  backgroundColor: Colors.black,
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(32),
+                                        ),
+                                      ),
+                                      // Fixed-height error container
+                                      SizedBox(
+                                        height: ResponsiveUtils.spacingL,
+                                        child: _emailError != null
+                                            ? Padding(
+                                                padding: EdgeInsets.only(
+                                                  left: ResponsiveUtils.spacingL,
+                                                  top: ResponsiveUtils.spacingXS,
+                                                ),
+                                                child: Text(
+                                                  _emailError!,
+                                                  style: TextStyle(
+                                                    color: Colors.red,
+                                                    fontSize: ResponsiveUtils.bodySmall,
+                                                    fontFamily: 'Nunito Sans',
+                                                  ),
+                                                ),
+                                              )
+                                            : const SizedBox.shrink(),
+                                      ),
+                                    ],
                                   ),
-                                  elevation: 4,
-                                  shadowColor: Colors.black.withOpacity(0.3),
                                 ),
-                                child: _isLoading
-                                    ? const SizedBox(
-                                        width: 24,
-                                        height: 24,
-                                        child: CircularProgressIndicator(
-                                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                          strokeWidth: 2.5,
-                                        ),
-                                      )
-                                    : const Text(
-                                        'Next',
-                                        style: TextStyle(
-                                          fontFamily: 'Nunito Sans',
-                                          fontSize: 19,
-                                          fontWeight: FontWeight.w500,
-                                
-                                        ),
-                                      ),
                               ),
-                            ),
-                          ),
-                        ),
-                        
-                        const SizedBox(height: 18),
-                        
-                        // Animated Social Icons Row - Custom Icons
-                        FadeTransition(
-                          opacity: _socialFadeAnimation,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              // Google IconButton with custom image and blur
-                              Material(
-                                elevation: 4,
-                                shape: const CircleBorder(),
-                                shadowColor: Colors.black26,
-                                child: InkWell(
-                                  onTap: () => _handleSocialLogin('Google'),
-                                  customBorder: const CircleBorder(),
-                                  child: ClipOval(
-                                    child: BackdropFilter(
-                                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                                      child: Container(
-                                        width: 52,
-                                        height: 52,
-                                        padding: const EdgeInsets.all(12),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white.withOpacity(0.28),
-                                          shape: BoxShape.circle,
+                              
+                              // Animated Next Button - Material Design
+                              FadeTransition(
+                                opacity: _inputFadeAnimation,
+                                child: ScaleTransition(
+                                  scale: _buttonScaleAnimation,
+                                  child: SizedBox(
+                                    width: double.infinity,
+                                    height: ResponsiveUtils.buttonHeight,
+                                    child: FilledButton(
+                                      onPressed: _isLoading ? null : _handleNext,
+                                      style: FilledButton.styleFrom(
+                                        backgroundColor: Colors.black,
+                                        foregroundColor: Colors.white,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
                                         ),
-                                        child: Image.asset(
-                                          'assets/images/Google.png',
-                                          width: 28,
-                                          height: 28,
-                                          fit: BoxFit.contain,
-                                        ),
+                                        elevation: 4,
+                                        shadowColor: Colors.black.withOpacity(0.3),
                                       ),
+                                      child: _isLoading
+                                          ? SizedBox(
+                                              width: ResponsiveUtils.iconSize,
+                                              height: ResponsiveUtils.iconSize,
+                                              child: const CircularProgressIndicator(
+                                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                                strokeWidth: 2.5,
+                                              ),
+                                            )
+                                          : Text(
+                                              'Next',
+                                              style: TextStyle(
+                                                fontFamily: 'Nunito Sans',
+                                                fontSize: ResponsiveUtils.bodyLarge,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
                                     ),
                                   ),
                                 ),
                               ),
                               
-                              const SizedBox(width: 24),
+                              SizedBox(height: ResponsiveUtils.spacingM),
                               
-                              // Apple IconButton with custom image and blur
-                              Material(
-                                elevation: 4,
-                                shape: const CircleBorder(),
-                                shadowColor: Colors.black26,
-                                child: InkWell(
-                                  onTap: () => _handleSocialLogin('Apple'),
-                                  customBorder: const CircleBorder(),
-                                  child: ClipOval(
-                                    child: BackdropFilter(
-                                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                                      child: Container(
-                                        width: 52,
-                                        height: 52,
-                                        padding: const EdgeInsets.all(12),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white.withOpacity(0.28),
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: Image.asset(
-                                          'assets/images/apple.png',
-                                          width: 26,
-                                          height: 26,
-                                          fit: BoxFit.contain,
+                              // Animated Social Icons Row - Custom Icons
+                              FadeTransition(
+                                opacity: _socialFadeAnimation,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    // Google IconButton with custom image and blur
+                                    Material(
+                                      elevation: 4,
+                                      shape: const CircleBorder(),
+                                      shadowColor: Colors.black26,
+                                      child: InkWell(
+                                        onTap: () => _handleSocialLogin('Google'),
+                                        customBorder: const CircleBorder(),
+                                        child: ClipOval(
+                                          child: BackdropFilter(
+                                            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                                            child: Container(
+                                              width: ResponsiveUtils.dp(52),
+                                              height: ResponsiveUtils.dp(52),
+                                              padding: EdgeInsets.all(ResponsiveUtils.spacingS + 4),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white.withOpacity(0.28),
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: Image.asset(
+                                                'assets/images/Google.png',
+                                                width: ResponsiveUtils.iconSize,
+                                                height: ResponsiveUtils.iconSize,
+                                                fit: BoxFit.contain,
+                                              ),
+                                            ),
+                                          ),
                                         ),
                                       ),
                                     ),
-                                  ),
+                                    
+                                    SizedBox(width: ResponsiveUtils.spacingL),
+                                    
+                                    // Apple IconButton with custom image and blur
+                                    Material(
+                                      elevation: 4,
+                                      shape: const CircleBorder(),
+                                      shadowColor: Colors.black26,
+                                      child: InkWell(
+                                        onTap: () => _handleSocialLogin('Apple'),
+                                        customBorder: const CircleBorder(),
+                                        child: ClipOval(
+                                          child: BackdropFilter(
+                                            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                                            child: Container(
+                                              width: ResponsiveUtils.dp(52),
+                                              height: ResponsiveUtils.dp(52),
+                                              padding: EdgeInsets.all(ResponsiveUtils.spacingS + 4),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white.withOpacity(0.28),
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: Image.asset(
+                                                'assets/images/apple.png',
+                                                width: ResponsiveUtils.iconSize,
+                                                height: ResponsiveUtils.iconSize,
+                                                fit: BoxFit.contain,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
+                              
+                              SizedBox(height: ResponsiveUtils.spacingM),
+                              
+                              // Animated Register Button - Transparent background with press effect
+                              Center(
+                                child: FadeTransition(
+                                  opacity: _socialFadeAnimation,
+                                  child: _RegisterButton(onTap: _handleRegister),
+                                ),
+                              ),
+                              
+                              // Bottom padding
+                              SizedBox(height: ResponsiveUtils.spacingXL),
                             ],
                           ),
                         ),
-                        
-                        const SizedBox(height: 18),
-                        
-                        // Animated Register Button - Material Design
-                        Center(
-                          child: FadeTransition(
-                            opacity: _socialFadeAnimation,
-                            child: ElevatedButton.icon(
-                              onPressed: _handleRegister,
-                              icon: const Text(
-                                'Register',
-                                style: TextStyle(
-                                  fontFamily: 'Raleway',
-                                  fontSize: 19,
-                                  fontWeight: FontWeight.w700,
-                                
-                                ),
-                              ),
-                              label: Container(
-                                width: 30,
-                                height: 30,
-                                decoration: const BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Colors.black,
-                                ),
-                                child: const Icon(
-                                  Icons.arrow_forward_rounded,
-                                  size: 16,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFFFD700),
-                                foregroundColor: Colors.black,
-                                elevation: 0,
-                                shadowColor: Colors.transparent,
-                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(22),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        
-                        
-                        
-                      ],
+                      ),
                     ),
-                  ),
-                ),
+                  );
+                },
+              ),
             ),
           ),
         ],
@@ -696,4 +786,96 @@ class _Bubble04Clipper extends CustomClipper<Path> {
 
   @override
   bool shouldReclip(CustomClipper<Path> oldClipper) => false;
+}
+
+// Register button with press animation effect
+class _RegisterButton extends StatefulWidget {
+  final VoidCallback onTap;
+  
+  const _RegisterButton({required this.onTap});
+  
+  @override
+  State<_RegisterButton> createState() => _RegisterButtonState();
+}
+
+class _RegisterButtonState extends State<_RegisterButton> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 100),
+      vsync: this,
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.92).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+  
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+  
+  void _onTapDown(TapDownDetails details) {
+    _controller.forward();
+  }
+  
+  void _onTapUp(TapUpDetails details) {
+    _controller.reverse().then((_) {
+      widget.onTap();
+    });
+  }
+  
+  void _onTapCancel() {
+    _controller.reverse();
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: _onTapDown,
+      onTapUp: _onTapUp,
+      onTapCancel: _onTapCancel,
+      child: AnimatedBuilder(
+        animation: _scaleAnimation,
+        builder: (context, child) {
+          return Transform.scale(
+            scale: _scaleAnimation.value,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Register',
+                  style: TextStyle(
+                    fontFamily: 'Nunito Sans',
+                    fontSize: ResponsiveUtils.bodyLarge,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black.withOpacity(0.9),
+                  ),
+                ),
+                SizedBox(width: ResponsiveUtils.spacingS),
+                Container(
+                  width: ResponsiveUtils.dp(30),
+                  height: ResponsiveUtils.dp(30),
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.black,
+                  ),
+                  child: Icon(
+                    Icons.arrow_forward_rounded,
+                    size: ResponsiveUtils.iconSizeSmall - 4,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
 }

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import '../../../utils/responsive_utils.dart';
 
 class PasswordRecoveryScreen extends StatefulWidget {
-  const PasswordRecoveryScreen({Key? key}) : super(key: key);
+  const PasswordRecoveryScreen({super.key});
 
   @override
   State<PasswordRecoveryScreen> createState() => _PasswordRecoveryScreenState();
@@ -104,107 +105,50 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Initialize responsive utilities
+    ResponsiveUtils.init(context);
+    
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Stack(
-        children: [
-          // Organic shape top-left (yellow)
-          Positioned(
-            top: -100,
-            left: -50,
-            child: ClipPath(
-              clipper: _OrganicShapeClipper(),
+      resizeToAvoidBottomInset: true,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Back button
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.black),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 40),
+
+            // Avatar with animation - golden circle with image
+            ScaleTransition(
+              scale: _avatarScaleAnimation,
               child: Container(
-                width: 300,
-                height: 250,
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Color(0xFFFFD700), Color(0xFFFFC107)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFFB8860B), width: 3),
+                ),
+                child: ClipOval(
+                  child: Image.asset(
+                    'assets/images/avatar.png',
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return const SizedBox();
+                    },
                   ),
                 ),
               ),
             ),
-          ),
-
-          // Organic shape top-right (black)
-          Positioned(
-            top: -150,
-            right: -100,
-            child: ClipPath(
-              clipper: _OrganicShapeClipper2(),
-              child: Container(
-                width: 350,
-                height: 300,
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Color(0xFF1A1A1A), Color(0xFF2D2D2D)],
-                    begin: Alignment.topRight,
-                    end: Alignment.bottomLeft,
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          // Animated bubbles
-          AnimatedBuilder(
-            animation: _bubbleController,
-            builder: (context, child) {
-              return Stack(
-                children: [
-                  _buildFloatingBubble(
-                    left: 50 + math.sin(_bubbleController.value * 2 * math.pi) * 20,
-                    top: 200 + math.cos(_bubbleController.value * 2 * math.pi) * 30,
-                    size: 80,
-                    color: const Color(0xFFFFD700).withOpacity(0.15),
-                  ),
-                  _buildFloatingBubble(
-                    right: 40 + math.cos(_bubbleController.value * 2 * math.pi) * 25,
-                    bottom: 150 + math.sin(_bubbleController.value * 2 * math.pi) * 35,
-                    size: 120,
-                    color: const Color(0xFF1A1A1A).withOpacity(0.08),
-                  ),
-                ],
-              );
-            },
-          ),
-
-          // Content
-          SafeArea(
-            child: Column(
-              children: [
-                // Back button
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Align(
-                    alignment: Alignment.topLeft,
-                    child: IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.black),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 40),
-
-                // Avatar with animation
-                ScaleTransition(
-                  scale: _avatarScaleAnimation,
-                  child: Container(
-                    width: 120,
-                    height: 120,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: const Color(0xFFB8860B), width: 4),
-                      image: const DecorationImage(
-                        image: AssetImage('assets/images/avatar.png'),
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ),
-                ),
 
                 const SizedBox(height: 40),
 
@@ -318,8 +262,6 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen>
               ],
             ),
           ),
-        ],
-      ),
     );
   }
 
@@ -394,7 +336,7 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen>
 
 // Password Recovery Code Entry Screen
 class PasswordRecoveryCodeScreen extends StatefulWidget {
-  const PasswordRecoveryCodeScreen({Key? key}) : super(key: key);
+  const PasswordRecoveryCodeScreen({super.key});
 
   @override
   State<PasswordRecoveryCodeScreen> createState() => _PasswordRecoveryCodeScreenState();
@@ -505,19 +447,23 @@ class _PasswordRecoveryCodeScreenState extends State<PasswordRecoveryCodeScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Initialize responsive utilities
+    ResponsiveUtils.init(context);
+    
     return Scaffold(
       backgroundColor: Colors.white,
+      resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
           // Organic shape top-left (yellow)
           Positioned(
-            top: -100,
-            left: -50,
+            top: ResponsiveUtils.bh(-100),
+            left: ResponsiveUtils.bw(-50),
             child: ClipPath(
               clipper: _OrganicShapeClipper(),
               child: Container(
-                width: 300,
-                height: 250,
+                width: ResponsiveUtils.bs(300),
+                height: ResponsiveUtils.bs(250),
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     colors: [Color(0xFFFFD700), Color(0xFFFFC107)],
@@ -531,13 +477,13 @@ class _PasswordRecoveryCodeScreenState extends State<PasswordRecoveryCodeScreen>
 
           // Organic shape top-right (black)
           Positioned(
-            top: -150,
-            right: -100,
+            top: ResponsiveUtils.bh(-150),
+            right: ResponsiveUtils.bw(-100),
             child: ClipPath(
               clipper: _OrganicShapeClipper2(),
               child: Container(
-                width: 350,
-                height: 300,
+                width: ResponsiveUtils.bs(350),
+                height: ResponsiveUtils.bs(300),
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     colors: [Color(0xFF1A1A1A), Color(0xFF2D2D2D)],
@@ -556,15 +502,15 @@ class _PasswordRecoveryCodeScreenState extends State<PasswordRecoveryCodeScreen>
               return Stack(
                 children: [
                   _buildFloatingBubble(
-                    left: 50 + math.sin(_bubbleController.value * 2 * math.pi) * 20,
-                    top: 200 + math.cos(_bubbleController.value * 2 * math.pi) * 30,
-                    size: 80,
+                    left: ResponsiveUtils.bw(50) + math.sin(_bubbleController.value * 2 * math.pi) * ResponsiveUtils.bw(20),
+                    top: ResponsiveUtils.bh(200) + math.cos(_bubbleController.value * 2 * math.pi) * ResponsiveUtils.bh(30),
+                    size: ResponsiveUtils.bs(80),
                     color: const Color(0xFFFFD700).withOpacity(0.15),
                   ),
                   _buildFloatingBubble(
-                    right: 40 + math.cos(_bubbleController.value * 2 * math.pi) * 25,
-                    bottom: 150 + math.sin(_bubbleController.value * 2 * math.pi) * 35,
-                    size: 120,
+                    right: ResponsiveUtils.bw(40) + math.cos(_bubbleController.value * 2 * math.pi) * ResponsiveUtils.bw(25),
+                    bottom: ResponsiveUtils.bh(150) + math.sin(_bubbleController.value * 2 * math.pi) * ResponsiveUtils.bh(35),
+                    size: ResponsiveUtils.bs(120),
                     color: const Color(0xFF1A1A1A).withOpacity(0.08),
                   ),
                 ],
@@ -590,7 +536,7 @@ class _PasswordRecoveryCodeScreenState extends State<PasswordRecoveryCodeScreen>
 
                 const SizedBox(height: 40),
 
-                // Avatar with animation
+                // Avatar with animation - golden circle with image
                 ScaleTransition(
                   scale: _avatarScaleAnimation,
                   child: Container(
@@ -598,10 +544,15 @@ class _PasswordRecoveryCodeScreenState extends State<PasswordRecoveryCodeScreen>
                     height: 120,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(color: const Color(0xFFB8860B), width: 4),
-                      image: const DecorationImage(
-                        image: AssetImage('assets/images/avatar.png'),
+                      border: Border.all(color: const Color(0xFFB8860B), width: 3),
+                    ),
+                    child: ClipOval(
+                      child: Image.asset(
+                        'assets/images/avatar.png',
                         fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const SizedBox();
+                        },
                       ),
                     ),
                   ),
@@ -823,7 +774,7 @@ class _PasswordRecoveryCodeScreenState extends State<PasswordRecoveryCodeScreen>
 
 // Success Dialog
 class SuccessDialog extends StatefulWidget {
-  const SuccessDialog({Key? key}) : super(key: key);
+  const SuccessDialog({super.key});
 
   @override
   State<SuccessDialog> createState() => _SuccessDialogState();
@@ -868,6 +819,9 @@ class _SuccessDialogState extends State<SuccessDialog>
 
   @override
   Widget build(BuildContext context) {
+    // Initialize responsive utilities
+    ResponsiveUtils.init(context);
+    
     return Material(
       color: Colors.transparent,
       child: Stack(
@@ -881,18 +835,18 @@ class _SuccessDialogState extends State<SuccessDialog>
               children: [
                 // Olive/Yellow organic shape top-left
                 Positioned(
-                  top: -150,
-                  left: -100,
+                  top: ResponsiveUtils.bh(-150),
+                  left: ResponsiveUtils.bw(-100),
                   child: ClipPath(
                     clipper: _SuccessDialogOliveShapeClipper(),
                     child: Container(
-                      width: 400,
-                      height: 350,
-                      decoration: BoxDecoration(
+                      width: ResponsiveUtils.bs(400),
+                      height: ResponsiveUtils.bs(350),
+                      decoration: const BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            const Color(0xFF8B7D2B),
-                            const Color(0xFF6B5D1B),
+                            Color(0xFF8B7D2B),
+                            Color(0xFF6B5D1B),
                           ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
@@ -904,13 +858,13 @@ class _SuccessDialogState extends State<SuccessDialog>
 
                 // Black organic shape top-right
                 Positioned(
-                  top: -50,
-                  right: -150,
+                  top: ResponsiveUtils.bh(-50),
+                  right: ResponsiveUtils.bw(-150),
                   child: ClipPath(
                     clipper: _SuccessDialogBlackShapeClipper(),
                     child: Container(
-                      width: 450,
-                      height: 400,
+                      width: ResponsiveUtils.bs(450),
+                      height: ResponsiveUtils.bs(400),
                       decoration: const BoxDecoration(
                         gradient: LinearGradient(
                           colors: [Color(0xFF000000), Color(0xFF1A1A1A)],
@@ -949,12 +903,12 @@ class _SuccessDialogState extends State<SuccessDialog>
                           Container(
                             width: 90,
                             height: 90,
-                            decoration: BoxDecoration(
+                            decoration: const BoxDecoration(
                               shape: BoxShape.circle,
                               gradient: LinearGradient(
                                 colors: [
-                                  const Color(0xFF4ADE80),
-                                  const Color(0xFF22C55E),
+                                  Color(0xFF4ADE80),
+                                  Color(0xFF22C55E),
                                 ],
                               ),
                             ),

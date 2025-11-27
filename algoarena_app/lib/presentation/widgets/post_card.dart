@@ -13,14 +13,14 @@ class PostCard extends StatelessWidget {
   final VoidCallback? onDelete;
 
   const PostCard({
-    Key? key,
+    super.key,
     required this.post,
     this.currentUserId,
     this.onLike,
     this.onComment,
     this.onShare,
     this.onDelete,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

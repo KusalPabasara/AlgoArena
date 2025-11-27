@@ -2,6 +2,17 @@ import 'package:flutter/material.dart';
 
 /// Custom SVG icons from Figma design
 class CustomIcons {
+  // Home icon - house shape
+  static Widget home({double size = 24, Color color = Colors.black}) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: CustomPaint(
+        painter: _HomePainter(color: color),
+      ),
+    );
+  }
+
   // Calendar icon - exact from Figma
   static Widget calendar({double size = 24, Color color = Colors.black}) {
     return SizedBox(
@@ -295,4 +306,40 @@ class _MinusPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_MinusPainter oldDelegate) => oldDelegate.color != color;
+}
+
+/// Home icon painter - simple house outline matching other icons style
+class _HomePainter extends CustomPainter {
+  final Color color;
+
+  _HomePainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    // Draw house roof (triangle) - simple outline
+    final roofPath = Path()
+      ..moveTo(size.width * 0.5, size.height * 0.15)  // Top center
+      ..lineTo(size.width * 0.15, size.height * 0.45) // Bottom left
+      ..lineTo(size.width * 0.85, size.height * 0.45) // Bottom right
+      ..close();
+    canvas.drawPath(roofPath, paint);
+
+    // Draw house body (rectangle) - simple outline
+    final bodyPath = Path()
+      ..moveTo(size.width * 0.2, size.height * 0.45)
+      ..lineTo(size.width * 0.2, size.height * 0.9)
+      ..lineTo(size.width * 0.8, size.height * 0.9)
+      ..lineTo(size.width * 0.8, size.height * 0.45);
+    canvas.drawPath(bodyPath, paint);
+  }
+
+  @override
+  bool shouldRepaint(_HomePainter oldDelegate) => oldDelegate.color != color;
 }

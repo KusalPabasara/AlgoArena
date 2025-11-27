@@ -1,54 +1,70 @@
 # AlgoArena Backend
 
-Node.js + Express + MongoDB backend for AlgoArena mobile application.
+Node.js + Express + Firebase backend for AlgoArena mobile application.
 
-## Setup
+## 🔥 Firebase Backend
 
-1. Install dependencies:
+This backend now uses **Firebase** instead of MongoDB:
+- **Firestore** for database
+- **Firebase Authentication** for user management
+- **Cloud Storage** for file uploads
+
+## 🚀 Quick Start
+
+### 1. Setup Firebase Project
+
+Follow the complete guide in `FIREBASE_SETUP.md` for detailed instructions.
+
+Quick steps:
+1. Create Firebase project at https://console.firebase.google.com
+2. Enable Firestore Database, Authentication, and Cloud Storage
+3. Download service account key → save as `serviceAccountKey.json`
+4. Update `.env` with your Firebase credentials
+
+### 2. Install Dependencies
+
 ```bash
 npm install
 ```
 
-2. Create `.env` file:
-```bash
-cp .env.example .env
+### 3. Configure Environment
+
+Create/update `.env`:
+
+```env
+FIREBASE_SERVICE_ACCOUNT_PATH=./serviceAccountKey.json
+FIREBASE_STORAGE_BUCKET=your-project-id.appspot.com
+PORT=5000
+NODE_ENV=development
 ```
 
-3. Configure environment variables in `.env`:
-- Set MongoDB connection string
-- Set JWT secret
-- Configure email settings (optional, for password reset)
+### 4. Seed Sample Data (Optional)
 
-4. Create uploads directory:
 ```bash
-mkdir uploads
+npm run seed
 ```
 
-5. Start MongoDB (if running locally):
-```bash
-mongod
-```
+Test accounts:
+- Admin: `admin@algoarena.com` / `admin123`
+- User: `john@example.com` / `password123`
 
-6. Run the server:
+### 5. Start Server
 
-Development mode:
 ```bash
+# Development mode (with auto-reload)
 npm run dev
-```
 
-Production mode:
-```bash
+# Production mode
 npm start
 ```
 
-## API Endpoints
+## 📡 API Endpoints
 
 ### Authentication
 - `POST /api/auth/register` - Register new user
 - `POST /api/auth/login` - Login user
 - `GET /api/auth/me` - Get current user
 - `POST /api/auth/forgot-password` - Request password reset
-- `POST /api/auth/reset-password` - Reset password
 
 ### Users
 - `GET /api/users/:id` - Get user by ID
@@ -73,30 +89,94 @@ npm start
 - `GET /api/districts/:id` - Get district by ID
 - `POST /api/districts` - Create new district (super admin only)
 
-## Project Structure
+## 📁 Project Structure
 
 ```
 backend/
-├── controllers/       # Request handlers
-├── middleware/        # Custom middleware
-├── models/           # MongoDB schemas
-├── routes/           # API routes
-├── uploads/          # Uploaded files
-├── .env              # Environment variables
-├── .env.example      # Example environment file
-├── package.json      # Dependencies
-└── server.js         # Entry point
+├── config/
+│   └── firebase.js           # Firebase Admin SDK initialization
+├── services/
+│   ├── firestore.service.js  # Firestore database operations
+│   ├── auth.service.js       # Firebase Authentication
+│   └── storage.service.js    # Cloud Storage operations
+├── controllers/              # Request handlers
+│   ├── auth.controller.js
+│   ├── post.controller.js
+│   ├── club.controller.js
+│   └── district.controller.js
+├── middleware/
+│   ├── auth.js              # Firebase token verification
+│   └── upload.js            # File upload handling
+├── routes/                  # API routes
+│   ├── auth.routes.js
+│   ├── user.routes.js
+│   ├── post.routes.js
+│   ├── club.routes.js
+│   └── district.routes.js
+├── .env                     # Environment variables
+├── serviceAccountKey.json   # Firebase credentials (DON'T COMMIT!)
+├── server.js                # Express server entry point
+├── seed-firebase.js         # Database seeding script
+└── package.json             # Dependencies
 ```
 
-## Technologies
+## 🛠 Technologies
 
 - **Express.js** - Web framework
-- **MongoDB** - Database
-- **Mongoose** - ODM
-- **JWT** - Authentication
-- **bcryptjs** - Password hashing
-- **Multer** - File uploads
-- **Nodemailer** - Email sending
+- **Firebase Admin SDK** - Backend services
+- **Firestore** - NoSQL database
+- **Firebase Authentication** - User management
+- **Cloud Storage** - File storage
+- **Multer** - File upload handling
+- **Express Validator** - Request validation
+
+## 📱 For Android Studio Testing
+
+The Flutter app is configured to use:
+```
+http://10.0.2.2:5000/api
+```
+
+This is the correct URL for Android emulator to access localhost on your machine.
+
+## 📚 Documentation
+
+- `README_FIREBASE.md` - Quick reference guide
+- `FIREBASE_SETUP.md` - Complete setup instructions
+- `FIREBASE_MIGRATION_PLAN.md` - Architecture and migration details
+
+## 🔒 Security Notes
+
+1. **Never commit `serviceAccountKey.json`** to version control
+2. Add to `.gitignore` (already configured)
+3. For production, use proper Firestore security rules
+4. Set appropriate CORS policies
+
+## ✨ Features
+
+- ✅ Firebase Firestore for scalable database
+- ✅ Firebase Authentication for secure user management
+- ✅ Cloud Storage for image uploads
+- ✅ Real-time capabilities (can be added later)
+- ✅ No local database installation required
+- ✅ Auto-scaling with Firebase
+- ✅ Free tier available for development
+
+## 🆘 Troubleshooting
+
+### Firebase credentials error
+- Ensure `serviceAccountKey.json` exists in backend folder
+- Check `FIREBASE_SERVICE_ACCOUNT_PATH` in `.env`
+
+### Port already in use
+- Change `PORT` in `.env`
+- Kill process using port 5000
+
+### Cannot connect from emulator
+- Ensure backend is running on `0.0.0.0:5000`
+- Use `http://10.0.2.2:5000/api` in Flutter app
+
+See `FIREBASE_SETUP.md` for detailed troubleshooting.
 
 ## Flutter App Configuration
 

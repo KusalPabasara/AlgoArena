@@ -1,12 +1,13 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../../config/environment.dart';
 
 class ApiService {
-  // Change this to your backend URL when deployed
-  // For Android Emulator: http://10.0.2.2:5000/api
-  // For Physical Device: http://YOUR_IP:5000/api
-  static const String baseUrl = 'http://10.0.2.2:5000/api';
+  // API URL is now configured via Environment
+  // To switch between dev/prod, update Environment.init() in main.dart
+  // For production: set your deployed URL in lib/config/environment.dart
+  static String get baseUrl => Environment.apiBaseUrl;
   
   final _storage = const FlutterSecureStorage();
   

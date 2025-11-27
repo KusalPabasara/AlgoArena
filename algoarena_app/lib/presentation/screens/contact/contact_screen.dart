@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import '../../widgets/custom_back_button.dart';
 import '../../../core/constants/colors.dart';
 
 class ContactScreen extends StatelessWidget {
-  const ContactScreen({Key? key}) : super(key: key);
+  const ContactScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -86,14 +87,8 @@ class ContactScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header
-                Padding(
-                  padding: const EdgeInsets.only(left: 10, top: 2),
-                  child: IconButton(
-                    icon: const Icon(Icons.arrow_back, size: 28),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ),
+                // Header - Back button handled by CustomBackButton in Stack
+                SizedBox(height: MediaQuery.of(context).padding.top + 48),
                 
                 // Title
                 const Padding(
@@ -202,6 +197,12 @@ class ContactScreen extends StatelessWidget {
               ],
             ),
           ),
+
+          // Back button - top left
+          CustomBackButton(
+            backgroundColor: Colors.white, // White background
+            iconSize: 24,
+          ),
         ],
       ),
     );
@@ -270,18 +271,18 @@ class ContactScreen extends StatelessWidget {
             color: Colors.black.withOpacity(0.1),
             borderRadius: BorderRadius.circular(15),
           ),
-          child: Row(
+          child: const Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Padding(
+              Padding(
                 padding: EdgeInsets.only(top: 4),
                 child: Icon(Icons.location_on, size: 24),
               ),
-              const SizedBox(width: 16),
+              SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
+                  children: [
                     Text(
                       'Lions Activity Center,',
                       style: TextStyle(

@@ -39,12 +39,12 @@ class AnimatedBubbleWrapper extends StatelessWidget {
   final Animation<double>? animation;
 
   const AnimatedBubbleWrapper({
-    Key? key,
+    super.key,
     required this.child,
     required this.fromAngle,
     required this.toAngle,
     this.animation,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

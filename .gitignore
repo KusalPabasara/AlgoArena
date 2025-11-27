@@ -1,0 +1,105 @@
+<<<<<<< HEAD
+# Ignore Markdown files (keep them locally, don't push)
+*.md
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor directories
+.vscode/
+.idea/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Flutter / Dart
+/.dart_tool/
+/.pub/
+/build/
+/ios/Flutter/Flutter.framework
+/ios/Flutter/Flutter.podspec
+/ios/Pods/
+/ios/Runner.xcworkspace/
+/android/.gradle/
+/android/app/build/
+**/build/
+
+# Java / Gradle
+/.gradle/
+/gradle-app.setting
+
+# Misc
+/coverage/
+*.log
+*.lock
+=======
+# Documentation files (Markdown)
+*.md
+!README.md
+
+# IDE and Editor folders
+.vscode/
+.idea/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+*.log
+
+# Node.js
+node_modules/
+package-lock.json
+
+# Build directories
+build/
+dist/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Firebase credentials (sensitive)
+serviceAccountKey.json
+firebase-adminsdk-*.json
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*~
+
+# Figma exports and design files
+figma/
+image sources/
+builderio.txt
+
+# Flutter build
+algoarena_app/build/
+
+# Hot reload files
+*.hot_reload.txt
+hot_reload.txt
+
+# Frontend code reference folders (not needed in repo)
+algoarena_app/About/
+algoarena_app/Contact/
+algoarena_app/Event_Page_hyperlink/
+algoarena_app/Executive/
+algoarena_app/Home_Page/
+algoarena_app/Home_Page_link/
+algoarena_app/Leo assist/
+algoarena_app/Leo_district_362/
+algoarena_app/Pages_clubs/
+algoarena_app/Pages_district/
+algoarena_app/Pages_home/
+algoarena_app/Provide Frontend Code/
+algoarena_app/notification/
+algoarena_app/profile/
+algoarena_app/search/
+algoarena_app/settings/
+>>>>>>> 89350104f9a8382a34806bfa1b0412693e53fb78

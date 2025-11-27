@@ -1,15 +1,58 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/colors.dart';
-import '../../core/constants/strings.dart';
-import 'custom_icons.dart';
 
 class AppBottomNav extends StatelessWidget {
   final int currentIndex;
+  final ValueChanged<int>? onTabChanged;
   
   const AppBottomNav({
-    Key? key,
+    super.key,
     required this.currentIndex,
-  }) : super(key: key);
+    this.onTabChanged,
+  });
+
+  // Build icon with highlight circle for active tab
+  Widget _buildIconWithHighlight(IconData icon, IconData activeIcon, bool isActive) {
+    if (isActive) {
+      // Active state: circle with icon and bar inside
+      return Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: const Color(0xFFFFF9C4), // Light yellow background
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              activeIcon,
+              size: 28,
+              color: const Color(0xFFFFD700), // Gold color
+            ),
+            const SizedBox(height: 4),
+            // Small black bar inside the circle, below the icon (shorter length)
+            Container(
+              width: 16,
+              height: 3,
+              decoration: BoxDecoration(
+                color: Colors.black, // Black color
+                borderRadius: BorderRadius.circular(1.5),
+              ),
+            ),
+          ],
+        ),
+      );
+    } else {
+      // Inactive state: just the icon
+      return Icon(
+        icon,
+        size: 30,
+        color: AppColors.textHint,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,53 +60,78 @@ class AppBottomNav extends StatelessWidget {
       currentIndex: currentIndex,
       onTap: (index) {
         if (currentIndex == index) return; // Don't navigate if already on the tab
-        
-        switch (index) {
-          case 0:
-            Navigator.pushReplacementNamed(context, '/home');
-            break;
-          case 1:
-            Navigator.pushReplacementNamed(context, '/search');
-            break;
-          case 2:
-            Navigator.pushReplacementNamed(context, '/pages');
-            break;
-          case 3:
-            Navigator.pushReplacementNamed(context, '/profile');
-            break;
-        }
+        onTabChanged?.call(index);
       },
       type: BottomNavigationBarType.fixed,
       selectedItemColor: AppColors.primary,
       unselectedItemColor: AppColors.textHint,
+      showSelectedLabels: false,
+      showUnselectedLabels: false,
       items: [
         BottomNavigationBarItem(
-          icon: CustomIcons.calendar(
-            size: 24,
-            color: currentIndex == 0 ? AppColors.primary : AppColors.textHint,
+          icon: _buildIconWithHighlight(
+            Icons.home_rounded,
+            Icons.home_rounded,
+            currentIndex == 0,
           ),
-          label: AppStrings.home,
+          activeIcon: _buildIconWithHighlight(
+            Icons.home_rounded,
+            Icons.home_rounded,
+            true,
+          ),
+          label: '',
         ),
         BottomNavigationBarItem(
-          icon: CustomIcons.search(
-            size: 24,
-            color: currentIndex == 1 ? AppColors.primary : AppColors.textHint,
+          icon: _buildIconWithHighlight(
+            Icons.explore_outlined,
+            Icons.explore,
+            currentIndex == 1,
           ),
-          label: AppStrings.search,
+          activeIcon: _buildIconWithHighlight(
+            Icons.explore_outlined,
+            Icons.explore,
+            true,
+          ),
+          label: '',
         ),
         BottomNavigationBarItem(
-          icon: CustomIcons.pages(
-            size: 28,
-            color: currentIndex == 2 ? AppColors.primary : const Color(0xFF141B34),
+          icon: _buildIconWithHighlight(
+            Icons.calendar_today_outlined,
+            Icons.calendar_today,
+            currentIndex == 2,
           ),
-          label: AppStrings.pages,
+          activeIcon: _buildIconWithHighlight(
+            Icons.calendar_today_outlined,
+            Icons.calendar_today,
+            true,
+          ),
+          label: '',
         ),
         BottomNavigationBarItem(
-          icon: CustomIcons.profile(
-            size: 24,
-            color: currentIndex == 3 ? AppColors.primary : AppColors.textHint,
+          icon: _buildIconWithHighlight(
+            Icons.dashboard_outlined,
+            Icons.dashboard,
+            currentIndex == 3,
           ),
-          label: AppStrings.profile,
+          activeIcon: _buildIconWithHighlight(
+            Icons.dashboard_outlined,
+            Icons.dashboard,
+            true,
+          ),
+          label: '',
+        ),
+        BottomNavigationBarItem(
+          icon: _buildIconWithHighlight(
+            Icons.account_circle_outlined,
+            Icons.account_circle,
+            currentIndex == 4,
+          ),
+          activeIcon: _buildIconWithHighlight(
+            Icons.account_circle_outlined,
+            Icons.account_circle,
+            true,
+          ),
+          label: '',
         ),
       ],
     );

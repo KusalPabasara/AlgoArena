@@ -1,37 +1,133 @@
 import 'package:flutter/material.dart';
-import '../../../core/constants/colors.dart';
-import '../../../core/constants/strings.dart';
+import '../../widgets/forgot_password_widgets.dart';
+import '../../../data/repositories/password_recovery_repository.dart';
+import '../../../utils/responsive_utils.dart';
+import 'verify_email_otp_screen.dart';
 
-/// Password Recovery Screen - Choose SMS or Email
-/// Figma node: 114:644
+/// Password Recovery Screen - Email Only (SMS not working)
+/// With bubble decorations at the top like the Figma design
 class ForgotPasswordScreen extends StatefulWidget {
   final String? email;
 
   const ForgotPasswordScreen({
-    Key? key,
+    super.key,
     this.email,
-  }) : super(key: key);
+  });
 
   @override
   State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
 }
 
-class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
-  String _selectedMethod = 'sms'; // 'sms' or 'email'
+class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
+    with TickerProviderStateMixin {
+  final _emailController = TextEditingController();
+  final _repository = PasswordRecoveryRepository();
+  bool _isLoading = false;
+  String? _errorMessage;
 
-  void _handleNext() {
-    if (_selectedMethod == 'sms') {
-      Navigator.pushNamed(
-        context,
-        '/verify-sms',
-        arguments: widget.email,
-      );
+  // Animation controllers
+  late AnimationController _avatarController;
+  late AnimationController _contentController;
+  late AnimationController _buttonController;
+
+  late Animation<double> _avatarScaleAnimation;
+  late Animation<double> _contentFadeAnimation;
+  late Animation<double> _buttonFadeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController.text = widget.email ?? '';
+    _setupAnimations();
+    _startAnimations();
+  }
+
+  void _setupAnimations() {
+    _avatarController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+
+    _contentController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+
+    _buttonController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+
+    _avatarScaleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _avatarController, curve: Curves.elasticOut),
+    );
+
+    _contentFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _contentController, curve: Curves.easeIn),
+    );
+
+    _buttonFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _buttonController, curve: Curves.easeIn),
+    );
+  }
+
+  void _startAnimations() {
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) _avatarController.forward();
+    });
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) _contentController.forward();
+    });
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) _buttonController.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _avatarController.dispose();
+    _contentController.dispose();
+    _buttonController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleSendOTP() async {
+    final email = _emailController.text.trim();
+    
+    if (email.isEmpty) {
+      setState(() => _errorMessage = 'Please enter your email address');
+      return;
+    }
+
+    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email)) {
+      setState(() => _errorMessage = 'Please enter a valid email address');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    final result = await _repository.sendOTP(email);
+
+    setState(() => _isLoading = false);
+
+    if (result['success'] == true) {
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => VerifyEmailOTPScreen(
+              email: email,
+              devOtp: result['otp'], // Only for development
+            ),
+          ),
+        );
+      }
     } else {
-      Navigator.pushNamed(
-        context,
-        '/verify-email',
-        arguments: widget.email,
-      );
+      setState(() => _errorMessage = result['message']);
     }
   }
 
@@ -41,292 +137,253 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Initialize responsive utilities
+    ResponsiveUtils.init(context);
+    
     return Scaffold(
       backgroundColor: Colors.white,
+      resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
-          // Yellow and black bubbles at top
-          Positioned(
-            left: -249,
-            top: -235,
-            child: Container(
-              width: 816,
-              height: 1105,
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFD700),
-                borderRadius: BorderRadius.circular(500),
-              ),
-            ),
-          ),
-          Positioned(
-            left: -180,
-            top: -100,
-            child: Container(
-              width: 500,
-              height: 500,
-              decoration: BoxDecoration(
-                color: Colors.black,
-                borderRadius: BorderRadius.circular(300),
-              ),
-            ),
-          ),
+          // Bubble decorations
+          const ForgotPasswordBubbles(),
 
+          // Main content
           SafeArea(
-            child: Column(
-              children: [
-                // Back button
-                Padding(
-                  padding: const EdgeInsets.all(10.0),
-                  child: Align(
-                    alignment: Alignment.topLeft,
-                    child: IconButton(
-                      icon: const Icon(Icons.arrow_back, size: 30),
-                      onPressed: () => Navigator.pop(context),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                  physics: const ClampingScrollPhysics(),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
                     ),
-                  ),
-                ),
-
-                const SizedBox(height: 80),
-
-                // Profile avatar
-                Container(
-                  width: 126,
-                  height: 126,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: const Color(0xFFBFA506),
-                      width: 4,
-                    ),
-                  ),
-                  child: ClipOval(
-                    child: Image.asset(
-                      'assets/images/avatar_placeholder.png',
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          color: Colors.grey[300],
-                          child: const Icon(
-                            Icons.person,
-                            size: 60,
-                            color: Colors.grey,
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 40),
-
-                // Title
-                const Text(
-                  'Password Recovery',
-                  style: TextStyle(
-                    fontFamily: 'Raleway',
-                    fontSize: 21,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF202020),
-                    letterSpacing: -0.21,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-
-                const SizedBox(height: 15),
-
-                // Subtitle
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 50.0),
-                  child: Text(
-                    'How you would like to restore your password?',
-                    style: TextStyle(
-                      fontFamily: 'Nunito Sans',
-                      fontSize: 19,
-                      fontWeight: FontWeight.w300,
-                      color: Colors.black,
-                      height: 1.42,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-
-                const SizedBox(height: 45),
-
-                // SMS option
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 100.0),
-                  child: GestureDetector(
-                    onTap: () => setState(() => _selectedMethod = 'sms'),
-                    child: Container(
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: _selectedMethod == 'sms'
-                            ? const Color(0xFFFFF1C6)
-                            : const Color(0xFFCCCCCC),
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'SMS',
-                            style: TextStyle(
-                              fontFamily: 'Raleway',
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              color: _selectedMethod == 'sms'
-                                  ? const Color(0xFF8F7902)
-                                  : Colors.black,
-                              letterSpacing: -0.15,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          if (_selectedMethod == 'sms')
-                            Container(
-                              width: 22,
-                              height: 22,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFF8F7902),
-                                shape: BoxShape.circle,
+                    child: IntrinsicHeight(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: ResponsiveUtils.adaptiveHorizontalPadding,
+                        ),
+                        child: Column(
+                          children: [
+                            // Back button
+                            Padding(
+                              padding: EdgeInsets.only(
+                                left: ResponsiveUtils.spacingS,
+                                top: ResponsiveUtils.spacingS,
                               ),
-                              child: const Icon(
-                                Icons.check,
-                                color: Colors.white,
-                                size: 14,
-                              ),
-                            )
-                          else
-                            Container(
-                              width: 22,
-                              height: 22,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFCBCBCB),
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Colors.white,
-                                  width: 2,
+                              child: Align(
+                                alignment: Alignment.topLeft,
+                                child: ForgotPasswordBackButton(
+                                  onPressed: () => Navigator.pop(context),
                                 ),
                               ),
                             ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
 
-                const SizedBox(height: 10),
+                            SizedBox(height: ResponsiveUtils.dp(60)),
 
-                // Email option
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 100.0),
-                  child: GestureDetector(
-                    onTap: () => setState(() => _selectedMethod = 'email'),
-                    child: Container(
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: _selectedMethod == 'email'
-                            ? const Color(0xFFFFF1C6)
-                            : const Color(0xFFCCCCCC),
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Email',
-                            style: TextStyle(
-                              fontFamily: 'Raleway',
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              color: _selectedMethod == 'email'
-                                  ? const Color(0xFF8F7902)
-                                  : Colors.black,
-                              letterSpacing: -0.15,
+                            // Avatar - animated
+                            ScaleTransition(
+                              scale: _avatarScaleAnimation,
+                              child: const ForgotPasswordAvatar(),
                             ),
-                          ),
-                          const SizedBox(width: 10),
-                          if (_selectedMethod == 'email')
-                            Container(
-                              width: 22,
-                              height: 22,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFF8F7902),
-                                shape: BoxShape.circle,
+
+                            SizedBox(height: ResponsiveUtils.spacingXL),
+
+                            // Title - animated
+                            FadeTransition(
+                              opacity: _contentFadeAnimation,
+                              child: Text(
+                                'Password Recovery',
+                                style: TextStyle(
+                                  fontFamily: 'Raleway',
+                                  fontSize: ResponsiveUtils.titleLarge,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF202020),
+                                  letterSpacing: -0.22,
+                                ),
+                                textAlign: TextAlign.center,
                               ),
-                              child: const Icon(
-                                Icons.check,
-                                color: Colors.white,
-                                size: 14,
-                              ),
-                            )
-                          else
-                            Container(
-                              width: 22,
-                              height: 22,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFCBCBCB),
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Colors.white,
-                                  width: 2,
+                            ),
+
+                            SizedBox(height: ResponsiveUtils.spacingM),
+
+                            // Subtitle - animated
+                            FadeTransition(
+                              opacity: _contentFadeAnimation,
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: ResponsiveUtils.spacingM,
+                                ),
+                                child: Text(
+                                  'Enter your email address and we\'ll send you a 4-digit code to reset your password',
+                                  style: TextStyle(
+                                    fontFamily: 'Nunito Sans',
+                                    fontSize: ResponsiveUtils.bodyMedium,
+                                    fontWeight: FontWeight.w400,
+                                    color: const Color(0xFF666666),
+                                    height: 1.5,
+                                  ),
+                                  textAlign: TextAlign.center,
                                 ),
                               ),
                             ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
 
-                const Spacer(),
+                            SizedBox(height: ResponsiveUtils.spacingXL),
 
-                // Next button
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 33.0),
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 61,
-                    child: ElevatedButton(
-                      onPressed: _handleNext,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black,
-                        foregroundColor: const Color(0xFFF3F3F3),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
+                            // Email input field - animated
+                            FadeTransition(
+                              opacity: _contentFadeAnimation,
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: ResponsiveUtils.spacingM,
+                                ),
+                                child: SizedBox(
+                                  height: ResponsiveUtils.inputHeight,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF5F5F5),
+                                      borderRadius: BorderRadius.circular(
+                                        ResponsiveUtils.inputRadius * 2,
+                                      ),
+                                    ),
+                                    child: TextField(
+                                      controller: _emailController,
+                                      keyboardType: TextInputType.emailAddress,
+                                      style: TextStyle(
+                                        fontFamily: 'Nunito Sans',
+                                        fontSize: ResponsiveUtils.bodyLarge,
+                                      ),
+                                      decoration: InputDecoration(
+                                        hintText: 'Enter your email',
+                                        hintStyle: TextStyle(
+                                          fontFamily: 'Nunito Sans',
+                                          fontSize: ResponsiveUtils.bodyLarge,
+                                          color: Colors.grey[400],
+                                        ),
+                                        prefixIcon: Icon(
+                                          Icons.email_outlined,
+                                          color: const Color(0xFFB8860B),
+                                          size: ResponsiveUtils.iconSize,
+                                        ),
+                                        border: InputBorder.none,
+                                        contentPadding: EdgeInsets.symmetric(
+                                          horizontal: ResponsiveUtils.spacingL,
+                                          vertical: ResponsiveUtils.spacingM,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                            // Error message
+                            if (_errorMessage != null)
+                              Padding(
+                                padding: EdgeInsets.only(
+                                  top: ResponsiveUtils.spacingS,
+                                  left: ResponsiveUtils.spacingM,
+                                  right: ResponsiveUtils.spacingM,
+                                ),
+                                child: Text(
+                                  _errorMessage!,
+                                  style: TextStyle(
+                                    color: Colors.red,
+                                    fontSize: ResponsiveUtils.bodySmall,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+
+                            const Spacer(),
+
+                            // Send OTP button - animated
+                            FadeTransition(
+                              opacity: _buttonFadeAnimation,
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: ResponsiveUtils.spacingM,
+                                ),
+                                child: SizedBox(
+                                  width: double.infinity,
+                                  height: ResponsiveUtils.buttonHeight,
+                                  child: ElevatedButton(
+                                    onPressed: _isLoading ? null : _handleSendOTP,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.black,
+                                      foregroundColor: Colors.white,
+                                      elevation: 0,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          ResponsiveUtils.inputRadius * 2,
+                                        ),
+                                      ),
+                                      disabledBackgroundColor: Colors.grey[400],
+                                    ),
+                                    child: _isLoading
+                                        ? SizedBox(
+                                            width: ResponsiveUtils.iconSize,
+                                            height: ResponsiveUtils.iconSize,
+                                            child: const CircularProgressIndicator(
+                                              color: Colors.white,
+                                              strokeWidth: 2,
+                                            ),
+                                          )
+                                        : Text(
+                                            'Send Code',
+                                            style: TextStyle(
+                                              fontFamily: 'Nunito Sans',
+                                              fontSize: ResponsiveUtils.bodyLarge + 2,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                            SizedBox(height: ResponsiveUtils.spacingM),
+
+                            // Cancel button - animated
+                            FadeTransition(
+                              opacity: _buttonFadeAnimation,
+                              child: TextButton(
+                                onPressed: _handleCancel,
+                                child: Text(
+                                  'Cancel',
+                                  style: TextStyle(
+                                    fontFamily: 'Nunito Sans',
+                                    fontSize: ResponsiveUtils.bodyLarge,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                            SizedBox(height: ResponsiveUtils.spacingL),
+
+                            // Bottom bar indicator
+                            Container(
+                              width: ResponsiveUtils.dp(134),
+                              height: ResponsiveUtils.dp(5),
+                              decoration: BoxDecoration(
+                                color: Colors.black,
+                                borderRadius: BorderRadius.circular(
+                                  ResponsiveUtils.dp(3),
+                                ),
+                              ),
+                            ),
+
+                            SizedBox(height: ResponsiveUtils.spacingS),
+                          ],
                         ),
                       ),
-                      child: const Text(
-                        'Next',
-                        style: TextStyle(
-                          fontFamily: 'Nunito Sans',
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
                     ),
                   ),
-                ),
-
-                const SizedBox(height: 20),
-
-                // Cancel button
-                TextButton(
-                  onPressed: _handleCancel,
-                  child: const Text(
-                    'Cancel',
-                    style: TextStyle(
-                      fontFamily: 'Nunito Sans',
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                      decoration: TextDecoration.none,
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 40),
-              ],
+                );
+              },
             ),
           ),
         ],
