@@ -74,3 +74,6 @@ algoarena_app/build/
 # Hot reload files
 *.hot_reload.txt
 hot_reload.txt
+
+# Ignore envs directory for storing environment files
+.envs/
