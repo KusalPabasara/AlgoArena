@@ -3,6 +3,7 @@ import '../../widgets/forgot_password_widgets.dart';
 import '../../../data/repositories/password_recovery_repository.dart';
 import '../../../utils/responsive_utils.dart';
 import 'password_reset_success_screen.dart';
+import '../../widgets/custom_back_button.dart';
 
 /// New Password Entry Screen
 /// Allows user to enter and confirm new password
@@ -22,6 +23,8 @@ class _NewPasswordScreenState extends State<NewPasswordScreen>
     with TickerProviderStateMixin {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _passwordFocusNode = FocusNode();
+  final _confirmPasswordFocusNode = FocusNode();
   final _repository = PasswordRecoveryRepository();
   
   bool _isLoading = false;
@@ -30,17 +33,45 @@ class _NewPasswordScreenState extends State<NewPasswordScreen>
   String? _errorMessage;
 
   // Animation controllers
-  late AnimationController _avatarController;
-  late AnimationController _contentController;
+  AnimationController? _avatarController;
+  AnimationController? _contentController;
+  AnimationController? _passwordBorderController;
+  AnimationController? _confirmPasswordBorderController;
 
-  late Animation<double> _avatarScaleAnimation;
-  late Animation<double> _contentFadeAnimation;
+  Animation<double>? _avatarScaleAnimation;
+  Animation<double>? _contentFadeAnimation;
+  Animation<double>? _passwordBorderAnimation;
+  Animation<double>? _confirmPasswordBorderAnimation;
 
   @override
   void initState() {
     super.initState();
     _setupAnimations();
     _startAnimations();
+    // Listen to focus changes to update border color
+    _passwordFocusNode.addListener(() => setState(() {}));
+    _confirmPasswordFocusNode.addListener(() => setState(() {}));
+    // Listen to text changes to animate border
+    _passwordController.addListener(_onPasswordTextChanged);
+    _confirmPasswordController.addListener(_onConfirmPasswordTextChanged);
+  }
+
+  void _onPasswordTextChanged() {
+    if (_passwordFocusNode.hasFocus && _passwordController.text.isNotEmpty) {
+      _passwordBorderController?.forward().then((_) {
+        _passwordBorderController?.reverse();
+      });
+    }
+    setState(() {});
+  }
+
+  void _onConfirmPasswordTextChanged() {
+    if (_confirmPasswordFocusNode.hasFocus && _confirmPasswordController.text.isNotEmpty) {
+      _confirmPasswordBorderController?.forward().then((_) {
+        _confirmPasswordBorderController?.reverse();
+      });
+    }
+    setState(() {});
   }
 
   void _setupAnimations() {
@@ -54,30 +85,54 @@ class _NewPasswordScreenState extends State<NewPasswordScreen>
       vsync: this,
     );
 
+    _passwordBorderController = AnimationController(
+      duration: const Duration(milliseconds: 400),
+      vsync: this,
+    );
+
+    _confirmPasswordBorderController = AnimationController(
+      duration: const Duration(milliseconds: 400),
+      vsync: this,
+    );
+
     _avatarScaleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _avatarController, curve: Curves.elasticOut),
+      CurvedAnimation(parent: _avatarController!, curve: Curves.elasticOut),
     );
 
     _contentFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _contentController, curve: Curves.easeIn),
+      CurvedAnimation(parent: _contentController!, curve: Curves.easeIn),
+    );
+
+    _passwordBorderAnimation = Tween<double>(begin: 2.0, end: 2.5).animate(
+      CurvedAnimation(parent: _passwordBorderController!, curve: Curves.easeInOut),
+    );
+
+    _confirmPasswordBorderAnimation = Tween<double>(begin: 2.0, end: 2.5).animate(
+      CurvedAnimation(parent: _confirmPasswordBorderController!, curve: Curves.easeInOut),
     );
   }
 
   void _startAnimations() {
     Future.delayed(const Duration(milliseconds: 100), () {
-      if (mounted) _avatarController.forward();
+      if (mounted) _avatarController?.forward();
     });
     Future.delayed(const Duration(milliseconds: 300), () {
-      if (mounted) _contentController.forward();
+      if (mounted) _contentController?.forward();
     });
   }
 
   @override
   void dispose() {
+    _passwordController.removeListener(_onPasswordTextChanged);
+    _confirmPasswordController.removeListener(_onConfirmPasswordTextChanged);
     _passwordController.dispose();
     _confirmPasswordController.dispose();
-    _avatarController.dispose();
-    _contentController.dispose();
+    _passwordFocusNode.dispose();
+    _confirmPasswordFocusNode.dispose();
+    _avatarController?.dispose();
+    _contentController?.dispose();
+    _passwordBorderController?.dispose();
+    _confirmPasswordBorderController?.dispose();
     super.dispose();
   }
 
@@ -168,33 +223,23 @@ class _NewPasswordScreenState extends State<NewPasswordScreen>
                         ),
                         child: Column(
                           children: [
-                            // Back button
-                            Padding(
-                              padding: EdgeInsets.only(
-                                left: ResponsiveUtils.spacingS,
-                                top: ResponsiveUtils.spacingS,
-                              ),
-                              child: Align(
-                                alignment: Alignment.topLeft,
-                                child: ForgotPasswordBackButton(
-                                  onPressed: () => Navigator.pop(context),
-                                ),
-                              ),
-                            ),
 
-                            SizedBox(height: ResponsiveUtils.dp(60)),
+                            SizedBox(height: ResponsiveUtils.dp(100)),
 
                             // Avatar - animated
-                            ScaleTransition(
-                              scale: _avatarScaleAnimation,
+                            _avatarScaleAnimation != null
+                                ? ScaleTransition(
+                                    scale: _avatarScaleAnimation!,
                               child: const ForgotPasswordAvatar(),
-                            ),
+                                  )
+                                : const ForgotPasswordAvatar(),
 
                             SizedBox(height: ResponsiveUtils.spacingXL),
 
                             // Title - animated
-                            FadeTransition(
-                              opacity: _contentFadeAnimation,
+                            _contentFadeAnimation != null
+                                ? FadeTransition(
+                                    opacity: _contentFadeAnimation!,
                               child: Text(
                                 'Password Recovery',
                                 style: TextStyle(
@@ -206,60 +251,182 @@ class _NewPasswordScreenState extends State<NewPasswordScreen>
                                 ),
                                 textAlign: TextAlign.center,
                               ),
+                                  )
+                                : Text(
+                                    'Password Recovery',
+                                    style: TextStyle(
+                                      fontFamily: 'Raleway',
+                                      fontSize: ResponsiveUtils.titleLarge,
+                                      fontWeight: FontWeight.bold,
+                                      color: const Color(0xFF202020),
+                                      letterSpacing: -0.22,
+                                    ),
+                                    textAlign: TextAlign.center,
                             ),
 
                             SizedBox(height: ResponsiveUtils.spacingXL),
 
                             // Password input fields - animated
-                            FadeTransition(
-                              opacity: _contentFadeAnimation,
+                            _contentFadeAnimation != null
+                                ? FadeTransition(
+                                    opacity: _contentFadeAnimation!,
                               child: Padding(
                                 padding: EdgeInsets.symmetric(
                                   horizontal: ResponsiveUtils.spacingM,
                                 ),
                                 child: Column(
                                   children: [
-                                    // New Password field
-                                    SizedBox(
+                                          // New Password field - Matching Login Page Style
+                                          _passwordBorderAnimation != null
+                                              ? AnimatedBuilder(
+                                                  animation: _passwordBorderAnimation!,
+                                                  builder: (context, child) {
+                                                    return AnimatedContainer(
+                                                      duration: const Duration(milliseconds: 200),
+                                                      curve: Curves.easeInOut,
+                                                      decoration: BoxDecoration(
+                                                        borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                                        border: _passwordFocusNode.hasFocus
+                                                            ? Border.all(
+                                                                color: const Color(0xFFFFD700),
+                                                                width: _passwordController.text.isNotEmpty
+                                                                    ? _passwordBorderAnimation!.value
+                                                                    : 2.0,
+                                                              )
+                                                            : null,
+                                                      ),
+                                                      child: child,
+                                                    );
+                                                  },
+                                                  child: SizedBox(
                                       height: ResponsiveUtils.inputHeight,
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFFFF9E6),
-                                          borderRadius: BorderRadius.circular(
-                                            ResponsiveUtils.buttonRadius,
-                                          ),
-                                          border: Border.all(
-                                            color: const Color(0xFFE0D5B5),
-                                            width: 1.5,
-                                          ),
-                                        ),
+                                                    child: TextField(
+                                                      controller: _passwordController,
+                                                      focusNode: _passwordFocusNode,
+                                                      obscureText: _obscurePassword,
+                                                      style: TextStyle(
+                                                        fontFamily: 'Nunito Sans',
+                                                        fontSize: ResponsiveUtils.bodyLarge,
+                                                        fontWeight: FontWeight.w400,
+                                                        color: Colors.white,
+                                                      ),
+                                                      decoration: InputDecoration(
+                                                        hintText: 'Enter New Password',
+                                                        hintStyle: TextStyle(
+                                                          fontFamily: 'Nunito Sans',
+                                                          fontSize: ResponsiveUtils.bodyLarge,
+                                                          fontWeight: FontWeight.w400,
+                                                          color: const Color(0xFFD2D2D2),
+                                                        ),
+                                                        filled: true,
+                                                        fillColor: Colors.black.withOpacity(0.4),
+                                                        contentPadding: EdgeInsets.symmetric(
+                                                          horizontal: ResponsiveUtils.spacingL,
+                                                          vertical: ResponsiveUtils.spacingM,
+                                                        ),
+                                                        border: OutlineInputBorder(
+                                                          borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                                          borderSide: BorderSide.none,
+                                                        ),
+                                                        enabledBorder: OutlineInputBorder(
+                                                          borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                                          borderSide: BorderSide.none,
+                                                        ),
+                                                        focusedBorder: OutlineInputBorder(
+                                                          borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                                          borderSide: BorderSide.none,
+                                                        ),
+                                                        errorBorder: OutlineInputBorder(
+                                                          borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                                          borderSide: BorderSide.none,
+                                                        ),
+                                                        focusedErrorBorder: OutlineInputBorder(
+                                                          borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                                          borderSide: BorderSide.none,
+                                                        ),
+                                                        suffixIcon: IconButton(
+                                                          icon: Icon(
+                                                            _obscurePassword
+                                                                ? Icons.visibility_off
+                                                                : Icons.visibility,
+                                                            color: Colors.white70,
+                                                            size: ResponsiveUtils.iconSize,
+                                                          ),
+                                                          onPressed: () {
+                                                            setState(() {
+                                                              _obscurePassword = !_obscurePassword;
+                                                            });
+                                                          },
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                )
+                                              : AnimatedContainer(
+                                                  duration: const Duration(milliseconds: 200),
+                                                  curve: Curves.easeInOut,
+                                                  decoration: BoxDecoration(
+                                                    borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                                    border: _passwordFocusNode.hasFocus
+                                                        ? Border.all(
+                                                            color: const Color(0xFFFFD700),
+                                                            width: 2.0,
+                                                          )
+                                                        : null,
+                                                  ),
+                                                  child: SizedBox(
+                                                    height: ResponsiveUtils.inputHeight,
                                         child: TextField(
                                           controller: _passwordController,
+                                                      focusNode: _passwordFocusNode,
                                           obscureText: _obscurePassword,
                                           style: TextStyle(
-                                            fontFamily: 'Poppins',
-                                            fontSize: ResponsiveUtils.bodyMedium,
-                                            color: const Color(0xFF202020),
+                                                        fontFamily: 'Nunito Sans',
+                                                        fontSize: ResponsiveUtils.bodyLarge,
+                                                        fontWeight: FontWeight.w400,
+                                                        color: Colors.white,
                                           ),
                                           decoration: InputDecoration(
                                             hintText: 'Enter New Password',
                                             hintStyle: TextStyle(
-                                              fontFamily: 'Poppins',
-                                              fontSize: ResponsiveUtils.bodyMedium,
-                                              color: const Color(0xFF999999),
-                                            ),
-                                            border: InputBorder.none,
+                                                          fontFamily: 'Nunito Sans',
+                                                          fontSize: ResponsiveUtils.bodyLarge,
+                                                          fontWeight: FontWeight.w400,
+                                                          color: const Color(0xFFD2D2D2),
+                                                        ),
+                                                        filled: true,
+                                                        fillColor: Colors.black.withOpacity(0.4),
                                             contentPadding: EdgeInsets.symmetric(
                                               horizontal: ResponsiveUtils.spacingL,
                                               vertical: ResponsiveUtils.spacingM,
+                                            ),
+                                                        border: OutlineInputBorder(
+                                                          borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                                          borderSide: BorderSide.none,
+                                                        ),
+                                                        enabledBorder: OutlineInputBorder(
+                                                          borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                                          borderSide: BorderSide.none,
+                                                        ),
+                                                        focusedBorder: OutlineInputBorder(
+                                                          borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                                          borderSide: BorderSide.none,
+                                                        ),
+                                                        errorBorder: OutlineInputBorder(
+                                                          borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                                          borderSide: BorderSide.none,
+                                                        ),
+                                                        focusedErrorBorder: OutlineInputBorder(
+                                                          borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                                          borderSide: BorderSide.none,
                                             ),
                                             suffixIcon: IconButton(
                                               icon: Icon(
                                                 _obscurePassword
                                                     ? Icons.visibility_off
                                                     : Icons.visibility,
-                                                color: const Color(0xFFD2D2D2),
-                                                size: ResponsiveUtils.iconSizeSmall,
+                                                            color: Colors.white70,
+                                                            size: ResponsiveUtils.iconSize,
                                               ),
                                               onPressed: () {
                                                 setState(() {
@@ -272,54 +439,330 @@ class _NewPasswordScreenState extends State<NewPasswordScreen>
                                       ),
                                     ),
 
-                                    SizedBox(height: ResponsiveUtils.spacingS),
+                                          SizedBox(height: ResponsiveUtils.spacingM),
 
-                                    // Confirm Password field
-                                    SizedBox(
+                                          // Confirm Password field - Matching Login Page Style
+                                          _confirmPasswordBorderAnimation != null
+                                              ? AnimatedBuilder(
+                                                  animation: _confirmPasswordBorderAnimation!,
+                                                  builder: (context, child) {
+                                                    return AnimatedContainer(
+                                                      duration: const Duration(milliseconds: 200),
+                                                      curve: Curves.easeInOut,
+                                                      decoration: BoxDecoration(
+                                                        borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                                        border: _confirmPasswordFocusNode.hasFocus
+                                                            ? Border.all(
+                                                                color: const Color(0xFFFFD700),
+                                                                width: _confirmPasswordController.text.isNotEmpty
+                                                                    ? _confirmPasswordBorderAnimation!.value
+                                                                    : 2.0,
+                                                              )
+                                                            : null,
+                                                      ),
+                                                      child: child,
+                                                    );
+                                                  },
+                                                  child: SizedBox(
+                                                    height: ResponsiveUtils.inputHeight,
+                                                    child: TextField(
+                                                      controller: _confirmPasswordController,
+                                                      focusNode: _confirmPasswordFocusNode,
+                                                      obscureText: _obscureConfirmPassword,
+                                                      style: TextStyle(
+                                                        fontFamily: 'Nunito Sans',
+                                                        fontSize: ResponsiveUtils.bodyLarge,
+                                                        fontWeight: FontWeight.w400,
+                                                        color: Colors.white,
+                                                      ),
+                                                      decoration: InputDecoration(
+                                                        hintText: 'Confirm New Password',
+                                                        hintStyle: TextStyle(
+                                                          fontFamily: 'Nunito Sans',
+                                                          fontSize: ResponsiveUtils.bodyLarge,
+                                                          fontWeight: FontWeight.w400,
+                                                          color: const Color(0xFFD2D2D2),
+                                                        ),
+                                                        filled: true,
+                                                        fillColor: Colors.black.withOpacity(0.4),
+                                                        contentPadding: EdgeInsets.symmetric(
+                                                          horizontal: ResponsiveUtils.spacingL,
+                                                          vertical: ResponsiveUtils.spacingM,
+                                                        ),
+                                                        border: OutlineInputBorder(
+                                                          borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                                          borderSide: BorderSide.none,
+                                                        ),
+                                                        enabledBorder: OutlineInputBorder(
+                                                          borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                                          borderSide: BorderSide.none,
+                                                        ),
+                                                        focusedBorder: OutlineInputBorder(
+                                                          borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                                          borderSide: BorderSide.none,
+                                                        ),
+                                                        errorBorder: OutlineInputBorder(
+                                                          borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                                          borderSide: BorderSide.none,
+                                                        ),
+                                                        focusedErrorBorder: OutlineInputBorder(
+                                                          borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                                          borderSide: BorderSide.none,
+                                                        ),
+                                                        suffixIcon: IconButton(
+                                                          icon: Icon(
+                                                            _obscureConfirmPassword
+                                                                ? Icons.visibility_off
+                                                                : Icons.visibility,
+                                                            color: Colors.white70,
+                                                            size: ResponsiveUtils.iconSize,
+                                                          ),
+                                                          onPressed: () {
+                                                            setState(() {
+                                                              _obscureConfirmPassword = !_obscureConfirmPassword;
+                                                            });
+                                                          },
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                )
+                                              : AnimatedContainer(
+                                                  duration: const Duration(milliseconds: 200),
+                                                  curve: Curves.easeInOut,
+                                                  decoration: BoxDecoration(
+                                                    borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                                    border: _confirmPasswordFocusNode.hasFocus
+                                                        ? Border.all(
+                                                            color: const Color(0xFFFFD700),
+                                                            width: 2.0,
+                                                          )
+                                                        : null,
+                                                  ),
+                                                  child: SizedBox(
                                       height: ResponsiveUtils.inputHeight,
-                                      child: Container(
+                                                    child: TextField(
+                                                      controller: _confirmPasswordController,
+                                                      focusNode: _confirmPasswordFocusNode,
+                                                      obscureText: _obscureConfirmPassword,
+                                                      style: TextStyle(
+                                                        fontFamily: 'Nunito Sans',
+                                                        fontSize: ResponsiveUtils.bodyLarge,
+                                                        fontWeight: FontWeight.w400,
+                                                        color: Colors.white,
+                                                      ),
+                                                      decoration: InputDecoration(
+                                                        hintText: 'Confirm New Password',
+                                                        hintStyle: TextStyle(
+                                                          fontFamily: 'Nunito Sans',
+                                                          fontSize: ResponsiveUtils.bodyLarge,
+                                                          fontWeight: FontWeight.w400,
+                                                          color: const Color(0xFFD2D2D2),
+                                                        ),
+                                                        filled: true,
+                                                        fillColor: Colors.black.withOpacity(0.4),
+                                                        contentPadding: EdgeInsets.symmetric(
+                                                          horizontal: ResponsiveUtils.spacingL,
+                                                          vertical: ResponsiveUtils.spacingM,
+                                                        ),
+                                                        border: OutlineInputBorder(
+                                                          borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                                          borderSide: BorderSide.none,
+                                                        ),
+                                                        enabledBorder: OutlineInputBorder(
+                                                          borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                                          borderSide: BorderSide.none,
+                                                        ),
+                                                        focusedBorder: OutlineInputBorder(
+                                                          borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                                          borderSide: BorderSide.none,
+                                                        ),
+                                                        errorBorder: OutlineInputBorder(
+                                                          borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                                          borderSide: BorderSide.none,
+                                                        ),
+                                                        focusedErrorBorder: OutlineInputBorder(
+                                                          borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                                          borderSide: BorderSide.none,
+                                                        ),
+                                                        suffixIcon: IconButton(
+                                                          icon: Icon(
+                                                            _obscureConfirmPassword
+                                                                ? Icons.visibility_off
+                                                                : Icons.visibility,
+                                                            color: Colors.white70,
+                                                            size: ResponsiveUtils.iconSize,
+                                                          ),
+                                                          onPressed: () {
+                                                            setState(() {
+                                                              _obscureConfirmPassword = !_obscureConfirmPassword;
+                                                            });
+                                                          },
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                        ],
+                                      ),
+                                    ),
+                                  )
+                                : Padding(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: ResponsiveUtils.spacingM,
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        // New Password field - Matching Login Page Style
+                                        AnimatedContainer(
+                                          duration: const Duration(milliseconds: 200),
+                                          curve: Curves.easeInOut,
                                         decoration: BoxDecoration(
-                                          color: const Color(0xFFFFF9E6),
-                                          borderRadius: BorderRadius.circular(
-                                            ResponsiveUtils.buttonRadius,
+                                            borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                            border: _passwordFocusNode.hasFocus
+                                                ? Border.all(
+                                                    color: const Color(0xFFFFD700),
+                                                    width: 2.0,
+                                                  )
+                                                : null,
                                           ),
-                                          border: Border.all(
-                                            color: const Color(0xFFE0D5B5),
-                                            width: 1.5,
+                                          child: SizedBox(
+                                            height: ResponsiveUtils.inputHeight,
+                                            child: TextField(
+                                              controller: _passwordController,
+                                              focusNode: _passwordFocusNode,
+                                              obscureText: _obscurePassword,
+                                              style: TextStyle(
+                                                fontFamily: 'Nunito Sans',
+                                                fontSize: ResponsiveUtils.bodyLarge,
+                                                fontWeight: FontWeight.w400,
+                                                color: Colors.white,
+                                              ),
+                                              decoration: InputDecoration(
+                                                hintText: 'Enter New Password',
+                                                hintStyle: TextStyle(
+                                                  fontFamily: 'Nunito Sans',
+                                                  fontSize: ResponsiveUtils.bodyLarge,
+                                                  fontWeight: FontWeight.w400,
+                                                  color: const Color(0xFFD2D2D2),
+                                                ),
+                                                filled: true,
+                                                fillColor: Colors.black.withOpacity(0.4),
+                                                contentPadding: EdgeInsets.symmetric(
+                                                  horizontal: ResponsiveUtils.spacingL,
+                                                  vertical: ResponsiveUtils.spacingM,
+                                                ),
+                                                border: OutlineInputBorder(
+                                                  borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                                  borderSide: BorderSide.none,
+                                                ),
+                                                enabledBorder: OutlineInputBorder(
+                                                  borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                                  borderSide: BorderSide.none,
+                                                ),
+                                                focusedBorder: OutlineInputBorder(
+                                                  borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                                  borderSide: BorderSide.none,
+                                                ),
+                                                errorBorder: OutlineInputBorder(
+                                                  borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                                  borderSide: BorderSide.none,
+                                                ),
+                                                focusedErrorBorder: OutlineInputBorder(
+                                                  borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                                  borderSide: BorderSide.none,
+                                                ),
+                                                suffixIcon: IconButton(
+                                                  icon: Icon(
+                                                    _obscurePassword
+                                                        ? Icons.visibility_off
+                                                        : Icons.visibility,
+                                                    color: Colors.white70,
+                                                    size: ResponsiveUtils.iconSize,
+                                                  ),
+                                                  onPressed: () {
+                                                    setState(() {
+                                                      _obscurePassword = !_obscurePassword;
+                                                    });
+                                                  },
+                                                ),
+                                              ),
+                                            ),
                                           ),
                                         ),
+
+                                        SizedBox(height: ResponsiveUtils.spacingM),
+
+                                        // Confirm Password field - Matching Login Page Style
+                                        AnimatedContainer(
+                                          duration: const Duration(milliseconds: 200),
+                                          curve: Curves.easeInOut,
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                            border: _confirmPasswordFocusNode.hasFocus
+                                                ? Border.all(
+                                                    color: const Color(0xFFFFD700),
+                                                    width: 2.0,
+                                                  )
+                                                : null,
+                                          ),
+                                          child: SizedBox(
+                                            height: ResponsiveUtils.inputHeight,
                                         child: TextField(
                                           controller: _confirmPasswordController,
+                                              focusNode: _confirmPasswordFocusNode,
                                           obscureText: _obscureConfirmPassword,
                                           style: TextStyle(
-                                            fontFamily: 'Poppins',
-                                            fontSize: ResponsiveUtils.bodyMedium,
-                                            color: const Color(0xFF202020),
+                                                fontFamily: 'Nunito Sans',
+                                                fontSize: ResponsiveUtils.bodyLarge,
+                                                fontWeight: FontWeight.w400,
+                                                color: Colors.white,
                                           ),
                                           decoration: InputDecoration(
                                             hintText: 'Confirm New Password',
                                             hintStyle: TextStyle(
-                                              fontFamily: 'Poppins',
-                                              fontSize: ResponsiveUtils.bodyMedium,
-                                              color: const Color(0xFF999999),
-                                            ),
-                                            border: InputBorder.none,
+                                                  fontFamily: 'Nunito Sans',
+                                                  fontSize: ResponsiveUtils.bodyLarge,
+                                                  fontWeight: FontWeight.w400,
+                                                  color: const Color(0xFFD2D2D2),
+                                                ),
+                                                filled: true,
+                                                fillColor: Colors.black.withOpacity(0.4),
                                             contentPadding: EdgeInsets.symmetric(
                                               horizontal: ResponsiveUtils.spacingL,
                                               vertical: ResponsiveUtils.spacingM,
+                                            ),
+                                                border: OutlineInputBorder(
+                                                  borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                                  borderSide: BorderSide.none,
+                                                ),
+                                                enabledBorder: OutlineInputBorder(
+                                                  borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                                  borderSide: BorderSide.none,
+                                                ),
+                                                focusedBorder: OutlineInputBorder(
+                                                  borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                                  borderSide: BorderSide.none,
+                                                ),
+                                                errorBorder: OutlineInputBorder(
+                                                  borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                                  borderSide: BorderSide.none,
+                                                ),
+                                                focusedErrorBorder: OutlineInputBorder(
+                                                  borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                                  borderSide: BorderSide.none,
                                             ),
                                             suffixIcon: IconButton(
                                               icon: Icon(
                                                 _obscureConfirmPassword
                                                     ? Icons.visibility_off
                                                     : Icons.visibility,
-                                                color: const Color(0xFFD2D2D2),
-                                                size: ResponsiveUtils.iconSizeSmall,
+                                                    color: Colors.white70,
+                                                    size: ResponsiveUtils.iconSize,
                                               ),
                                               onPressed: () {
                                                 setState(() {
-                                                  _obscureConfirmPassword =
-                                                      !_obscureConfirmPassword;
+                                                      _obscureConfirmPassword = !_obscureConfirmPassword;
                                                 });
                                               },
                                             ),
@@ -328,7 +771,6 @@ class _NewPasswordScreenState extends State<NewPasswordScreen>
                                       ),
                                     ),
                                   ],
-                                ),
                               ),
                             ),
 
@@ -353,8 +795,9 @@ class _NewPasswordScreenState extends State<NewPasswordScreen>
                             const Spacer(),
 
                             // Reset Password button
-                            FadeTransition(
-                              opacity: _contentFadeAnimation,
+                            _contentFadeAnimation != null
+                                ? FadeTransition(
+                                    opacity: _contentFadeAnimation!,
                               child: Padding(
                                 padding: EdgeInsets.symmetric(
                                   horizontal: ResponsiveUtils.spacingM,
@@ -392,6 +835,46 @@ class _NewPasswordScreenState extends State<NewPasswordScreen>
                                               fontWeight: FontWeight.w600,
                                             ),
                                           ),
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                : Padding(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: ResponsiveUtils.spacingM,
+                                    ),
+                                    child: SizedBox(
+                                      width: double.infinity,
+                                      height: ResponsiveUtils.buttonHeight,
+                                      child: ElevatedButton(
+                                        onPressed: _isLoading ? null : _handleResetPassword,
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.black,
+                                          foregroundColor: Colors.white,
+                                          elevation: 0,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              ResponsiveUtils.inputRadius * 2,
+                                            ),
+                                          ),
+                                          disabledBackgroundColor: Colors.grey[400],
+                                        ),
+                                        child: _isLoading
+                                            ? SizedBox(
+                                                width: ResponsiveUtils.iconSize,
+                                                height: ResponsiveUtils.iconSize,
+                                                child: const CircularProgressIndicator(
+                                                  color: Colors.white,
+                                                  strokeWidth: 2,
+                                                ),
+                                              )
+                                            : Text(
+                                                'Reset Password',
+                                                style: TextStyle(
+                                                  fontFamily: 'Nunito Sans',
+                                                  fontSize: ResponsiveUtils.bodyLarge + 2,
+                                                  fontWeight: FontWeight.w600,
+                                          ),
                                   ),
                                 ),
                               ),
@@ -400,8 +883,9 @@ class _NewPasswordScreenState extends State<NewPasswordScreen>
                             SizedBox(height: ResponsiveUtils.spacingM),
 
                             // Cancel button
-                            FadeTransition(
-                              opacity: _contentFadeAnimation,
+                            _contentFadeAnimation != null
+                                ? FadeTransition(
+                                    opacity: _contentFadeAnimation!,
                               child: TextButton(
                                 onPressed: _handleCancel,
                                 child: Text(
@@ -414,23 +898,21 @@ class _NewPasswordScreenState extends State<NewPasswordScreen>
                                   ),
                                 ),
                               ),
-                            ),
-
-                            SizedBox(height: ResponsiveUtils.spacingL),
-
-                            // Bottom bar indicator
-                            Container(
-                              width: ResponsiveUtils.dp(134),
-                              height: ResponsiveUtils.dp(5),
-                              decoration: BoxDecoration(
+                                  )
+                                : TextButton(
+                                    onPressed: _handleCancel,
+                                    child: Text(
+                                      'Cancel',
+                                      style: TextStyle(
+                                        fontFamily: 'Nunito Sans',
+                                        fontSize: ResponsiveUtils.bodyLarge,
+                                        fontWeight: FontWeight.w500,
                                 color: Colors.black,
-                                borderRadius: BorderRadius.circular(
-                                  ResponsiveUtils.dp(3),
                                 ),
                               ),
                             ),
 
-                            SizedBox(height: ResponsiveUtils.spacingS),
+                            SizedBox(height: ResponsiveUtils.spacingL),
                           ],
                         ),
                       ),
@@ -439,6 +921,18 @@ class _NewPasswordScreenState extends State<NewPasswordScreen>
                 );
               },
             ),
+          ),
+          
+          // Back button - using CustomBackButton from search tab (placed last so it's on top)
+          // White on black backgrounds, black on white/yellow backgrounds
+          CustomBackButton(
+            backgroundColor: Colors.black,
+            iconSize: 24,
+            onPressed: () {
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context);
+              }
+            },
           ),
         ],
       ),

@@ -2,22 +2,28 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../providers/auth_provider.dart';
 import '../../widgets/custom_back_button.dart';
+import '../../../utils/responsive_utils.dart';
 import 'club_pages_list_screen.dart';
 import 'district_pages_list_screen.dart';
 import 'create_page_screen.dart';
 
 class PagesScreen extends StatefulWidget {
   const PagesScreen({super.key});
+  
+  static final GlobalKey<_PagesScreenState> globalKey = GlobalKey<_PagesScreenState>();
 
   @override
   State<PagesScreen> createState() => _PagesScreenState();
 }
 
 class _PagesScreenState extends State<PagesScreen>
-    with TickerProviderStateMixin {
-  AnimationController? _fadeController;
-  Animation<double>? _fadeAnimation;
-  bool _isInitialized = false;
+    with SingleTickerProviderStateMixin {
+  AnimationController? _animationController;
+  Animation<Offset>? _bubblesSlideAnimation;
+  Animation<Offset>? _contentSlideAnimation;
+  Animation<double>? _bubblesFadeAnimation;
+  Animation<double>? _contentFadeAnimation;
+  DateTime? _lastAnimationTime;
 
   // Club pages data - Using Figma assets
   final List<Map<String, dynamic>> _clubPages = [
@@ -48,21 +54,69 @@ class _PagesScreenState extends State<PagesScreen>
   @override
   void initState() {
     super.initState();
-    _fadeController = AnimationController(
-      duration: const Duration(milliseconds: 400),
+    
+    // Initialize animation controller
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
       vsync: this,
     );
-    _fadeAnimation = CurvedAnimation(
-      parent: _fadeController!,
-      curve: Curves.easeOut,
-    );
-    _fadeController!.forward();
-    _isInitialized = true;
+    
+    // Bubbles animation - coming from outside (top-left)
+    _bubblesSlideAnimation = Tween<Offset>(
+      begin: const Offset(-0.5, -0.5),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _animationController!,
+      curve: Curves.easeOutCubic,
+    ));
+    
+    _bubblesFadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _animationController!,
+      curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
+    ));
+    
+    // Content animation - coming from bottom
+    _contentSlideAnimation = Tween<Offset>(
+      begin: const Offset(0.0, 0.3),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _animationController!,
+      curve: const Interval(0.2, 1.0, curve: Curves.easeOutCubic),
+    ));
+    
+    _contentFadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _animationController!,
+      curve: const Interval(0.2, 1.0, curve: Curves.easeOut),
+    ));
+  }
+  
+  // Public method to restart animation (called from MainScreen)
+  void restartAnimation() {
+    if (!mounted || _animationController == null) return;
+    
+    final now = DateTime.now();
+    if (_lastAnimationTime == null || 
+        now.difference(_lastAnimationTime!).inMilliseconds > 200) {
+      _lastAnimationTime = now;
+      
+      if (_animationController!.isAnimating) {
+        _animationController!.stop();
+      }
+      
+      _animationController!.reset();
+      _animationController!.forward();
+    }
   }
 
   @override
   void dispose() {
-    _fadeController?.dispose();
+    _animationController?.dispose();
     super.dispose();
   }
 
@@ -87,8 +141,13 @@ class _PagesScreenState extends State<PagesScreen>
 
   @override
   Widget build(BuildContext context) {
-    // Wait for animation to be initialized
-    if (!_isInitialized || _fadeAnimation == null) {
+    // Initialize responsive utilities
+    ResponsiveUtils.init(context);
+    
+    // Check if animations are initialized
+    if (_animationController == null || 
+        _bubblesFadeAnimation == null || 
+        _contentFadeAnimation == null) {
       return const Scaffold(
         backgroundColor: Colors.white,
         body: Center(child: CircularProgressIndicator()),
@@ -103,31 +162,33 @@ class _PagesScreenState extends State<PagesScreen>
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // Bubbles background - matching Figma positions
+          // Bubbles background - keep original position, only animate fade
           _buildBubbles(),
           
-          // Main content
+          // Main content - animated to slide up from bottom
           SafeArea(
             child: FadeTransition(
-              opacity: _fadeAnimation!,
-              child: Column(
-                children: [
-                  // Scrollable content
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 120), // More space to push content below bubbles
+              opacity: _contentFadeAnimation!,
+              child: SlideTransition(
+                position: _contentSlideAnimation!,
+                child: Column(
+                  children: [
+                    // Scrollable content
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                          SizedBox(height: ResponsiveUtils.dp(120)), // More space to push content below bubbles
                           
                           // Club Pages section title - Figma: left:35, top:169
-                          const Padding(
-                            padding: EdgeInsets.only(left: 35),
+                          Padding(
+                            padding: EdgeInsets.only(left: ResponsiveUtils.dp(35)),
                             child: Text(
                               'Club Pages :',
                               style: TextStyle(
                                 fontFamily: 'Raleway',
-                                fontSize: 26,
+                                fontSize: ResponsiveUtils.sp(26),
                                 fontWeight: FontWeight.w700,
                                 color: Colors.black,
                                 height: 32 / 26,
@@ -135,17 +196,17 @@ class _PagesScreenState extends State<PagesScreen>
                             ),
                           ),
                           
-                          const SizedBox(height: 12),
+                          SizedBox(height: ResponsiveUtils.dp(12)),
                           
                           // Club Pages list - Figma: left:35, top:211, h:245
                           SizedBox(
-                            height: 256, // 245 + 11 separator
+                            height: ResponsiveUtils.dp(256), // 245 + 11 separator
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 35),
+                              padding: EdgeInsets.symmetric(horizontal: ResponsiveUtils.dp(35)),
                               child: ListView.separated(
                                 physics: const ClampingScrollPhysics(),
                                 itemCount: _clubPages.length,
-                                separatorBuilder: (_, __) => const SizedBox(height: 11),
+                                separatorBuilder: (_, __) => SizedBox(height: ResponsiveUtils.dp(11)),
                                 itemBuilder: (context, index) {
                                   return _buildPageCard(
                                     _clubPages[index],
@@ -156,11 +217,11 @@ class _PagesScreenState extends State<PagesScreen>
                             ),
                           ),
                           
-                          const SizedBox(height: 6),
+                          SizedBox(height: ResponsiveUtils.dp(6)),
                           
                           // See more button for clubs - navigates to ClubPagesListScreen with bubble transition
                           Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 35),
+                            padding: EdgeInsets.symmetric(horizontal: ResponsiveUtils.dp(35)),
                             child: _buildSeeMoreButton(
                               onTap: () {
                                 Navigator.push(
@@ -186,16 +247,16 @@ class _PagesScreenState extends State<PagesScreen>
                             ),
                           ),
                           
-                          const SizedBox(height: 28),
+                          SizedBox(height: ResponsiveUtils.dp(28)),
                           
                           // District Pages section title - Figma: left:35, top:543
-                          const Padding(
-                            padding: EdgeInsets.only(left: 35),
+                          Padding(
+                            padding: EdgeInsets.only(left: ResponsiveUtils.dp(35)),
                             child: Text(
                               'District Pages :',
                               style: TextStyle(
                                 fontFamily: 'Raleway',
-                                fontSize: 26,
+                                fontSize: ResponsiveUtils.sp(26),
                                 fontWeight: FontWeight.w700,
                                 color: Colors.black,
                                 height: 34 / 26,
@@ -203,22 +264,22 @@ class _PagesScreenState extends State<PagesScreen>
                             ),
                           ),
                           
-                          const SizedBox(height: 12),
+                          SizedBox(height: ResponsiveUtils.dp(12)),
                           
                           // District Pages list - Figma: left:29, top:584
                           Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 29),
+                            padding: EdgeInsets.symmetric(horizontal: ResponsiveUtils.dp(29)),
                             child: _buildPageCard(
                               _districtPages[0],
                               () => _toggleFollow(_districtPages, 0),
                             ),
                           ),
                           
-                          const SizedBox(height: 6),
+                          SizedBox(height: ResponsiveUtils.dp(6)),
                           
                           // See more button for districts - navigates to DistrictPagesListScreen with bubble transition
                           Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 29),
+                            padding: EdgeInsets.symmetric(horizontal: ResponsiveUtils.dp(29)),
                             child: _buildSeeMoreButton(
                               onTap: () {
                                 Navigator.push(
@@ -244,36 +305,37 @@ class _PagesScreenState extends State<PagesScreen>
                             ),
                           ),
                           
-                          const SizedBox(height: 80),
-                        ],
+                          SizedBox(height: ResponsiveUtils.dp(80)),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
           
-          // Back button - top left (routes to home)
+          // Back button - top left
           CustomBackButton(
-            backgroundColor: Colors.black, // Dark area (bubbles background)
-            iconSize: 24, // Consistent size
+            backgroundColor: Colors.black, // Dark area (image/shape background)
+            iconSize: 24,
             navigateToHome: true,
           ),
           
-          // "Pages" title - Figma: left:69, top:48, 50px Raleway Bold
-          // White text on the bubbles
-          const Positioned(
-            left: 69,
+          // "Pages" title - Figma: left: calc(16.67% + 2px), top: 48px
+          Positioned(
+            left: MediaQuery.of(context).size.width * 0.1667 + 2,
             top: 48,
-            child: Text(
+            child: const Text(
               'Pages',
               style: TextStyle(
                 fontFamily: 'Raleway',
                 fontSize: 50,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.bold,
                 color: Colors.white,
                 letterSpacing: -0.52,
+                height: 1.0,
               ),
             ),
           ),
@@ -347,26 +409,21 @@ class _PagesScreenState extends State<PagesScreen>
 
   Widget _buildBubbles() {
     // Exact Figma values: left:-239.41px, top:-332.78px, w:609.977px, h:570.222px
-    // viewBox="0 0 610 571" with fade-in transition
+    // viewBox="0 0 610 571" with fade-in and slide-in animation
     return Positioned(
-      left: -239.41,
-      top: -332.78,
-      child: TweenAnimationBuilder<double>(
-        tween: Tween(begin: 0.0, end: 1.0),
-        duration: const Duration(milliseconds: 600),
-        curve: Curves.easeOut,
-        builder: (context, opacity, child) {
-          return Opacity(
-            opacity: opacity,
-            child: child,
-          );
-        },
-        child: SizedBox(
-          width: 609.977,
-          height: 570.222,
-          child: CustomPaint(
-            size: const Size(609.977, 570.222),
-            painter: _BubblesPainter(),
+      left: -209.41,
+      top: -292.78,
+      child: FadeTransition(
+        opacity: _bubblesFadeAnimation!,
+        child: SlideTransition(
+          position: _bubblesSlideAnimation!,
+          child: SizedBox(
+            width: 609.977,
+            height: 570.222,
+            child: CustomPaint(
+              size: const Size(609.977, 570.222),
+              painter: _BubblesPainter(),
+            ),
           ),
         ),
       ),
@@ -377,37 +434,37 @@ class _PagesScreenState extends State<PagesScreen>
     final isFollowing = page['isFollowing'] as bool;
     
     return Container(
-      height: 117,
+      height: ResponsiveUtils.dp(117),
       decoration: BoxDecoration(
         color: Colors.black.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(ResponsiveUtils.dp(20)),
       ),
       child: Stack(
         children: [
           // Logo with gold border - Figma: left:15, top:14
           Positioned(
-            left: 15,
-            top: 14,
+            left: ResponsiveUtils.dp(15),
+            top: ResponsiveUtils.dp(14),
             child: Stack(
               children: [
                 // Gold border background
                 Container(
-                  width: 91,
-                  height: 91,
+                  width: ResponsiveUtils.dp(91),
+                  height: ResponsiveUtils.dp(91),
                   decoration: BoxDecoration(
                     color: const Color(0xFF8F7902),
-                    borderRadius: BorderRadius.circular(18),
+                    borderRadius: BorderRadius.circular(ResponsiveUtils.dp(18)),
                   ),
                 ),
                 // Image
                 Positioned(
-                  left: 5,
-                  top: 5,
+                  left: ResponsiveUtils.dp(5),
+                  top: ResponsiveUtils.dp(5),
                   child: Container(
-                    width: 81,
-                    height: 81,
+                    width: ResponsiveUtils.dp(81),
+                    height: ResponsiveUtils.dp(81),
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(15),
+                      borderRadius: BorderRadius.circular(ResponsiveUtils.dp(15)),
                       image: DecorationImage(
                         image: AssetImage(page['image'] as String),
                         fit: BoxFit.cover,
@@ -421,13 +478,13 @@ class _PagesScreenState extends State<PagesScreen>
           
           // Page name - Figma: left:121, top:14
           Positioned(
-            left: 121,
-            top: 14,
+            left: ResponsiveUtils.dp(121),
+            top: ResponsiveUtils.dp(14),
             child: Text(
               page['name'] as String,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: 'Nunito Sans',
-                fontSize: 16,
+                fontSize: ResponsiveUtils.sp(16),
                 fontWeight: FontWeight.w800,
                 color: Colors.black,
                 height: 31 / 16,
@@ -437,13 +494,13 @@ class _PagesScreenState extends State<PagesScreen>
           
           // Followers count - Figma: left:121, top:33
           Positioned(
-            left: 121,
-            top: 33,
+            left: ResponsiveUtils.dp(121),
+            top: ResponsiveUtils.dp(33),
             child: Text(
               '${page['followers']} followers',
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: 'Nunito Sans',
-                fontSize: 10,
+                fontSize: ResponsiveUtils.sp(10),
                 fontWeight: FontWeight.w400,
                 color: Colors.black,
                 height: 31 / 10,
@@ -453,25 +510,25 @@ class _PagesScreenState extends State<PagesScreen>
           
           // Follow/Unfollow button - Figma: left:121, top:66
           Positioned(
-            left: 121,
-            top: 66,
+            left: ResponsiveUtils.dp(121),
+            top: ResponsiveUtils.dp(66),
             child: GestureDetector(
               onTap: onFollowTap,
               child: Container(
-                width: 196,
-                height: 39,
+                width: ResponsiveUtils.dp(196),
+                height: ResponsiveUtils.dp(39),
                 decoration: BoxDecoration(
                   color: isFollowing ? const Color(0xFF8F7902) : Colors.black,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(ResponsiveUtils.dp(14)),
                 ),
                 alignment: Alignment.center,
                 child: Text(
                   isFollowing ? 'Unfollow' : 'Follow',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'Nunito Sans',
-                    fontSize: 15,
+                    fontSize: ResponsiveUtils.sp(15),
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFFF3F3F3),
+                    color: const Color(0xFFF3F3F3),
                     height: 31 / 15,
                   ),
                 ),
@@ -494,18 +551,18 @@ class _PagesScreenState extends State<PagesScreen>
         );
       },
       child: Container(
-        width: 332,
-        height: 39,
+        width: ResponsiveUtils.dp(332),
+        height: ResponsiveUtils.dp(39),
         decoration: BoxDecoration(
           color: const Color(0xFFE6E6E6),
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(ResponsiveUtils.dp(14)),
         ),
         alignment: Alignment.center,
-        child: const Text(
+        child: Text(
           'See more...',
           style: TextStyle(
             fontFamily: 'Nunito Sans',
-            fontSize: 15,
+            fontSize: ResponsiveUtils.sp(15),
             fontWeight: FontWeight.w700,
             color: Colors.black,
             height: 31 / 15,

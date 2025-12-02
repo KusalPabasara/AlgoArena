@@ -4,6 +4,7 @@ import '../../widgets/forgot_password_widgets.dart';
 import '../../../data/repositories/password_recovery_repository.dart';
 import '../../../utils/responsive_utils.dart';
 import 'new_password_screen.dart';
+import '../../widgets/custom_back_button.dart';
 
 /// OTP Verification Screen for Email Password Recovery
 /// Shows 4 digit code input like in Figma design
@@ -261,21 +262,8 @@ class _VerifyEmailOTPScreenState extends State<VerifyEmailOTPScreen>
                         ),
                         child: Column(
                           children: [
-                            // Back button
-                            Padding(
-                              padding: EdgeInsets.only(
-                                left: ResponsiveUtils.spacingS,
-                                top: ResponsiveUtils.spacingS,
-                              ),
-                              child: Align(
-                                alignment: Alignment.topLeft,
-                                child: ForgotPasswordBackButton(
-                                  onPressed: () => Navigator.pop(context),
-                                ),
-                              ),
-                            ),
 
-                            SizedBox(height: ResponsiveUtils.dp(60)),
+                            SizedBox(height: ResponsiveUtils.dp(100)),
 
                             // Avatar - animated
                             ScaleTransition(
@@ -487,20 +475,6 @@ class _VerifyEmailOTPScreenState extends State<VerifyEmailOTPScreen>
                             ),
 
                             SizedBox(height: ResponsiveUtils.spacingL),
-
-                            // Bottom bar indicator
-                            Container(
-                              width: ResponsiveUtils.dp(134),
-                              height: ResponsiveUtils.dp(5),
-                              decoration: BoxDecoration(
-                                color: Colors.black,
-                                borderRadius: BorderRadius.circular(
-                                  ResponsiveUtils.dp(3),
-                                ),
-                              ),
-                            ),
-
-                            SizedBox(height: ResponsiveUtils.spacingS),
                           ],
                         ),
                       ),
@@ -509,6 +483,17 @@ class _VerifyEmailOTPScreenState extends State<VerifyEmailOTPScreen>
                 );
               },
             ),
+          ),
+          
+          // Back button - using CustomBackButton from search tab (placed last so it's on top)
+          CustomBackButton(
+            backgroundColor: Colors.black,
+            iconSize: 24,
+            onPressed: () {
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context);
+              }
+            },
           ),
         ],
       ),

@@ -1,14 +1,62 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import '../../widgets/custom_back_button.dart';
+import '../../../utils/responsive_utils.dart';
 
 /// Notifications Screen - Exact Figma Implementation
 /// Source: notification/src/imports/Notifications.tsx
-class NotificationsScreen extends StatelessWidget {
+class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
 
   @override
+  State<NotificationsScreen> createState() => _NotificationsScreenState();
+}
+
+class _NotificationsScreenState extends State<NotificationsScreen> with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<Offset> _bubblesSlideAnimation;
+  late Animation<double> _bubblesFadeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    
+    // Initialize animation controller
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    
+    // Bubbles animation - coming from outside (top-left)
+    _bubblesSlideAnimation = Tween<Offset>(
+      begin: const Offset(-0.5, -0.5),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeOutCubic,
+    ));
+    
+    _bubblesFadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
+    ));
+    
+    // Start animation immediately
+    _animationController.forward();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    ResponsiveUtils.init(context);
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
 
@@ -20,60 +68,52 @@ class NotificationsScreen extends StatelessWidget {
         child: Stack(
           clipBehavior: Clip.none,
           children: [
-            // Yellow Bubble (Bubbles) - left-[-179.79px] top-[-276.58px]
-            // viewBox="0 0 551 513" - pf4ece00
-            Positioned(
-              left: -179.79,
-              top: -276.58,
-              child: TweenAnimationBuilder<double>(
-                tween: Tween(begin: 0.0, end: 1.0),
-                duration: const Duration(milliseconds: 600),
-                curve: Curves.easeOut,
-                builder: (context, value, child) {
-                  return Opacity(
-                    opacity: value,
-                    child: SizedBox(
-                      width: 550.345,
-                      height: 512.152,
-                      child: CustomPaint(
-                        painter: _YellowBubblePainter(),
+            // Bubbles - animated to slide in from outside
+            FadeTransition(
+              opacity: _bubblesFadeAnimation,
+              child: SlideTransition(
+                position: _bubblesSlideAnimation,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    // Yellow Bubble (Bubbles) - left-[-179.79px] top-[-276.58px]
+                    // viewBox="0 0 551 513" - pf4ece00
+                    Positioned(
+                      left: ResponsiveUtils.bw(-179.79),
+                      top: ResponsiveUtils.bh(-276.58),
+                      child: SizedBox(
+                        width: ResponsiveUtils.bs(550.345),
+                        height: ResponsiveUtils.bs(512.152),
+                        child: CustomPaint(
+                          painter: _YellowBubblePainter(),
+                        ),
                       ),
                     ),
-                  );
-                },
-              ),
-            ),
 
-            // Black Bubble 01 - left-[-97.03px] top-[-298.88px], rotated 232.009°
-            // viewBox="0 0 403 443" - p36b3a180
-            Positioned(
-              left: -97.03,
-              top: -298.88,
-              child: TweenAnimationBuilder<double>(
-                tween: Tween(begin: 0.0, end: 1.0),
-                duration: const Duration(milliseconds: 600),
-                curve: Curves.easeOut,
-                builder: (context, value, child) {
-                  return Opacity(
-                    opacity: value,
-                    child: SizedBox(
-                      width: 596.838,
-                      height: 589.973,
-                      child: Center(
-                        child: Transform.rotate(
-                          angle: 232.009 * math.pi / 180,
-                          child: SizedBox(
-                            width: 402.871,
-                            height: 442.65,
-                            child: CustomPaint(
-                              painter: _BlackBubblePainter(),
+                    // Black Bubble 01 - left-[-97.03px] top-[-298.88px], rotated 232.009°
+                    // viewBox="0 0 403 443" - p36b3a180
+                    Positioned(
+                      left: ResponsiveUtils.bw(-97.03),
+                      top: ResponsiveUtils.bh(-298.88),
+                      child: SizedBox(
+                        width: ResponsiveUtils.bs(596.838),
+                        height: ResponsiveUtils.bs(589.973),
+                        child: Center(
+                          child: Transform.rotate(
+                            angle: 232.009 * math.pi / 180,
+                            child: SizedBox(
+                              width: ResponsiveUtils.bs(402.871),
+                              height: ResponsiveUtils.bs(442.65),
+                              child: CustomPaint(
+                                painter: _BlackBubblePainter(),
+                              ),
                             ),
                           ),
                         ),
                       ),
                     ),
-                  );
-                },
+                  ],
+                ),
               ),
             ),
 
@@ -81,173 +121,137 @@ class NotificationsScreen extends StatelessWidget {
             // Back button - top left
             CustomBackButton(
               backgroundColor: Colors.black, // Dark area (image/shape background)
-              iconSize: 24,
+              iconSize: ResponsiveUtils.iconSize,
             ),
 
             // "Notifications" title - left-[calc(16.67%+2px)] top-[48px]
             Positioned(
-              left: screenWidth * 0.1667 + 2,
-              top: 48,
-              child: const Text(
+              left: screenWidth * 0.1667 + ResponsiveUtils.dp(2),
+              top: ResponsiveUtils.bh(48),
+              child: Text(
                 'Notifications',
                 style: TextStyle(
                   fontFamily: 'Raleway',
-                  fontSize: 50,
+                  fontSize: ResponsiveUtils.sp(50),
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
-                  letterSpacing: -0.52,
+                  letterSpacing: -ResponsiveUtils.dp(0.52),
+                  height: 1.0,
                 ),
               ),
             ),
 
-            // Announcement Section Header - top-[168px]
+            // Scrollable content - centered and aligned from both sides
             Positioned(
-              left: screenWidth * 0.0833 + 1.5,
-              top: 168,
-              child: const SizedBox(
-                width: 332,
-                height: 32,
-                child: Text(
-                  'Announcement :',
-                  style: TextStyle(
-                    fontFamily: 'Raleway',
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                    height: 31 / 26,
+              left: 0,
+              right: 0,
+              top: ResponsiveUtils.bh(168),
+              bottom: 0,
+              child: SingleChildScrollView(
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: 375),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: ResponsiveUtils.adaptiveHorizontalPadding,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // Announcement Section Header
+                          Text(
+                            'Announcement :',
+                            style: TextStyle(
+                              fontFamily: 'Raleway',
+                              fontSize: ResponsiveUtils.sp(26),
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                              height: 1.0,
+                            ),
+                          ),
+                          SizedBox(height: ResponsiveUtils.spacingM),
+                          
+                          // Announcement Frame
+                          Column(
+                            children: [
+                              _buildNotificationCard(
+                                'Monthly meeting schedule for November is now available.',
+                                'assets/images/notifications/4cab12f568771ad0b3afa40dc378bc7ed480eb86.png',
+                              ),
+                              SizedBox(height: ResponsiveUtils.dp(11)),
+                              _buildNotificationCard(
+                                'Attendance policy updated — please read the new guidelines.',
+                                'assets/images/notifications/31d07557884264b1b070f971cc49466a561b5a39.png',
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: ResponsiveUtils.spacingM),
+                          
+                          // See more button for Announcement
+                          _buildSeeMoreButton(),
+                          SizedBox(height: ResponsiveUtils.spacingXL),
+                          
+                          // News Section Header
+                          Text(
+                            'News :',
+                            style: TextStyle(
+                              fontFamily: 'Raleway',
+                              fontSize: ResponsiveUtils.sp(26),
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                              height: 1.0,
+                            ),
+                          ),
+                          SizedBox(height: ResponsiveUtils.spacingM),
+                          
+                          // News Frame
+                          _buildNotificationCardRich(
+                            'Leo Club of Colombo',
+                            ' recognized as Best Community Service Club 2025!',
+                            'assets/images/notifications/c6d5f9dff52b37a28977be041de113bc88dfa388.png',
+                          ),
+                          SizedBox(height: ResponsiveUtils.spacingM),
+                          
+                          // See more button for News
+                          _buildSeeMoreButton(),
+                          SizedBox(height: ResponsiveUtils.spacingXL),
+                          
+                          // Notifications Section Header
+                          Text(
+                            'Notifications :',
+                            style: TextStyle(
+                              fontFamily: 'Raleway',
+                              fontSize: ResponsiveUtils.sp(26),
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                              height: 1.0,
+                            ),
+                          ),
+                          SizedBox(height: ResponsiveUtils.spacingM),
+                          
+                          // Notifications Frame
+                          Column(
+                            children: [
+                              _buildNotificationCard(
+                                "Membership renewal due soon. Don't forget to renew before Nov 15",
+                                'assets/images/notifications/4816b29d2caebc6a6bd478c7c78d68fe9b858b82.png',
+                              ),
+                              SizedBox(height: ResponsiveUtils.dp(11)),
+                              _buildNotificationCard(
+                                'New message from Club President.',
+                                'assets/images/notifications/6cd6f189d2f86fcc32f0d234e0416b42a8dcf4dd.png',
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: ResponsiveUtils.spacingM),
+                          
+                          // See more button for Notifications
+                          _buildSeeMoreButton(),
+                          SizedBox(height: ResponsiveUtils.spacingXXL),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            ),
-
-            // Announcement Frame - top-[210px]
-            Positioned(
-              left: screenWidth * 0.0833 + 1.5,
-              top: 210,
-              child: SizedBox(
-                width: 332,
-                height: 143,
-                child: Column(
-                  children: [
-                    _buildNotificationCard(
-                      'Monthly meeting schedule for November is now available.',
-                      'assets/images/notifications/4cab12f568771ad0b3afa40dc378bc7ed480eb86.png',
-                    ),
-                    const SizedBox(height: 11),
-                    _buildNotificationCard(
-                      'Attendance policy updated — please read the new guidelines.',
-                      'assets/images/notifications/31d07557884264b1b070f971cc49466a561b5a39.png',
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // See more button for Announcement - top-[363px]
-            Positioned(
-              left: screenWidth * 0.0833 + 1.5,
-              top: 363,
-              child: _buildSeeMoreButton(),
-            ),
-
-            // News Section Header - top-[422px]
-            Positioned(
-              left: screenWidth * 0.0833 + 1.5,
-              top: 422,
-              child: const SizedBox(
-                width: 332,
-                height: 32,
-                child: Text(
-                  'News :',
-                  style: TextStyle(
-                    fontFamily: 'Raleway',
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                    height: 31 / 26,
-                  ),
-                ),
-              ),
-            ),
-
-            // News Frame - top-[464px]
-            Positioned(
-              left: screenWidth * 0.0833 + 1.5,
-              top: 464,
-              child: _buildNotificationCardRich(
-                'Leo Club of Colombo',
-                ' recognized as Best Community Service Club 2025!',
-                'assets/images/notifications/c6d5f9dff52b37a28977be041de113bc88dfa388.png',
-              ),
-            ),
-
-            // See more button for News - top-[540px]
-            Positioned(
-              left: screenWidth * 0.0833 + 1.5,
-              top: 540,
-              child: _buildSeeMoreButton(),
-            ),
-
-            // Notifications Section Header - top-[599px]
-            Positioned(
-              left: screenWidth * 0.0833 + 1.5,
-              top: 599,
-              child: const SizedBox(
-                width: 332,
-                height: 32,
-                child: Text(
-                  'Notifications :',
-                  style: TextStyle(
-                    fontFamily: 'Raleway',
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                    height: 31 / 26,
-                  ),
-                ),
-              ),
-            ),
-
-            // Notifications Frame - top-[641px]
-            Positioned(
-              left: screenWidth * 0.0833 + 1.5,
-              top: 641,
-              child: SizedBox(
-                width: 332,
-                height: 143,
-                child: Column(
-                  children: [
-                    _buildNotificationCard(
-                      "Membership renewal due soon. Don't forget to renew before Nov 15",
-                      'assets/images/notifications/4816b29d2caebc6a6bd478c7c78d68fe9b858b82.png',
-                    ),
-                    const SizedBox(height: 11),
-                    _buildNotificationCard(
-                      'New message from Club President.',
-                      'assets/images/notifications/6cd6f189d2f86fcc32f0d234e0416b42a8dcf4dd.png',
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // See more button for Notifications - top-[794px]
-            Positioned(
-              left: screenWidth * 0.0833 + 1.5,
-              top: 794,
-              child: _buildSeeMoreButton(),
-            ),
-
-            // Bottom bar - left-[calc(33.33%-3px)] top-[863px]
-            Positioned(
-              left: screenWidth * 0.3333 - 3,
-              top: 863,
-              child: Container(
-                width: 145.848,
-                height: 5.442,
-                decoration: BoxDecoration(
-                  color: Colors.black,
-                  borderRadius: BorderRadius.circular(34),
                 ),
               ),
             ),
@@ -259,25 +263,25 @@ class NotificationsScreen extends StatelessWidget {
 
   Widget _buildNotificationCard(String text, String avatarImage) {
     return Container(
-      width: 332,
-      height: 66,
+      width: double.infinity,
+      height: ResponsiveUtils.dp(66),
       decoration: BoxDecoration(
         color: const Color(0x1A000000), // rgba(0,0,0,0.1)
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(ResponsiveUtils.r(20)),
       ),
       child: Row(
         children: [
-          const SizedBox(width: 9),
+          SizedBox(width: ResponsiveUtils.dp(9)),
           // Avatar with drop shadow and image - 46x46
           Container(
-            width: 46,
-            height: 46,
+            width: ResponsiveUtils.dp(46),
+            height: ResponsiveUtils.dp(46),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.16),
-                  blurRadius: 5,
+                  blurRadius: ResponsiveUtils.dp(5),
                   spreadRadius: 0,
                 ),
               ],
@@ -286,8 +290,8 @@ class NotificationsScreen extends StatelessWidget {
               children: [
                 // Ellipse background - #8F7902
                 Container(
-                  width: 46,
-                  height: 46,
+                  width: ResponsiveUtils.dp(46),
+                  height: ResponsiveUtils.dp(46),
                   decoration: const BoxDecoration(
                     shape: BoxShape.circle,
                     color: Color(0xFF8F7902),
@@ -297,33 +301,41 @@ class NotificationsScreen extends StatelessWidget {
                 ClipOval(
                   child: Image.asset(
                     avatarImage,
-                    width: 46,
-                    height: 46,
+                    width: ResponsiveUtils.dp(46),
+                    height: ResponsiveUtils.dp(46),
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) => Container(
-                      width: 46,
-                      height: 46,
+                      width: ResponsiveUtils.dp(46),
+                      height: ResponsiveUtils.dp(46),
                       decoration: const BoxDecoration(
                         shape: BoxShape.circle,
                         color: Color(0xFF8F7902),
                       ),
-                      child: const Icon(Icons.person, color: Colors.white, size: 28),
+                      child: Icon(
+                        Icons.person,
+                        color: Colors.white,
+                        size: ResponsiveUtils.iconSize + 4,
+                      ),
                     ),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 6),
+          SizedBox(width: ResponsiveUtils.spacingS - 2),
           // Text - ml-[61px] mt-[21px] w-[255px]
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.only(right: 10, top: 9, bottom: 9),
+              padding: EdgeInsets.only(
+                right: ResponsiveUtils.spacingM - 6,
+                top: ResponsiveUtils.dp(9),
+                bottom: ResponsiveUtils.dp(9),
+              ),
               child: Text(
                 text,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Nunito Sans',
-                  fontSize: 12,
+                  fontSize: ResponsiveUtils.bodySmall,
                   fontWeight: FontWeight.w600,
                   color: Colors.black,
                   height: 1.0,
@@ -338,25 +350,25 @@ class NotificationsScreen extends StatelessWidget {
 
   Widget _buildNotificationCardRich(String boldText, String normalText, String avatarImage) {
     return Container(
-      width: 332,
-      height: 66,
+      width: double.infinity,
+      height: ResponsiveUtils.dp(66),
       decoration: BoxDecoration(
         color: const Color(0x1A000000), // rgba(0,0,0,0.1)
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(ResponsiveUtils.r(20)),
       ),
       child: Row(
         children: [
-          const SizedBox(width: 9),
+          SizedBox(width: ResponsiveUtils.dp(9)),
           // Avatar with drop shadow and image
           Container(
-            width: 46,
-            height: 46,
+            width: ResponsiveUtils.dp(46),
+            height: ResponsiveUtils.dp(46),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.16),
-                  blurRadius: 5,
+                  blurRadius: ResponsiveUtils.dp(5),
                   spreadRadius: 0,
                 ),
               ],
@@ -364,8 +376,8 @@ class NotificationsScreen extends StatelessWidget {
             child: Stack(
               children: [
                 Container(
-                  width: 46,
-                  height: 46,
+                  width: ResponsiveUtils.dp(46),
+                  height: ResponsiveUtils.dp(46),
                   decoration: const BoxDecoration(
                     shape: BoxShape.circle,
                     color: Color(0xFF8F7902),
@@ -374,36 +386,44 @@ class NotificationsScreen extends StatelessWidget {
                 ClipOval(
                   child: Image.asset(
                     avatarImage,
-                    width: 46,
-                    height: 46,
+                    width: ResponsiveUtils.dp(46),
+                    height: ResponsiveUtils.dp(46),
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) => Container(
-                      width: 46,
-                      height: 46,
+                      width: ResponsiveUtils.dp(46),
+                      height: ResponsiveUtils.dp(46),
                       decoration: const BoxDecoration(
                         shape: BoxShape.circle,
                         color: Color(0xFF8F7902),
                       ),
-                      child: const Icon(Icons.person, color: Colors.white, size: 28),
+                      child: Icon(
+                        Icons.person,
+                        color: Colors.white,
+                        size: ResponsiveUtils.iconSize + 4,
+                      ),
                     ),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 6),
+          SizedBox(width: ResponsiveUtils.spacingS - 2),
           // Text with rich formatting
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.only(right: 10, top: 9, bottom: 9),
+              padding: EdgeInsets.only(
+                right: ResponsiveUtils.spacingM - 6,
+                top: ResponsiveUtils.dp(9),
+                bottom: ResponsiveUtils.dp(9),
+              ),
               child: RichText(
                 text: TextSpan(
                   children: [
                     TextSpan(
                       text: boldText,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: 'Nunito Sans',
-                        fontSize: 12,
+                        fontSize: ResponsiveUtils.bodySmall,
                         fontWeight: FontWeight.w800,
                         color: Colors.black,
                         height: 1.0,
@@ -411,9 +431,9 @@ class NotificationsScreen extends StatelessWidget {
                     ),
                     TextSpan(
                       text: normalText,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: 'Nunito Sans',
-                        fontSize: 12,
+                        fontSize: ResponsiveUtils.bodySmall,
                         fontWeight: FontWeight.w600,
                         color: Colors.black,
                         height: 1.0,
@@ -431,21 +451,21 @@ class NotificationsScreen extends StatelessWidget {
 
   Widget _buildSeeMoreButton() {
     return Container(
-      width: 332,
-      height: 39,
+      width: double.infinity,
+      height: ResponsiveUtils.dp(39),
       decoration: BoxDecoration(
         color: const Color(0xFFE6E6E6),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(ResponsiveUtils.r(14)),
       ),
-      child: const Center(
+      child: Center(
         child: Text(
           'See more...',
           style: TextStyle(
             fontFamily: 'Nunito Sans',
-            fontSize: 15,
+            fontSize: ResponsiveUtils.sp(15),
             fontWeight: FontWeight.bold,
             color: Colors.black,
-            height: 31 / 15,
+            height: ResponsiveUtils.dp(31) / ResponsiveUtils.dp(15),
           ),
         ),
       ),

@@ -6,6 +6,8 @@ import 'dart:math' as math;
 import '../../../core/constants/colors.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../data/repositories/auth_repository.dart';
+import '../../widgets/custom_back_button.dart';
+import '../../../utils/responsive_utils.dart';
 import 'display_settings_screen.dart';
 import 'security_settings_screen.dart';
 import 'passkeys_screen.dart';
@@ -21,19 +23,75 @@ class SettingsScreen extends StatefulWidget {
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProviderStateMixin {
   bool _pushNotificationsEnabled = true;
   bool _doNotDisturbEnabled = false;
   bool _appLockEnabled = false;
   String _appVersion = '1.00.0';
   final _prefs = SharedPreferences.getInstance();
   final _authRepository = AuthRepository();
+  
+  late AnimationController _animationController;
+  late Animation<Offset> _bubblesSlideAnimation;
+  late Animation<Offset> _contentSlideAnimation;
+  late Animation<double> _bubblesFadeAnimation;
+  late Animation<double> _contentFadeAnimation;
 
   @override
   void initState() {
     super.initState();
+    
+    // Initialize animation controller
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    
+    // Bubbles animation - coming from outside (top-left)
+    _bubblesSlideAnimation = Tween<Offset>(
+      begin: const Offset(-0.5, -0.5),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeOutCubic,
+    ));
+    
+    _bubblesFadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
+    ));
+    
+    // Content animation - coming from bottom
+    _contentSlideAnimation = Tween<Offset>(
+      begin: const Offset(0.0, 0.3),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: const Interval(0.2, 1.0, curve: Curves.easeOutCubic),
+    ));
+    
+    _contentFadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: const Interval(0.2, 1.0, curve: Curves.easeOut),
+    ));
+    
+    // Start animation immediately
+    _animationController.forward();
+    
     _loadSettings();
     _loadAppVersion();
+  }
+  
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadSettings() async {
@@ -63,45 +121,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ResponsiveUtils.init(context);
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
         clipBehavior: Clip.none,
         children: [
+          // Bubbles - animated to slide in from outside
+          FadeTransition(
+            opacity: _bubblesFadeAnimation,
+            child: SlideTransition(
+              position: _bubblesSlideAnimation,
+              child: Stack(
+        clipBehavior: Clip.none,
+        children: [
           // Yellow Bubble (Bubbles) - left-[-179.79px] top-[-276.58px]
           Positioned(
-            left: -179.79,
-            top: -276.58,
-            child: TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0.0, end: 1.0),
-              duration: const Duration(milliseconds: 600),
-              curve: Curves.easeOut,
-              builder: (context, value, child) {
-                return Opacity(
-                  opacity: value,
+                    left: -159.79,
+                    top: -256.58,
                   child: SizedBox(
                     width: 550.345,
                     height: 512.152,
                     child: CustomPaint(
                       painter: _YellowBubblePainter(),
                     ),
-                  ),
-                );
-              },
             ),
           ),
 
           // Black Bubble 01 - left-[-97.03px] top-[-298.88px], rotated 232.009°
           Positioned(
-            left: -97.03,
+                    left: -197.03,
             top: -298.88,
-            child: TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0.0, end: 1.0),
-              duration: const Duration(milliseconds: 600),
-              curve: Curves.easeOut,
-              builder: (context, value, child) {
-                return Opacity(
-                  opacity: value,
                   child: SizedBox(
                     width: 596.838,
                     height: 589.973,
@@ -118,24 +168,72 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ),
                   ),
-                );
-              },
+                  ),
+                ],
+              ),
             ),
           ),
 
-          // Main content - positioned on top of bubbles
-          SafeArea(
-            child: Column(
-              children: [
-                // Yellow curved header - matching screenshot exactly
-                _buildHeader(context),
-                // Scrollable content
-                Expanded(
+          // Back button - top left
+          CustomBackButton(
+            backgroundColor: Colors.black, // Dark area (image/shape background)
+            iconSize: 24,
+          ),
+
+          // "Settings" title - Figma: left: calc(16.67% + 2px), top: 48px
+          Positioned(
+            left: MediaQuery.of(context).size.width * 0.1667 + ResponsiveUtils.dp(2),
+            top: ResponsiveUtils.bh(48),
+            child: Text(
+              'Settings',
+              style: TextStyle(
+                fontFamily: 'Raleway',
+                fontSize: ResponsiveUtils.dp(50),
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                letterSpacing: -ResponsiveUtils.dp(0.52),
+                height: 1.0,
+              ),
+            ),
+          ),
+
+          // Main content - animated to slide up from bottom
+          Positioned(
+            left: 0,
+            right: 0,
+            top: ResponsiveUtils.bh(155),
+            bottom: 0,
+            child: FadeTransition(
+              opacity: _contentFadeAnimation,
+              child: SlideTransition(
+                position: _contentSlideAnimation,
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: Padding(
+                    padding: EdgeInsets.only(top: ResponsiveUtils.dp(20)),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(ResponsiveUtils.r(35)),
+                      child: Container(
+                        width: ResponsiveUtils.dp(375),
+                        constraints: BoxConstraints(
+                          maxHeight: MediaQuery.of(context).size.height - ResponsiveUtils.bh(155) - MediaQuery.of(context).padding.bottom - ResponsiveUtils.dp(40),
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color.fromARGB(255, 0, 0, 0).withOpacity(0.1), // Transparent black background
+                          borderRadius: BorderRadius.circular(ResponsiveUtils.r(35)),
+                        ),
                   child: SingleChildScrollView(
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            minWidth: ResponsiveUtils.dp(375),
+                          ),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 35),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: ResponsiveUtils.spacingM + ResponsiveUtils.dp(4),
+                              vertical: ResponsiveUtils.spacingM - ResponsiveUtils.dp(6),
+                            ),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                         const SizedBox(height: 20),
                         // Notification Section
@@ -269,65 +367,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ),
                           ),
                         ],
-                        const SizedBox(height: 30),
+                        SizedBox(height: ResponsiveUtils.dp(30)),
                       ],
                     ),
                   ),
                 ),
                 ),
-              ],
+                    ),
             ),
           ),
-        ],
       ),
-    );
-  }
-
-  Widget _buildHeader(BuildContext context) {
-    return Container(
-      height: 120,
-      decoration: const BoxDecoration(
-        color: Color(0xFFFFD700), // Yellow/Gold
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(30),
-          bottomRight: Radius.circular(30),
-        ),
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.only(left: 10, top: 0),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Back button
-              GestureDetector(
-                onTap: () => Navigator.pop(context),
-                child: Container(
-                  width: 50,
-                  height: 53,
-                  padding: const EdgeInsets.all(8),
-                  child: const Icon(
-                    Icons.arrow_back,
-                    color: Colors.white,
-                    size: 28,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 9),
-              // Settings title
-              const Text(
-                'Settings',
-                style: TextStyle(
-                  fontFamily: 'Raleway',
-                  fontSize: 50,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                  letterSpacing: -0.52,
+            ),
                 ),
               ),
             ],
-          ),
-        ),
       ),
     );
   }
@@ -360,7 +413,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 332,
+        width: double.infinity,
         height: 36,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
@@ -406,7 +459,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 332,
+        width: double.infinity,
         height: 48,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
@@ -491,7 +544,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     bool hasZBadge = false,
   }) {
     return Container(
-      width: 332,
+      width: double.infinity,
       height: 48,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(

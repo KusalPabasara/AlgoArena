@@ -1,8 +1,10 @@
 import '../models/user.dart';
 import '../services/api_service.dart';
+import '../services/google_auth_service.dart';
 
 class AuthRepository {
   final ApiService _apiService = ApiService();
+  final GoogleAuthService _googleAuthService = GoogleAuthService();
   
   // Register new user
   Future<Map<String, dynamic>> register({
@@ -124,6 +126,28 @@ class AuthRepository {
       await _apiService.deleteToken();
     } catch (e) {
       throw Exception('Failed to delete account: $e');
+    }
+  }
+
+  // Check if user exists
+  Future<Map<String, dynamic>> checkUser(String email) async {
+    try {
+      final response = await _apiService.post('/auth/check-user', {
+        'email': email,
+      });
+      
+      return response;
+    } catch (e) {
+      throw Exception('Failed to check user: $e');
+    }
+  }
+
+  // Google Sign In
+  Future<Map<String, dynamic>> googleSignIn() async {
+    try {
+      return await _googleAuthService.signInWithGoogle();
+    } catch (e) {
+      throw Exception('Google Sign-In failed: $e');
     }
   }
 }

@@ -1,14 +1,92 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import '../../widgets/custom_back_button.dart';
+import '../../../utils/responsive_utils.dart';
 
 /// Executive Committee Screen - Exact Figma Implementation from Executive directory
 /// Source: Executive/src/imports/ExecutiveCommittee.tsx with svg-k2kanhb3fa.ts
 /// Exact positions and styling from Figma design
-class ExecutiveCommitteeScreen extends StatelessWidget {
+class ExecutiveCommitteeScreen extends StatefulWidget {
   const ExecutiveCommitteeScreen({super.key});
 
   @override
+  State<ExecutiveCommitteeScreen> createState() => _ExecutiveCommitteeScreenState();
+}
+
+class _ExecutiveCommitteeScreenState extends State<ExecutiveCommitteeScreen> with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<Offset> _bubblesSlideAnimation;
+  late Animation<Offset> _bottomYellowBubbleSlideAnimation;
+  late Animation<Offset> _contentSlideAnimation;
+  late Animation<double> _bubblesFadeAnimation;
+  late Animation<double> _contentFadeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    
+    // Initialize animation controller
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    
+    // Bubbles animation - coming from outside (top-left)
+    _bubblesSlideAnimation = Tween<Offset>(
+      begin: const Offset(-0.5, -0.5),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeOutCubic,
+    ));
+    
+    // Bottom yellow bubble animation - coming from right outside
+    _bottomYellowBubbleSlideAnimation = Tween<Offset>(
+      begin: const Offset(0.5, 0.0), // Start from right outside
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeOutCubic,
+    ));
+    
+    _bubblesFadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
+    ));
+    
+    // Content animation - coming from bottom
+    _contentSlideAnimation = Tween<Offset>(
+      begin: const Offset(0.0, 0.3),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: const Interval(0.2, 1.0, curve: Curves.easeOutCubic),
+    ));
+    
+    _contentFadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: const Interval(0.2, 1.0, curve: Curves.easeOut),
+    ));
+    
+    // Start animation immediately
+    _animationController.forward();
+  }
+  
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    ResponsiveUtils.init(context);
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
     
@@ -20,171 +98,167 @@ class ExecutiveCommitteeScreen extends StatelessWidget {
         child: Stack(
           clipBehavior: Clip.none,
           children: [
-            // Bubble 04 - Yellow bottom right, rotated 110°
-            // Position: left-[calc(41.67%-7.92px)] top-[495.4px]
-            Positioned(
-              left: screenWidth * 0.4167 - 7.92,
-              top: 495.4,
-              child: TweenAnimationBuilder<double>(
-                tween: Tween(begin: 0.0, end: 1.0),
-                duration: const Duration(milliseconds: 600),
-                curve: Curves.easeOut,
-                builder: (context, value, child) {
-                  return Opacity(
-                    opacity: value,
-                    child: Transform.rotate(
-                      angle: 110 * math.pi / 180,
-                      child: SizedBox(
-                        width: 353.53,
-                        height: 442.65,
-                        child: CustomPaint(
-                          painter: _Bubble04Painter(),
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-            
+            // Top bubbles - animated to slide in from top-left
+            FadeTransition(
+              opacity: _bubblesFadeAnimation,
+              child: SlideTransition(
+                position: _bubblesSlideAnimation,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
             // Bubble 02 - Yellow top left, rotated 235.784°
             // Position: left-[-63px] top-[-230px]
             Positioned(
-              left: -63,
-              top: -230,
-              child: TweenAnimationBuilder<double>(
-                tween: Tween(begin: 0.0, end: 1.0),
-                duration: const Duration(milliseconds: 600),
-                curve: Curves.easeOut,
-                builder: (context, value, child) {
-                  return Opacity(
-                    opacity: value,
+                      left: ResponsiveUtils.bw(-63),
+                      top: ResponsiveUtils.bh(-150),
                     child: Transform.rotate(
                       angle: 235.784 * math.pi / 180,
                       child: SizedBox(
-                        width: 373.531,
-                        height: 442.65,
+                          width: ResponsiveUtils.bs(373.531),
+                          height: ResponsiveUtils.bs(442.65),
                         child: CustomPaint(
                           painter: _Bubble02Painter(),
                         ),
                       ),
-                    ),
-                  );
-                },
               ),
             ),
             
             // Bubble 01 - Black top left, rotated 220°
             // Position: left-[-125.35px] top-[-264.4px]
             Positioned(
-              left: -125.35,
-              top: -264.4,
-              child: TweenAnimationBuilder<double>(
-                tween: Tween(begin: 0.0, end: 1.0),
-                duration: const Duration(milliseconds: 600),
-                curve: Curves.easeOut,
-                builder: (context, value, child) {
-                  return Opacity(
-                    opacity: value,
+                      left: ResponsiveUtils.bw(-45.35),
+                      top: ResponsiveUtils.bh(-194.4),
                     child: Transform.rotate(
                       angle: 220 * math.pi / 180,
                       child: SizedBox(
-                        width: 402.871,
-                        height: 442.65,
+                          width: ResponsiveUtils.bs(402.871),
+                          height: ResponsiveUtils.bs(442.65),
                         child: CustomPaint(
                           painter: _Bubble01Painter(),
                         ),
                       ),
                     ),
-                  );
-                },
+                    ),
+                  ],
+                ),
               ),
             ),
             
-            // Back button - left-[10px] top-[50px]
+            // Bubble 04 - Yellow bottom right, rotated 110°
+            // This bubble comes from right outside (separate from top bubbles)
             Positioned(
-              left: 10,
-              top: 50,
-              child: GestureDetector(
-                onTap: () => Navigator.pop(context),
-                child: Container(
-                  width: 50,
-                  height: 53,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                  child: const Center(
-                    child: Icon(Icons.arrow_back, color: Colors.white, size: 24),
+              left: ResponsiveUtils.bw(screenWidth * 0.4167 - 7.92),
+              top: ResponsiveUtils.bh(495.4),
+              child: FadeTransition(
+                opacity: _bubblesFadeAnimation,
+                child: SlideTransition(
+                  position: _bottomYellowBubbleSlideAnimation,
+                  child: Transform.rotate(
+                    angle: 110 * math.pi / 180,
+                    child: SizedBox(
+                      width: ResponsiveUtils.bs(353.53),
+                      height: ResponsiveUtils.bs(442.65),
+                      child: CustomPaint(
+                        painter: _Bubble04Painter(),
+                      ),
+                    ),
                   ),
                 ),
               ),
             ),
             
+            // Back button - using CustomBackButton from search tab
+            CustomBackButton(
+              backgroundColor: Colors.black, // Dark background, so button will be white
+              iconSize: ResponsiveUtils.iconSize,
+            ),
+            
             // "Executive Committee" title - Figma: left-[calc(16.67%+2px)] top-[48px], WHITE
             Positioned(
-              left: screenWidth * 0.1667 + 2,
-              top: 48,
-              child: const Text(
+              left: screenWidth * 0.1667 + ResponsiveUtils.dp(2),
+              top: ResponsiveUtils.bh(48),
+              child: Text(
                 'Executive \nCommittee',
                 style: TextStyle(
                   fontFamily: 'Raleway',
-                  fontSize: 50,
+                  fontSize: ResponsiveUtils.sp(50),
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
-                  letterSpacing: -0.52,
+                  letterSpacing: -ResponsiveUtils.dp(0.52),
                   height: 1.0,
                 ),
               ),
             ),
             
-            // Scrollable content frame - Figma: left-[calc(8.33%-10.5px)] top-[175px] 355×659px
+            // Scrollable content frame - animated to slide up from bottom
             Positioned(
-              left: screenWidth * 0.0833 - 10.5,
-              top: 175,
-              child: SizedBox(
-                width: 355,
-                height: 659,
+              left: 0,
+              right: 0,
+              top: ResponsiveUtils.bh(175),
+              bottom: 0,
+              child: FadeTransition(
+                opacity: _contentFadeAnimation,
+                child: SlideTransition(
+                  position: _contentSlideAnimation,
+                  child: Center(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(ResponsiveUtils.r(35)),
+                      child: Container(
+                        width: ResponsiveUtils.dp(375),
+                        constraints: BoxConstraints(
+                          maxHeight: screenHeight - ResponsiveUtils.bh(175) - MediaQuery.of(context).padding.bottom - ResponsiveUtils.dp(20),
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color.fromARGB(255, 0, 0, 0).withOpacity(0.1), // Transparent background
+                          borderRadius: BorderRadius.circular(ResponsiveUtils.r(35)),
+                        ),
                 child: SingleChildScrollView(
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              minWidth: MediaQuery.of(context).size.width,
+                            ),
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: ResponsiveUtils.spacingM + ResponsiveUtils.dp(4),
+                                vertical: ResponsiveUtils.spacingM - ResponsiveUtils.dp(6),
+                              ),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       // Group - Introduction box at top-[28px] relative
-                      const SizedBox(height: 28),
+                      SizedBox(height: ResponsiveUtils.dp(28)),
                       Container(
-                        margin: const EdgeInsets.only(left: 2),
-                        width: 353,
-                        height: 219,
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                        width: double.infinity,
+                        padding: EdgeInsets.all(ResponsiveUtils.spacingM - 6),
                         decoration: BoxDecoration(
                           color: const Color(0x1A000000),
-                          borderRadius: BorderRadius.circular(15),
+                          borderRadius: BorderRadius.circular(ResponsiveUtils.r(15)),
                         ),
-                        child: const Text(
+                        child: Text(
                           'The Executive Committee of LEO District 306 is the primary leadership body entrusted with overseeing district operations, ensuring organizational discipline, and guiding the strategic direction of all Leo clubs. Each member of the committee plays a vital role in upholding the district\'s standards and driving initiatives that contribute to youth development and community service.\n\n      Aligned with the district theme "Strive to Thrive," the Executive Committee is committed to fostering excellence, strengthening inter-club collaboration, and supporting the personal and professional growth of every Leo within the district.',
                           textAlign: TextAlign.justify,
                           style: TextStyle(
                             fontFamily: 'Raleway',
-                            fontSize: 12,
+                            fontSize: ResponsiveUtils.bodySmall,
                             fontWeight: FontWeight.w500,
                             color: Colors.black,
-                            height: 1.33,
+                            height: ResponsiveUtils.dp(1.33),
                           ),
                         ),
                       ),
                       
                       // Group1 - Positions title at top-[263px] relative
-                      const SizedBox(height: 16),
-                      const Padding(
-                        padding: EdgeInsets.only(left: 9),
+                      SizedBox(height: ResponsiveUtils.spacingM),
+                      Padding(
+                        padding: EdgeInsets.only(left: ResponsiveUtils.dp(9)),
                         child: Text(
                           'Executive Committee Positions',
                           style: TextStyle(
                             fontFamily: 'Raleway',
-                            fontSize: 12,
+                            fontSize: ResponsiveUtils.bodySmall,
                             fontWeight: FontWeight.w800,
                             color: Colors.black,
-                            height: 1.33,
+                            height: ResponsiveUtils.dp(1.33),
                           ),
                         ),
                       ),
@@ -192,11 +266,11 @@ class ExecutiveCommitteeScreen extends StatelessWidget {
                       // Positions box at top-[286px] relative
                       const SizedBox(height: 7),
                       Container(
-                        width: 353,
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                        width: double.infinity,
+                        padding: EdgeInsets.all(ResponsiveUtils.spacingM - 6),
                         decoration: BoxDecoration(
                           color: const Color(0x1A000000),
-                          borderRadius: BorderRadius.circular(15),
+                          borderRadius: BorderRadius.circular(ResponsiveUtils.r(15)),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -233,20 +307,13 @@ class ExecutiveCommitteeScreen extends StatelessWidget {
                 ),
               ),
             ),
-            
-            // Bottom bar - left-[calc(33.33%-3px)] top-[863px]
-            Positioned(
-              left: screenWidth * 0.3333 - 3,
-              top: 863,
-              child: Container(
-                width: 145.848,
-                height: 5.442,
-                decoration: BoxDecoration(
-                  color: Colors.black,
-                  borderRadius: BorderRadius.circular(34),
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
+            
           ],
         ),
       ),
@@ -275,25 +342,25 @@ class ExecutiveCommitteeScreen extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             '• ',
             style: TextStyle(
               fontFamily: 'Raleway',
               fontSize: 12,
               fontWeight: FontWeight.w500,
               color: Colors.black,
-              height: 1.33,
+              height: ResponsiveUtils.dp(1.33),
             ),
           ),
           Expanded(
             child: Text(
               text,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: 'Raleway',
-                fontSize: 12,
+                fontSize: ResponsiveUtils.bodySmall,
                 fontWeight: FontWeight.w500,
                 color: Colors.black,
-                height: 1.33,
+                height: ResponsiveUtils.dp(1.33),
               ),
             ),
           ),

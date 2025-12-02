@@ -1,8 +1,11 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../core/utils/validators.dart';
 import '../../../utils/responsive_utils.dart';
 import '../../../data/repositories/auth_repository.dart';
+import '../../../providers/auth_provider.dart';
+import '../../widgets/custom_back_button.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -14,15 +17,26 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   final _authRepository = AuthRepository();
   bool _isLoading = false;
   bool _isGoogleLoading = false;
   String? _emailError; // Store email error message
+  bool _showPasswordContent = false; // Track if showing password screen content
+  bool _obscurePassword = true;
+  String? _passwordError;
+  String? _userName;
+  String? _profilePhoto;
   
   // Animation controllers
   late AnimationController _contentController;
   late AnimationController _buttonController;
   late AnimationController _fadeOutController;
+  AnimationController? _bubbleRotationController;
+  // Password screen content animations
+  AnimationController? _greetingController;
+  AnimationController? _inputController;
+  AnimationController? _passwordButtonController;
   
   late Animation<double> _titleFadeAnimation;
   late Animation<Offset> _titleSlideAnimation;
@@ -31,6 +45,19 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
   late Animation<double> _socialFadeAnimation;
   late Animation<double> _buttonScaleAnimation;
   late Animation<double> _fadeOutAnimation;
+  
+  // Bubble rotation animations (for smooth transition to password screen)
+  Animation<double>? _bubble01RotationAnimation;
+  Animation<double>? _bubble02RotationAnimation;
+  Animation<double>? _bubble03RotationAnimation;
+  Animation<double>? _bubble04RotationAnimation;
+  
+  // Password screen content animations
+  Animation<Offset>? _passwordGreetingSlideAnimation;
+  Animation<double>? _passwordGreetingFadeAnimation;
+  Animation<Offset>? _passwordInputSlideAnimation;
+  Animation<double>? _passwordInputFadeAnimation;
+  Animation<double>? _passwordButtonScaleAnimation;
 
   @override
   void initState() {
@@ -55,6 +82,51 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     _fadeOutAnimation = Tween<double>(begin: 1.0, end: 0.0).animate(
       CurvedAnimation(parent: _fadeOutController, curve: Curves.easeIn),
     );
+    
+    // Bubble rotation animation controller (starts when next button is clicked)
+    _bubbleRotationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    
+    // Bubble rotation animations (from Login screen angles to Password screen angles)
+    // Using exact angles from login screen (start) and password screen animation end (target)
+    final rotationCurve = CurvedAnimation(
+      parent: _bubbleRotationController!,
+      curve: Curves.easeInOutCubic,
+    );
+    
+    // Calculate login screen starting angles (from actual render formulas):
+    // Bubble 01: 260 * 3.14159 / 180 = 260 degrees
+    // Bubble 02: 350 * 5.123/290 ≈ 6.18 radians ≈ 354.2 degrees
+    // Bubble 03: 156 * 3.14159 / 5000 ≈ 0.098 radians ≈ 5.6 degrees
+    // Bubble 04: -600*3.14159 / 1450 ≈ -1.3 radians ≈ -74.5 degrees
+    
+    // Rotate anticlockwise from login screen angles to password screen end angles
+    // Using exact end angles from password screen (from static render formulas):
+    // Bubble 01: 260*3.14159/200 ≈ 234 degrees
+    // Bubble 02: 350*5.123/320 ≈ 321 degrees  
+    // Bubble 03: 200*3.14159/170 ≈ 212 degrees
+    // Bubble 04: -600*3.14159/1500 ≈ -72 degrees
+    _bubble01RotationAnimation = Tween<double>(
+      begin: 260.0, // Login screen angle (degrees)
+      end: 234.0,   // Password screen end angle (exact from password screen)
+    ).animate(rotationCurve);
+    
+    _bubble02RotationAnimation = Tween<double>(
+      begin: 354.2, // Login screen angle (degrees)
+      end: 321.0,   // Password screen end angle (exact from password screen)
+    ).animate(rotationCurve);
+    
+    _bubble03RotationAnimation = Tween<double>(
+      begin: 5.6,   // Login screen angle (degrees)
+      end: 212.0,   // Password screen end angle (exact from password screen)
+    ).animate(rotationCurve);
+    
+    _bubble04RotationAnimation = Tween<double>(
+      begin: -74.5, // Login screen angle (degrees)
+      end: -72.0,   // Password screen end angle (exact from password screen)
+    ).animate(rotationCurve);
     
     // Title animations
     _titleFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
@@ -115,12 +187,57 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     _contentController.forward();
   }
   
+  void _setupPasswordAnimations() {
+    // Password screen content animation controllers
+    _greetingController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+
+    _inputController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
+
+    _passwordButtonController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    
+    _passwordGreetingSlideAnimation = Tween<Offset>(
+      begin: const Offset(0, 1.5),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _greetingController!, curve: Curves.easeOutCubic));
+
+    _passwordGreetingFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _greetingController!, curve: Curves.easeIn),
+    );
+
+    _passwordInputSlideAnimation = Tween<Offset>(
+      begin: const Offset(0, 1.2),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _inputController!, curve: Curves.easeOutCubic));
+
+    _passwordInputFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _inputController!, curve: Curves.easeIn),
+    );
+
+    _passwordButtonScaleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _passwordButtonController!, curve: Curves.easeOutBack),
+    );
+  }
+  
   @override
   void dispose() {
     _emailController.dispose();
+    _passwordController.dispose();
     _contentController.dispose();
     _buttonController.dispose();
     _fadeOutController.dispose();
+    _bubbleRotationController?.dispose();
+    _greetingController?.dispose();
+    _inputController?.dispose();
+    _passwordButtonController?.dispose();
     super.dispose();
   }
 
@@ -156,26 +273,28 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
       final userName = userInfo?['fullName'] as String?;
       final profilePhoto = userInfo?['profilePhoto'] as String?;
       
-      // Fade out content before navigating
-      await _fadeOutController.forward();
+      // Store user info and show password content on same page
+      setState(() {
+        _userName = userName;
+        _profilePhoto = profilePhoto;
+        _showPasswordContent = true;
+        _isLoading = false;
+      });
       
-      if (!mounted) return;
+      // Start bubble rotation animation
+      _bubbleRotationController?.forward();
       
-      // Navigate to password screen with user info
-      await Navigator.pushNamed(
-        context,
-        '/password',
-        arguments: {
-          'email': email,
-          'userName': userName,
-          'profilePhoto': profilePhoto,
-        },
-      );
-      
-      // When user comes back, fade content back in
-      if (mounted) {
-        await _fadeOutController.reverse();
-      }
+      // Setup and start password screen content animations
+      _setupPasswordAnimations();
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (mounted) _greetingController?.forward();
+      });
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) _inputController?.forward();
+      });
+      Future.delayed(const Duration(milliseconds: 700), () {
+        if (mounted) _passwordButtonController?.forward();
+      });
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -252,101 +371,81 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     Navigator.pushNamed(context, '/register');
   }
 
-  @override
-  Widget build(BuildContext context) {
-    // Initialize responsive utilities at the start of build
-    ResponsiveUtils.init(context);
+  void _handleForgotPassword() {
+    Navigator.pushNamed(
+      context,
+      '/forgot-password',
+      arguments: {'email': _emailController.text.trim()},
+    );
+  }
+  
+  Future<void> _handleLogin() async {
+    if (!_formKey.currentState!.validate()) return;
     
-    return Scaffold(
-      backgroundColor: Colors.white,
-      resizeToAvoidBottomInset: true,
-      body: Stack(
-        children: [
-          // Bubble 04 - Large Bottom Yellow (Static with rotation)
-          // Using top positioning so it doesn't move with keyboard
-          Positioned(
-            left: ResponsiveUtils.bw(206), // 50% of 412 reference width
-            top: ResponsiveUtils.screenHeight - ResponsiveUtils.bs(650) + ResponsiveUtils.bh(70),
-            child: Transform.rotate(
-              angle:-600*3.14159 / 1450, // degrees for Login screen
-              child: ClipPath(
-                clipper: _Bubble04Clipper(),
-                child: Container(
-                  width: ResponsiveUtils.bs(500),
-                  height: ResponsiveUtils.bs(650),
-                  color: const Color(0xFFFFD700),
-                ),
-              ),
-            ),
-          ),
-          
-          // Bubble 03 - Top Right Small Black Organic Shape (Static with rotation)
-          Positioned(
-            right: ResponsiveUtils.bw(-70),
-            top: ResponsiveUtils.bh(280),
-            child: Transform.rotate(
-              angle: 156 * 3.14159 / 5000, // degrees for Login screen
-              child: ClipPath(
-                clipper: _Bubble03Clipper(),
-                child: Container(
-                  width: ResponsiveUtils.bs(180),
-                  height: ResponsiveUtils.bs(180),
-                  color: Colors.black,
-                ),
-              ),
-            ),
-          ),
-          
-          // Bubble 02 - Top Yellow Organic Shape (Static with rotation)
-          Positioned(
-            left: ResponsiveUtils.bw(-190),
-            top: ResponsiveUtils.bh(-210),
-            child: Transform.rotate(
-              angle: 350 * 5.123/290, // degrees for Login screen
-              child: ClipPath(
-                clipper: _Bubble02Clipper(),
-                child: Container(
-                  width: ResponsiveUtils.bs(500),
-                  height: ResponsiveUtils.bs(600),
-                  color: const Color(0xFFFFD700),
-                ),
-              ),
-            ),
-          ),
-          
-          // Bubble 01 - Large Top Left Black Organic Shape (Static with rotation)
-          Positioned(
-            left: ResponsiveUtils.bw(-300),
-            top: ResponsiveUtils.bh(-250),
-            child: Transform.rotate(
-              angle: 260 * 3.14159 / 180, // 260 degrees for Login screen
-              child: ClipPath(
-                clipper: _Bubble01Clipper(),
-                child: Container(
-                  width: ResponsiveUtils.bs(550),
-                  height: ResponsiveUtils.bs(550),
-                  color: Colors.black,
-                ),
-              ),
-            ),
-          ),
-          
-          // Main Content Layer (with fade out animation)
-          FadeTransition(
-            opacity: _fadeOutAnimation,
-            child: SafeArea(
+    setState(() {
+      _isLoading = true;
+      _passwordError = null;
+    });
+    
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      await authProvider.login(
+        _emailController.text.trim(),
+        _passwordController.text,
+      );
+      
+      if (!mounted) return;
+      
+      if (authProvider.isAuthenticated) {
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/home',
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _passwordError = 'Invalid email or password';
+        _isLoading = false;
+      });
+    }
+  }
+  
+  void _handleBack() {
+    if (_showPasswordContent) {
+      // Reverse bubble rotation animation
+      _bubbleRotationController?.reverse();
+      
+      // Reverse password content animations
+      _passwordButtonController?.reverse();
+      _inputController?.reverse();
+      _greetingController?.reverse();
+      
+      // Wait for animations to complete, then hide password content
+      Future.delayed(const Duration(milliseconds: 800), () {
+        if (mounted) {
+          setState(() {
+            _showPasswordContent = false;
+          });
+        }
+      });
+    } else {
+      Navigator.pop(context);
+    }
+  }
+  
+  Widget _buildLoginContent() {
+    return SafeArea(
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  // Initialize responsive utilities
                   ResponsiveUtils.init(context);
                   
                   return SingleChildScrollView(
                     keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                     physics: const ClampingScrollPhysics(),
                     child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        minHeight: constraints.maxHeight,
-                      ),
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
                       child: Padding(
                         padding: EdgeInsets.symmetric(horizontal: ResponsiveUtils.adaptiveHorizontalPadding),
                         child: Form(
@@ -355,7 +454,6 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               SizedBox(height: MediaQuery.of(context).size.height * 0.38),
-                              
                               // Animated "Login" Title
                               SlideTransition(
                                 position: _titleSlideAnimation,
@@ -374,9 +472,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                   ),
                                 ),
                               ),
-                              
                               SizedBox(height: ResponsiveUtils.spacingXS),
-                              
                               // Animated subtitle
                               FadeTransition(
                                 opacity: _titleFadeAnimation,
@@ -391,10 +487,8 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                   ),
                                 ),
                               ),
-                              
                               SizedBox(height: ResponsiveUtils.spacingL),
-                              
-                              // Animated Email Input Field with fixed-height error container
+                      // Animated Email Input Field
                               SlideTransition(
                                 position: _inputSlideAnimation,
                                 child: FadeTransition(
@@ -409,17 +503,12 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                           keyboardType: TextInputType.emailAddress,
                                           validator: (value) {
                                             final error = Validators.validateEmail(value);
-                                            setState(() {
-                                              _emailError = error;
-                                            });
+                                    setState(() => _emailError = error);
                                             return error;
                                           },
                                           onChanged: (value) {
-                                            // Clear error on typing
                                             if (_emailError != null) {
-                                              setState(() {
-                                                _emailError = null;
-                                              });
+                                      setState(() => _emailError = null);
                                             }
                                           },
                                           style: TextStyle(
@@ -462,14 +551,10 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                               borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
                                               borderSide: BorderSide.none,
                                             ),
-                                            errorStyle: const TextStyle(
-                                              height: 0,
-                                              fontSize: 0,
+                                    errorStyle: const TextStyle(height: 0, fontSize: 0),
                                             ),
                                           ),
                                         ),
-                                      ),
-                                      // Fixed-height error container
                                       SizedBox(
                                         height: ResponsiveUtils.spacingL,
                                         child: _emailError != null
@@ -493,8 +578,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                   ),
                                 ),
                               ),
-                              
-                              // Animated Next Button - Material Design
+                      // Animated Next Button
                               FadeTransition(
                                 opacity: _inputFadeAnimation,
                                 child: ScaleTransition(
@@ -534,10 +618,8 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                   ),
                                 ),
                               ),
-                              
                               SizedBox(height: ResponsiveUtils.spacingM),
-                              
-                              // Animated Social Icons Row - Custom Icons
+                      // Animated Social Icons Row
                               FadeTransition(
                                 opacity: _socialFadeAnimation,
                                 child: Row(
@@ -609,28 +691,464 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                   ],
                                 ),
                               ),
-                              
                               SizedBox(height: ResponsiveUtils.spacingM),
-                              
-                              // Animated Register Button - Transparent background with press effect
+                      // Animated Register Button
                               Center(
                                 child: FadeTransition(
                                   opacity: _socialFadeAnimation,
                                   child: _RegisterButton(onTap: _handleRegister),
                                 ),
                               ),
-                              
-                              // Bottom padding
-                              SizedBox(height: ResponsiveUtils.spacingXL),
-                            ],
+                      SizedBox(height: ResponsiveUtils.spacingXL),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+  
+  Widget _buildPasswordContent() {
+    final displayName = _userName ?? _emailController.text.trim().split('@')[0];
+    
+    return SafeArea(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          ResponsiveUtils.init(context);
+          
+          return SingleChildScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            physics: const ClampingScrollPhysics(),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Column(
+                children: [
+                  SizedBox(height: ResponsiveUtils.spacingM + MediaQuery.of(context).padding.top + 48),
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.28),
+                  // Greeting and Avatar
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: ResponsiveUtils.adaptiveHorizontalPadding),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: _passwordGreetingSlideAnimation != null && _passwordGreetingFadeAnimation != null
+                              ? SlideTransition(
+                                  position: _passwordGreetingSlideAnimation!,
+                                  child: FadeTransition(
+                                    opacity: _passwordGreetingFadeAnimation!,
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Hello,',
+                                          style: Theme.of(context).textTheme.displayMedium?.copyWith(
+                                                fontFamily: 'Raleway',
+                                                fontSize: ResponsiveUtils.sp(48),
+                                                fontWeight: FontWeight.w700,
+                                                color: const Color(0xFF202020),
+                                                letterSpacing: -0.52,
+                                                height: 1.17,
+                                              ),
+                                        ),
+                                        SizedBox(height: ResponsiveUtils.spacingXS),
+                                        Text(
+                                          '$displayName!',
+                                          style: TextStyle(
+                                            fontFamily: 'Nunito Sans',
+                                            fontSize: ResponsiveUtils.bodyLarge,
+                                            fontWeight: FontWeight.w300,
+                                            color: const Color(0xFF202020),
+                                            height: 1.5,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                )
+                              : Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Hello,',
+                                      style: Theme.of(context).textTheme.displayMedium?.copyWith(
+                                            fontFamily: 'Raleway',
+                                            fontSize: ResponsiveUtils.sp(48),
+                                            fontWeight: FontWeight.w700,
+                                            color: const Color(0xFF202020),
+                                            letterSpacing: -0.52,
+                                            height: 1.17,
+                                          ),
+                                    ),
+                                    SizedBox(height: ResponsiveUtils.spacingXS),
+                                    Text(
+                                      '$displayName!',
+                                      style: TextStyle(
+                                        fontFamily: 'Nunito Sans',
+                                        fontSize: ResponsiveUtils.bodyLarge,
+                                        fontWeight: FontWeight.w300,
+                                        color: const Color(0xFF202020),
+                                        height: 1.5,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                        ),
+                        Container(
+                          width: 100,
+                          height: 100,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: const Color(0xFFB8860B),
+                              width: 4,
+                            ),
+                            image: const DecorationImage(
+                              image: AssetImage('assets/images/avatar.png'),
+                              fit: BoxFit.cover,
+                            ),
                           ),
                         ),
+                      ],
+                    ),
+                  ),
+                              SizedBox(height: ResponsiveUtils.spacingXL),
+                  // Form inputs
+                  _passwordInputSlideAnimation != null && _passwordInputFadeAnimation != null
+                      ? SlideTransition(
+                          position: _passwordInputSlideAnimation!,
+                          child: FadeTransition(
+                            opacity: _passwordInputFadeAnimation!,
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(horizontal: ResponsiveUtils.adaptiveHorizontalPadding),
+                              child: Form(
+                                key: _formKey,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        SizedBox(
+                                          height: ResponsiveUtils.inputHeight,
+                                          child: TextFormField(
+                                            controller: _passwordController,
+                                            obscureText: _obscurePassword,
+                                            validator: (value) {
+                                              String? error;
+                                              if (value == null || value.isEmpty) {
+                                                error = 'Password is required';
+                                              }
+                                              setState(() => _passwordError = error);
+                                              return error;
+                                            },
+                                            onChanged: (value) {
+                                              if (_passwordError != null) {
+                                                setState(() => _passwordError = null);
+                                              }
+                                            },
+                                            style: TextStyle(
+                                              fontFamily: 'Nunito Sans',
+                                              fontSize: ResponsiveUtils.bodyLarge,
+                                              fontWeight: FontWeight.w400,
+                                              color: Colors.white,
+                                            ),
+                                            decoration: InputDecoration(
+                                              hintText: 'Password',
+                                              hintStyle: TextStyle(
+                                                color: const Color(0xFFD2D2D2),
+                                                fontFamily: 'Nunito Sans',
+                                                fontSize: ResponsiveUtils.bodyLarge,
+                                                fontWeight: FontWeight.w400,
+                                              ),
+                                              filled: true,
+                                              fillColor: Colors.black.withOpacity(0.4),
+                                              border: OutlineInputBorder(
+                                                borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                                borderSide: BorderSide.none,
+                                              ),
+                                              enabledBorder: OutlineInputBorder(
+                                                borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                                borderSide: BorderSide.none,
+                                              ),
+                                              focusedBorder: OutlineInputBorder(
+                                                borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                                borderSide: BorderSide.none,
+                                              ),
+                                              errorBorder: OutlineInputBorder(
+                                                borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                                borderSide: BorderSide.none,
+                                              ),
+                                              focusedErrorBorder: OutlineInputBorder(
+                                                borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                                borderSide: BorderSide.none,
+                                              ),
+                                              errorStyle: const TextStyle(height: 0, fontSize: 0),
+                                              contentPadding: EdgeInsets.symmetric(
+                                                horizontal: ResponsiveUtils.spacingL,
+                                                vertical: ResponsiveUtils.spacingM,
+                                              ),
+                                              suffixIcon: IconButton(
+                                                icon: Icon(
+                                                  _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                                                  color: Colors.white70,
+                                                  size: ResponsiveUtils.iconSize,
+                                                ),
+                                                onPressed: () {
+                                                  setState(() => _obscurePassword = !_obscurePassword);
+                                                },
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        SizedBox(
+                                          height: ResponsiveUtils.spacingL,
+                                          child: _passwordError != null
+                                              ? Padding(
+                                                  padding: EdgeInsets.only(
+                                                    left: ResponsiveUtils.spacingL,
+                                                    top: ResponsiveUtils.spacingXS,
+                                                  ),
+                                                  child: Text(
+                                                    _passwordError!,
+                                                    style: TextStyle(
+                                                      color: Colors.red,
+                                                      fontSize: ResponsiveUtils.bodySmall,
+                                                      fontFamily: 'Nunito Sans',
+                                                    ),
+                                                  ),
+                                                )
+                                              : const SizedBox.shrink(),
+                                        ),
+                            ],
+                          ),
+                                    _passwordButtonScaleAnimation != null
+                                        ? ScaleTransition(
+                                            scale: _passwordButtonScaleAnimation!,
+                                            child: SizedBox(
+                                              width: double.infinity,
+                                              height: ResponsiveUtils.buttonHeight,
+                                              child: FilledButton(
+                                                onPressed: _isLoading ? null : _handleLogin,
+                                                style: FilledButton.styleFrom(
+                                                  backgroundColor: Colors.black,
+                                                  foregroundColor: Colors.white,
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                                  ),
+                                                  elevation: 8,
+                                                  shadowColor: Colors.black.withOpacity(0.3),
+                                                ),
+                                                child: _isLoading
+                                                    ? SizedBox(
+                                                        width: ResponsiveUtils.iconSize,
+                                                        height: ResponsiveUtils.iconSize,
+                                                        child: const CircularProgressIndicator(
+                                                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                                          strokeWidth: 2,
+                                                        ),
+                                                      )
+                                                    : Text(
+                                                        'Next',
+                                                        style: TextStyle(
+                                                          fontFamily: 'Nunito Sans',
+                                                          fontSize: ResponsiveUtils.bodyLarge,
+                                                          fontWeight: FontWeight.w500,
+                                                          height: 1.5,
+                                                        ),
+                                                      ),
+                                              ),
+                                            ),
+                                          )
+                                        : SizedBox(
+                                            width: double.infinity,
+                                            height: ResponsiveUtils.buttonHeight,
+                                            child: FilledButton(
+                                              onPressed: _isLoading ? null : _handleLogin,
+                                              style: FilledButton.styleFrom(
+                                                backgroundColor: Colors.black,
+                                                foregroundColor: Colors.white,
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius: BorderRadius.circular(ResponsiveUtils.buttonRadius),
+                                                ),
+                                                elevation: 8,
+                                                shadowColor: Colors.black.withOpacity(0.3),
+                                              ),
+                                              child: _isLoading
+                                                  ? SizedBox(
+                                                      width: ResponsiveUtils.iconSize,
+                                                      height: ResponsiveUtils.iconSize,
+                                                      child: const CircularProgressIndicator(
+                                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                                        strokeWidth: 2,
+                                                      ),
+                                                    )
+                                                  : Text(
+                                                      'Next',
+                                                      style: TextStyle(
+                                                        fontFamily: 'Nunito Sans',
+                                                        fontSize: ResponsiveUtils.bodyLarge,
+                                                        fontWeight: FontWeight.w500,
+                                                        height: 1.5,
+                                                      ),
+                                                    ),
+                                            ),
+                                          ),
+                                    SizedBox(height: ResponsiveUtils.spacingS),
+                                    TextButton(
+                                      onPressed: _handleForgotPassword,
+                                      child: Text(
+                                        'Forgot Password?',
+                                        style: TextStyle(
+                                          color: Colors.black,
+                                          fontSize: ResponsiveUtils.bodyMedium,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        )
+                      : const SizedBox.shrink(),
+                  SizedBox(height: ResponsiveUtils.spacingXL),
+                ],
                       ),
                     ),
                   );
                 },
               ),
-            ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Initialize responsive utilities at the start of build
+    ResponsiveUtils.init(context);
+    
+    return Scaffold(
+      backgroundColor: Colors.white,
+      resizeToAvoidBottomInset: true,
+      body: Stack(
+        children: [
+          // Bubble 04 - Large Bottom Yellow (Animated rotation starts on next button click)
+          // Using top positioning so it doesn't move with keyboard
+          AnimatedBuilder(
+            animation: _bubbleRotationController ?? _contentController,
+            builder: (context, child) {
+              final angle = _bubble04RotationAnimation != null
+                  ? _bubble04RotationAnimation!.value * 3.14159 / 180
+                  : -74.5 * 3.14159 / 180;
+              return Positioned(
+                left: ResponsiveUtils.bw(206),
+                top: ResponsiveUtils.screenHeight - ResponsiveUtils.bs(650) + ResponsiveUtils.bh(70),
+                child: Transform.rotate(
+                  angle: angle,
+                  child: ClipPath(
+                    clipper: _Bubble04Clipper(),
+                    child: Container(
+                      width: ResponsiveUtils.bs(500),
+                      height: ResponsiveUtils.bs(650),
+                      color: const Color(0xFFFFD700),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+          
+          // Bubble 03 - Top Right Small Black Organic Shape (Animated rotation)
+          AnimatedBuilder(
+            animation: _bubbleRotationController ?? _contentController,
+            builder: (context, child) {
+              final angle = _bubble03RotationAnimation != null
+                  ? _bubble03RotationAnimation!.value * 3.14159 / 180
+                  : 5.6 * 3.14159 / 180;
+              return Positioned(
+                right: ResponsiveUtils.bw(-70),
+                top: ResponsiveUtils.bh(280),
+                child: Transform.rotate(
+                  angle: angle,
+                  child: ClipPath(
+                    clipper: _Bubble03Clipper(),
+                    child: Container(
+                      width: ResponsiveUtils.bs(180),
+                      height: ResponsiveUtils.bs(180),
+                      color: Colors.black,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+          
+          // Bubble 02 - Top Yellow Organic Shape (Animated rotation)
+          AnimatedBuilder(
+            animation: _bubbleRotationController ?? _contentController,
+            builder: (context, child) {
+              final angle = _bubble02RotationAnimation != null
+                  ? _bubble02RotationAnimation!.value * 3.14159 / 180
+                  : 354.2 * 3.14159 / 180;
+              return Positioned(
+                left: ResponsiveUtils.bw(-190),
+                top: ResponsiveUtils.bh(-210),
+                child: Transform.rotate(
+                  angle: angle,
+                  child: ClipPath(
+                    clipper: _Bubble02Clipper(),
+                    child: Container(
+                      width: ResponsiveUtils.bs(500),
+                      height: ResponsiveUtils.bs(600),
+                      color: const Color(0xFFFFD700),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+          
+          // Bubble 01 - Large Top Left Black Organic Shape (Animated rotation)
+          AnimatedBuilder(
+            animation: _bubbleRotationController ?? _contentController,
+            builder: (context, child) {
+              final angle = _bubble01RotationAnimation != null
+                  ? _bubble01RotationAnimation!.value * 3.14159 / 180
+                  : 260.0 * 3.14159 / 180;
+              return Positioned(
+                left: ResponsiveUtils.bw(-300),
+                top: ResponsiveUtils.bh(-250),
+                child: Transform.rotate(
+                  angle: angle,
+                  child: ClipPath(
+                    clipper: _Bubble01Clipper(),
+                    child: Container(
+                      width: ResponsiveUtils.bs(550),
+                      height: ResponsiveUtils.bs(550),
+                      color: Colors.black,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+          
+          // Main Content Layer - conditionally show login or password content
+          _showPasswordContent
+              ? _buildPasswordContent()
+              : _buildLoginContent(),
+          
+          // Back button - top left (only show in password phase, not email phase)
+          if (_showPasswordContent)
+            CustomBackButton(
+              backgroundColor: Colors.black,
+              iconSize: 24,
+              onPressed: _handleBack,
           ),
         ],
       ),

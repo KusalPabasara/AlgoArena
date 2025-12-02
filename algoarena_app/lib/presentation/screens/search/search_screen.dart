@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:math' as math;
 import '../club/club_profile_screen.dart';
 import '../pages/leo_district_detail_screen.dart';
 import '../../widgets/custom_back_button.dart';
@@ -11,15 +12,63 @@ import '../../widgets/custom_back_button.dart';
 /// - Image grid: 112px cells in mosaic layout
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
+  
+  static final GlobalKey<_SearchScreenState> globalKey = GlobalKey<_SearchScreenState>();
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
 }
 
-class _SearchScreenState extends State<SearchScreen> {
+class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<Offset> _bubblesSlideAnimation;
+  late Animation<double> _bubblesFadeAnimation;
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    
+    // Initialize animation controller
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    
+    // Bubbles animation - coming from outside (top-left)
+    _bubblesSlideAnimation = Tween<Offset>(
+      begin: const Offset(-0.5, -0.5),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeOutCubic,
+    ));
+    
+    _bubblesFadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
+    ));
+    
+    // Don't start animation immediately - wait for restartAnimation() call
+    // This ensures bubbles are hidden initially
+  }
+  
+  // Public method to restart animation (called from MainScreen)
+  void restartAnimation() {
+    if (!mounted) return;
+    
+    if (_animationController.isAnimating) {
+      _animationController.stop();
+    }
+    
+    _animationController.reset();
+    _animationController.forward();
+  }
   
   // Searchable items - Leo Club of Colombo and Leo District 362
   final List<Map<String, dynamic>> _searchableItems = [
@@ -171,6 +220,7 @@ class _SearchScreenState extends State<SearchScreen> {
   void dispose() {
     _searchController.dispose();
     _searchFocusNode.dispose();
+    _animationController.dispose();
     super.dispose();
   }
 
@@ -179,7 +229,49 @@ class _SearchScreenState extends State<SearchScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
+        clipBehavior: Clip.none,
         children: [
+          // Bubbles - animated to slide in from outside
+          FadeTransition(
+            opacity: _bubblesFadeAnimation,
+            child: SlideTransition(
+              position: _bubblesSlideAnimation,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  // Bubble 02 - Yellow top left, rotated 158°
+                  Positioned(
+                    left: -131.97,
+                    top: -205.67,
+                    child: Transform.rotate(
+                      angle: 158 * math.pi / 180,
+                      child: SizedBox(
+                        width: 311.014,
+                        height: 367.298,
+                        child: CustomPaint(
+                          painter: _Bubble02Painter(),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Bubble 01 - Black bottom right
+                  Positioned(
+                    left: 283.73,
+                    top: 41,
+                    child: SizedBox(
+                      width: 243.628,
+                      height: 266.77,
+                      child: CustomPaint(
+                        painter: _Bubble01Painter(),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
           // Main scrollable content
           SingleChildScrollView(
             child: Column(
@@ -188,12 +280,12 @@ class _SearchScreenState extends State<SearchScreen> {
                 // Top spacing for status bar and back button area (moved lower to match search bar)
                 const SizedBox(height: 158),
                 
-                // White overlay behind recents section (from Figma)
+                // Transparent overlay behind recents section
                 Container(
                   margin: EdgeInsets.symmetric(horizontal: MediaQuery.of(context).size.width * 0.0833 - 4.5),
                   padding: const EdgeInsets.only(bottom: 16),
                   decoration: const BoxDecoration(
-                    color: Colors.white,
+                    color: Colors.transparent,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -266,9 +358,26 @@ class _SearchScreenState extends State<SearchScreen> {
           
           // Back button - top left (routes to home)
           CustomBackButton(
-            backgroundColor: Colors.white, // White background
-            iconSize: 24, // Consistent size
+            backgroundColor: Colors.white, // White background, so button will be black
+            iconSize: 24,
             navigateToHome: true,
+          ),
+
+          // "Search" title - Figma: left: calc(16.67% + 2px), top: 48px
+          Positioned(
+            left: MediaQuery.of(context).size.width * 0.1667 + 2,
+            top: 48,
+            child: const Text(
+              'Search',
+              style: TextStyle(
+                fontFamily: 'Raleway',
+                fontSize: 50,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+                letterSpacing: -0.52,
+                height: 1.0,
+              ),
+            ),
           ),
         ],
       ),
@@ -352,7 +461,7 @@ class _SearchScreenState extends State<SearchScreen> {
     return Container(
       height: 43,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(1000),
         boxShadow: [
           BoxShadow(
@@ -365,7 +474,7 @@ class _SearchScreenState extends State<SearchScreen> {
       ),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.05),
+          color: Colors.transparent,
           borderRadius: BorderRadius.circular(1000),
         ),
         padding: const EdgeInsets.only(left: 8, right: 4),
@@ -529,4 +638,88 @@ class _SearchScreenState extends State<SearchScreen> {
       ),
     );
   }
+}
+
+/// Yellow Bubble 02 Painter - Exact Figma SVG path pe2b6900
+class _Bubble02Painter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFFFFD700)
+      ..style = PaintingStyle.fill;
+
+    final path = Path();
+    final scaleX = size.width / 325;
+    final scaleY = size.height / 368;
+
+    path.moveTo(142.573 * scaleX, 33.5385 * scaleY);
+    path.cubicTo(
+      221.639 * scaleX, -74.0067 * scaleY,
+      324.97 * scaleX, 103.016 * scaleY,
+      309.453 * scaleX, 200.418 * scaleY,
+    );
+    path.cubicTo(
+      293.936 * scaleX, 297.821 * scaleY,
+      234.738 * scaleX, 367.298 * scaleY,
+      142.573 * scaleX, 367.298 * scaleY,
+    );
+    path.cubicTo(
+      50.4079 * scaleX, 367.298 * scaleY,
+      7.1557 * scaleX, 288.01 * scaleY,
+      0.447188 * scaleX, 203.99 * scaleY,
+    );
+    path.cubicTo(
+      -6.26132 * scaleX, 119.97 * scaleY,
+      63.5071 * scaleX, 141.084 * scaleY,
+      142.573 * scaleX, 33.5385 * scaleY,
+    );
+    path.close();
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// Black Bubble 01 Painter - Exact Figma SVG path p2b951e00
+class _Bubble01Painter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFF02091A)
+      ..style = PaintingStyle.fill;
+
+    final path = Path();
+    final scaleX = size.width / 244;
+    final scaleY = size.height / 267;
+
+    path.moveTo(122.23 * scaleX, 23.973 * scaleY);
+    path.cubicTo(
+      179.747 * scaleX, -54.2618 * scaleY,
+      243.628 * scaleX, 78.3248 * scaleY,
+      243.628 * scaleX, 145.371 * scaleY,
+    );
+    path.cubicTo(
+      243.628 * scaleX, 212.418 * scaleY,
+      189.276 * scaleX, 266.77 * scaleY,
+      122.23 * scaleX, 266.77 * scaleY,
+    );
+    path.cubicTo(
+      55.1834 * scaleX, 266.77 * scaleY,
+      -8.01705 * scaleX, 215.723 * scaleY,
+      0.831575 * scaleX, 145.371 * scaleY,
+    );
+    path.cubicTo(
+      9.6802 * scaleX, 75.0195 * scaleY,
+      64.7126 * scaleX, 102.208 * scaleY,
+      122.23 * scaleX, 23.973 * scaleY,
+    );
+    path.close();
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

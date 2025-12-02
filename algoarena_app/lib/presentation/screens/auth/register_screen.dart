@@ -26,6 +26,10 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _nameHasError = false;
+  bool _emailHasError = false;
+  bool _passwordHasError = false;
+  bool _confirmPasswordHasError = false;
   bool _agreeToTerms = false;
   File? _profileImage;
   final _picker = ImagePicker();
@@ -879,6 +883,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                     padding: EdgeInsets.symmetric(horizontal: shouldScale ? 35 * scale : 35),
                     child: Form(
                       key: _formKey,
+                      autovalidateMode: AutovalidateMode.disabled,
                       child: SlideTransition(
                         position: _contentSlideAnimation,
                           child: Column(
@@ -942,14 +947,27 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                             controller: _nameController,
                             keyboardType: TextInputType.name,
                             textInputAction: TextInputAction.next,
+                            autovalidateMode: AutovalidateMode.onUserInteraction,
                             validator: (value) {
                               if (value == null || value.isEmpty) {
+                                _nameHasError = true;
                                 return 'Name is required';
                               }
                               if (value.length < 2) {
+                                _nameHasError = true;
                                 return 'Name must be at least 2 characters';
                               }
+                              _nameHasError = false;
                               return null;
+                            },
+                            onChanged: (value) {
+                              setState(() {
+                                if (value.isEmpty || value.length < 2) {
+                                  _nameHasError = true;
+                                } else {
+                                  _nameHasError = false;
+                                }
+                              });
                             },
                             style: const TextStyle(
                               fontFamily: 'Poppins',
@@ -966,7 +984,11 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                                 color: Colors.white.withOpacity(0.7),
                               ),
                               filled: true,
-                              fillColor: Colors.black.withOpacity(0.4),
+                              fillColor: _nameHasError
+                                  ? Colors.red.withOpacity(0.5)
+                                  : (_nameController.text.isNotEmpty
+                                      ? Colors.green.withOpacity(0.5)
+                                      : Colors.black.withOpacity(0.4)),
                               contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 16, // Material standard: 16dp
                                 vertical: 12, // Material standard: 12dp
@@ -991,7 +1013,12 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                                 borderRadius: BorderRadius.circular(30),
                                 borderSide: BorderSide.none,
                               ),
-                              errorStyle: const TextStyle(height: 0, fontSize: 0),
+                              // Hide error text to keep height stable
+                              errorStyle: const TextStyle(
+                                color: Colors.transparent,
+                                fontSize: 0,
+                                height: 0,
+                              ),
                             ),
                           ),
                         ),
@@ -1008,7 +1035,17 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                             controller: _emailController,
                             keyboardType: TextInputType.emailAddress,
                             textInputAction: TextInputAction.next,
-                            validator: Validators.validateEmail,
+                            autovalidateMode: AutovalidateMode.onUserInteraction,
+                            validator: (value) {
+                              final error = Validators.validateEmail(value);
+                              _emailHasError = error != null;
+                              return error;
+                            },
+                            onChanged: (value) {
+                              setState(() {
+                                _emailHasError = Validators.validateEmail(value) != null;
+                              });
+                            },
                             style: const TextStyle(
                               fontFamily: 'Poppins',
                               fontSize: 16, // Material standard: 16sp
@@ -1024,7 +1061,11 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                                 color: Colors.white.withOpacity(0.7),
                               ),
                               filled: true,
-                              fillColor: Colors.black.withOpacity(0.4),
+                              fillColor: _emailHasError
+                                  ? Colors.red.withOpacity(0.5)
+                                  : (_emailController.text.isNotEmpty
+                                      ? Colors.green.withOpacity(0.5)
+                                      : Colors.black.withOpacity(0.4)),
                               contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 16, // Material standard: 16dp
                                 vertical: 12, // Material standard: 12dp
@@ -1049,7 +1090,12 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                                 borderRadius: BorderRadius.circular(30),
                                 borderSide: BorderSide.none,
                               ),
-                              errorStyle: const TextStyle(height: 0, fontSize: 0),
+                              // Hide error text to keep height stable; background color indicates error
+                              errorStyle: const TextStyle(
+                                color: Colors.transparent,
+                                fontSize: 0,
+                                height: 0,
+                              ),
                             ),
                           ),
                         ),
@@ -1066,14 +1112,23 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                             controller: _passwordController,
                             obscureText: _obscurePassword,
                             textInputAction: TextInputAction.next,
+                            autovalidateMode: AutovalidateMode.onUserInteraction,
                             validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Password is required';
-                              }
-                              if (value.length < 6) {
-                                return 'Password must be at least 6 characters';
-                              }
-                              return null;
+                              final error = Validators.validatePassword(value);
+                              _passwordHasError = error != null;
+                              return error;
+                            },
+                            onChanged: (value) {
+                              setState(() {
+                                _passwordHasError =
+                                    Validators.validatePassword(value) != null;
+                                _confirmPasswordHasError =
+                                    Validators.validateConfirmPassword(
+                                          _confirmPasswordController.text,
+                                          value,
+                                        ) !=
+                                        null;
+                              });
                             },
                             style: const TextStyle(
                               fontFamily: 'Poppins',
@@ -1090,7 +1145,11 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                                 color: Colors.white.withOpacity(0.7),
                               ),
                               filled: true,
-                              fillColor: Colors.black.withOpacity(0.4),
+                              fillColor: _passwordHasError
+                                  ? Colors.red.withOpacity(0.5)
+                                  : (_passwordController.text.isNotEmpty
+                                      ? Colors.green.withOpacity(0.5)
+                                      : Colors.black.withOpacity(0.4)),
                               contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 16, // Material standard: 16dp
                                 vertical: 12, // Material standard: 12dp
@@ -1123,11 +1182,29 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                                 borderRadius: BorderRadius.circular(30),
                                 borderSide: BorderSide.none,
                               ),
-                              errorStyle: const TextStyle(height: 0, fontSize: 0),
+                              errorStyle: const TextStyle(
+                                height: 0,
+                                fontSize: 0,
+                              ),
                             ),
                           ),
                         ),
                       ),
+                      // Live password rules hint (stays outside field so height doesn’t jump)
+                      if (_passwordHasError && _passwordController.text.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            'Password must be at least 8 characters,\ninclude uppercase, lowercase and a number.',
+                            style: const TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 12,
+                              fontWeight: FontWeight.w400,
+                              color: Colors.red,
+                              height: 1.2,
+                            ),
+                          ),
+                        ),
                       
                       const SizedBox(height: 16), // Material standard spacing
                       
@@ -1140,11 +1217,24 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                             controller: _confirmPasswordController,
                             obscureText: _obscureConfirmPassword,
                             textInputAction: TextInputAction.next,
+                            autovalidateMode: AutovalidateMode.onUserInteraction,
                             validator: (value) {
-                              if (value != _passwordController.text) {
-                                return 'Passwords do not match';
-                              }
-                              return null;
+                              final error = Validators.validateConfirmPassword(
+                                value,
+                                _passwordController.text,
+                              );
+                              _confirmPasswordHasError = error != null;
+                              return error;
+                            },
+                            onChanged: (value) {
+                              setState(() {
+                                _confirmPasswordHasError =
+                                    Validators.validateConfirmPassword(
+                                          value,
+                                          _passwordController.text,
+                                        ) !=
+                                        null;
+                              });
                             },
                             style: const TextStyle(
                               fontFamily: 'Poppins',
@@ -1161,7 +1251,11 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                                 color: Colors.white.withOpacity(0.7),
                               ),
                               filled: true,
-                              fillColor: Colors.black.withOpacity(0.4),
+                              fillColor: _confirmPasswordHasError
+                                  ? Colors.red.withOpacity(0.5)
+                                  : (_confirmPasswordController.text.isNotEmpty
+                                      ? Colors.green.withOpacity(0.5)
+                                      : Colors.black.withOpacity(0.4)),
                               contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 16, // Material standard: 16dp
                                 vertical: 12, // Material standard: 12dp
@@ -1194,7 +1288,10 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                                 borderRadius: BorderRadius.circular(30),
                                 borderSide: BorderSide.none,
                               ),
-                              errorStyle: const TextStyle(height: 0, fontSize: 0),
+                              errorStyle: const TextStyle(
+                                height: 0,
+                                fontSize: 0,
+                              ),
                             ),
                           ),
                         ),

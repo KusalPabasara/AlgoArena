@@ -162,6 +162,8 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     // Scale factor to convert Figma px to device px
     final scaleX = screenWidth / _figmaScreenWidth;
     final scaleY = screenHeight / _figmaScreenHeight;
+    // Use uniform scale for logos and dots to maintain proportions
+    final uniformScale = (scaleX + scaleY) / 2;
     
     return Scaffold(
       body: FadeTransition(
@@ -201,7 +203,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                     ),
                   ),
                   
-                  // Logos - appear after lion reaches Frame 2
+                  // Logos - appear after lion reaches Frame 2 (responsive size)
                   Positioned(
                     left: 0,
                     right: 0,
@@ -213,13 +215,13 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                         children: [
                           Image.asset(
                             'assets/images/logo_text.png',
-                            height: 64,
+                            height: 64 * uniformScale,
                             fit: BoxFit.contain,
                           ),
-                          const SizedBox(width: 8),
+                          SizedBox(width: 8 * uniformScale),
                           Image.asset(
                             'assets/images/logo_icon.png',
-                            height: 64,
+                            height: 64 * uniformScale,
                             fit: BoxFit.contain,
                           ),
                         ],
@@ -227,7 +229,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                     ),
                   ),
                   
-                  // 4-Color Dots - Continuous buffering rotation
+                  // 4-Color Dots - Continuous buffering rotation (responsive size)
                   Positioned(
                     left: 0,
                     right: 0,
@@ -238,7 +240,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                         builder: (context, child) {
                           return Transform.rotate(
                             angle: _dotsRotationAnimation.value,
-                            child: _buildFourColorDots(),
+                            child: _buildFourColorDots(uniformScale),
                           );
                         },
                       ),
@@ -253,10 +255,13 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     );
   }
   
-  /// Builds the 4-color dots grid exactly as in Figma
-  Widget _buildFourColorDots() {
-    const double dotSize = 13.0;
-    const double spacing = 7.0;
+  /// Builds the 4-color dots grid exactly as in Figma (responsive)
+  Widget _buildFourColorDots(double scale) {
+    const double baseDotSize = 13.0;
+    const double baseSpacing = 7.0;
+    
+    final double dotSize = baseDotSize * scale;
+    final double spacing = baseSpacing * scale;
     
     return SizedBox(
       width: dotSize * 2 + spacing,

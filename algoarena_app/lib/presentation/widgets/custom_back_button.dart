@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../screens/main/main_screen.dart';
+import '../../utils/responsive_utils.dart';
 
 /// Custom back button that matches the password screen style
 /// Automatically adapts color based on background:
@@ -44,19 +46,21 @@ class CustomBackButton extends StatelessWidget {
     }
     
     if (navigateToHome) {
-      // Try to find MainScreen in the widget tree and change its tab index
-      // This keeps the bottom navigation bar static by changing tab index instead of navigating
-      // Import MainScreen state class dynamically
-      final mainScreenState = context.findAncestorStateOfType<State<StatefulWidget>>();
-      if (mainScreenState != null && mainScreenState.runtimeType.toString() == '_MainScreenState') {
-        // We're inside MainScreen, use reflection or direct call
-        // Since we can't directly access private class, we'll use a different approach
-        // Navigate to home route but with a flag to prevent recreation
-        Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
-      } else {
-        // Fallback: navigate to home route
-        Navigator.of(context).pushReplacementNamed('/home');
+      // Use MainScreen's global key to switch to home tab (index 0)
+      // This keeps the bottom navigation bar static by changing tab index
+      final mainScreenState = MainScreen.globalKey.currentState;
+      if (mainScreenState != null) {
+        // Use dynamic invocation to call the public navigateToTab method
+        // (needed because _MainScreenState is private but navigateToTab is public)
+        try {
+          (mainScreenState as dynamic).navigateToTab(0);
+          return;
+        } catch (e) {
+          // If dynamic invocation fails, fall through to route navigation
+        }
       }
+      // Fallback: navigate to home route if global key is not available
+        Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
     } else {
       Navigator.pop(context);
     }
@@ -64,12 +68,13 @@ class CustomBackButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    ResponsiveUtils.init(context);
     final buttonColor = _getButtonColor(backgroundColor);
     final borderColor = buttonColor;
     
     return Positioned(
-      left: 10,
-      top: 50,
+      left: ResponsiveUtils.dp(10),
+      top: ResponsiveUtils.bh(50),
       child: Container(
         decoration: BoxDecoration(
           shape: BoxShape.circle,

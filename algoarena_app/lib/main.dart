@@ -155,7 +155,11 @@ class AlgoArenaApp extends StatelessWidget {
         routes: {
           '/': (context) => const SplashScreen(),
           '/login': (context) => const LoginScreen(),
-          '/forgot-password': (context) => const ForgotPasswordScreen(),
+          '/forgot-password': (context) {
+            final args = ModalRoute.of(context)?.settings.arguments;
+            final email = args is Map<String, dynamic> ? args['email'] as String? : null;
+            return ForgotPasswordScreen(email: email);
+          },
           '/password-recovery': (context) => const PasswordRecoveryScreen(),
           '/register': (context) => const RegisterScreen(),
           '/reset-password': (context) => const ResetPasswordScreen(),

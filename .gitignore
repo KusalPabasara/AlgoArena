@@ -1,42 +1,3 @@
-<<<<<<< HEAD
-# Ignore Markdown files (keep them locally, don't push)
-*.md
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# Editor directories
-.vscode/
-.idea/
-
-# Node
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Flutter / Dart
-/.dart_tool/
-/.pub/
-/build/
-/ios/Flutter/Flutter.framework
-/ios/Flutter/Flutter.podspec
-/ios/Pods/
-/ios/Runner.xcworkspace/
-/android/.gradle/
-/android/app/build/
-**/build/
-
-# Java / Gradle
-/.gradle/
-/gradle-app.setting
-
-# Misc
-/coverage/
-*.log
-*.lock
-=======
 # Documentation files (Markdown)
 *.md
 !README.md
@@ -53,10 +14,36 @@ Thumbs.db
 # Node.js
 node_modules/
 package-lock.json
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # Build directories
 build/
 dist/
+**/build/
+
+# Flutter / Dart
+/.dart_tool/
+/.pub/
+/pub-cache/
+/coverage/
+*.lock
+
+# iOS Flutter
+/ios/Flutter/Flutter.framework
+/ios/Flutter/Flutter.podspec
+/ios/Pods/
+/ios/Runner.xcworkspace/
+
+# Android / Gradle
+/android/.gradle/
+/android/app/build/
+/android/app/debug
+/android/app/profile
+/android/app/release
+/.gradle/
+/gradle-app.setting
 
 # Environment files
 .env
@@ -102,4 +89,9 @@ algoarena_app/notification/
 algoarena_app/profile/
 algoarena_app/search/
 algoarena_app/settings/
->>>>>>> 89350104f9a8382a34806bfa1b0412693e53fb78
+
+# Java / Gradle
+*.class
+
+# Misc
+/coverage/

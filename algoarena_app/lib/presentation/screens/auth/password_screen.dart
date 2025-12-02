@@ -99,24 +99,33 @@ class _PasswordScreenState extends State<PasswordScreen> with TickerProviderStat
       curve: Curves.easeInOutCubic,
     );
     
+    // Continue rotation from where login screen ends (seamless anticlockwise transition)
+    // Login screen animation ends at: (600.0, 472.0, 60.0, 90.0) - normalized to (240.0, 112.0, 60.0, 90.0)
+    // Password screen final angles (from static render formulas converted to degrees):
+    // Bubble 01: 260*3.14159/200 ≈ 4.08 radians ≈ 234 degrees
+    // Bubble 02: 350*5.123/320 ≈ 5.6 radians ≈ 321 degrees  
+    // Bubble 03: 200*3.14159/170 ≈ 3.7 radians ≈ 212 degrees
+    // Bubble 04: -600*3.14159/1500 ≈ -1.26 radians ≈ -72 degrees
+    
+    // Continue anticlockwise rotation from normalized end angles
     _bubble01RotationAnimation = Tween<double>(
-      begin: 260.0, // Login angle
-      end: 240.0,   // Password angle
+      begin: 240.0, // Where login screen animation ends (normalized from 600°)
+      end: 234.0 + 360.0,   // Counterclockwise: 240° -> 360° -> 234° (594° total)
     ).animate(rotationCurve);
     
     _bubble02RotationAnimation = Tween<double>(
-      begin: 140.0, // Login angle
-      end: 112.0,   // Password angle
+      begin: 112.0, // Where login screen animation ends (normalized from 472°)
+      end: 321.0,   // Counterclockwise: 112° -> 321° (direct path, already counterclockwise)
     ).animate(rotationCurve);
     
     _bubble03RotationAnimation = Tween<double>(
-      begin: 156.0, // Login angle
-      end: 60.0,    // Password angle
+      begin: 60.0,  // Where login screen animation ends
+      end: 212.0,   // Counterclockwise: 60° -> 212° (direct path, already counterclockwise)
     ).animate(rotationCurve);
     
     _bubble04RotationAnimation = Tween<double>(
-      begin: 0.0,   // Login angle
-      end: 90.0,    // Password angle
+      begin: 90.0,  // Where login screen animation ends
+      end: -72.0 + 360.0,   // Counterclockwise: 90° -> 360° -> -72° (288° total, normalized to 288°)
     ).animate(rotationCurve);
 
     // Start bubble rotation animation immediately
@@ -206,6 +215,7 @@ class _PasswordScreenState extends State<PasswordScreen> with TickerProviderStat
     Navigator.pushNamed(
       context,
       '/forgot-password',
+      arguments: {'email': widget.email},
     );
   }
 
@@ -231,7 +241,7 @@ class _PasswordScreenState extends State<PasswordScreen> with TickerProviderStat
                 left: ResponsiveUtils.bw(206), // 50% of 412 reference width
                 top: ResponsiveUtils.screenHeight - ResponsiveUtils.bs(650) + ResponsiveUtils.bh(70),
                 child: Transform.rotate(
-                  angle: -600*3.14159 / 1500,
+                  angle: _bubble04RotationAnimation.value * 3.14159 / 180, // Use animation value, convert degrees to radians
                   child: child,
                 ),
               );
@@ -254,7 +264,7 @@ class _PasswordScreenState extends State<PasswordScreen> with TickerProviderStat
                 right: ResponsiveUtils.bw(-70),
                 top: ResponsiveUtils.bh(280),
                 child: Transform.rotate(
-                  angle: 200*3.14159 / 170,
+                  angle: _bubble03RotationAnimation.value * 3.14159 / 180, // Use animation value, convert degrees to radians
                   child: child,
                 ),
               );
@@ -277,7 +287,7 @@ class _PasswordScreenState extends State<PasswordScreen> with TickerProviderStat
                 left: ResponsiveUtils.bw(-190),
                 top: ResponsiveUtils.bh(-210),
                 child: Transform.rotate(
-                  angle:  350 * 5.123/320,
+                  angle: _bubble02RotationAnimation.value * 3.14159 / 180, // Use animation value, convert degrees to radians
                   child: child,
                 ),
               );
@@ -300,7 +310,7 @@ class _PasswordScreenState extends State<PasswordScreen> with TickerProviderStat
                 left: ResponsiveUtils.bw(-300),
                 top: ResponsiveUtils.bh(-250),
                 child: Transform.rotate(
-                  angle:260*3.14159 / 200,
+                  angle: _bubble01RotationAnimation.value * 3.14159 / 180, // Use animation value, convert degrees to radians
                   child: child,
                 ),
               );

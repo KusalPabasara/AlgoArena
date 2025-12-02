@@ -67,6 +67,7 @@ flutter:
     - assets/images/notifications/
     - assets/images/leo_assist/
     - assets/images/forgot_password/
+    - assets/images/icons/
 
 flutter_launcher_icons:
   android: true

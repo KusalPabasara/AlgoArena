@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../core/constants/colors.dart';
+import '../../utils/responsive_utils.dart';
 
-class AppBottomNav extends StatelessWidget {
+class AppBottomNav extends StatefulWidget {
   final int currentIndex;
   final ValueChanged<int>? onTabChanged;
   
@@ -11,129 +13,312 @@ class AppBottomNav extends StatelessWidget {
     this.onTabChanged,
   });
 
-  // Build icon with highlight circle for active tab
-  Widget _buildIconWithHighlight(IconData icon, IconData activeIcon, bool isActive) {
-    if (isActive) {
-      // Active state: circle with icon and bar inside
-      return Container(
-        width: 48,
-        height: 48,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: const Color(0xFFFFF9C4), // Light yellow background
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              activeIcon,
-              size: 28,
-              color: const Color(0xFFFFD700), // Gold color
-            ),
-            const SizedBox(height: 4),
-            // Small black bar inside the circle, below the icon (shorter length)
-            Container(
-              width: 16,
-              height: 3,
-              decoration: BoxDecoration(
-                color: Colors.black, // Black color
-                borderRadius: BorderRadius.circular(1.5),
-              ),
-            ),
-          ],
+  @override
+  State<AppBottomNav> createState() => _AppBottomNavState();
+}
+
+class _AppBottomNavState extends State<AppBottomNav> with SingleTickerProviderStateMixin {
+  final int _tabCount = 5;
+  AnimationController? _zoomController;
+  Animation<double>? _zoomAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _zoomController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _zoomAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _zoomController!,
+        curve: Curves.easeOutBack,
+      ),
+    );
+    // Start animation if a tab is already selected
+    if (widget.currentIndex >= 0) {
+      _zoomController?.forward();
+    }
+  }
+
+  @override
+  void didUpdateWidget(AppBottomNav oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.currentIndex != widget.currentIndex) {
+      // Reset and animate when tab changes
+      _zoomController?.reset();
+      _zoomController?.forward();
+    }
+  }
+
+  @override
+  void dispose() {
+    _zoomController?.dispose();
+    super.dispose();
+  }
+
+  Widget _getInactiveIcon(int index, double size, Color color) {
+    switch (index) {
+      case 0:
+        return SizedBox(
+          width: size,
+          height: size,
+          child: SvgPicture.asset(
+            'assets/images/icons/home.svg',
+            width: size,
+            height: size,
+            colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+            fit: BoxFit.contain,
+          ),
+        );
+      case 1:
+        return SizedBox(
+          width: size,
+          height: size,
+          child: SvgPicture.asset(
+            'assets/images/icons/search.svg',
+            width: size,
+            height: size,
+            colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+            fit: BoxFit.contain,
+          ),
+        );
+      case 2:
+        return SizedBox(
+          width: size,
+          height: size,
+          child: SvgPicture.asset(
+            'assets/images/icons/events.svg',
+            width: size,
+            height: size,
+            colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+            fit: BoxFit.contain,
+          ),
+        );
+      case 3:
+        return SizedBox(
+          width: size,
+          height: size,
+          child: SvgPicture.asset(
+            'assets/images/icons/pages.svg',
+            width: size,
+            height: size,
+            colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+            fit: BoxFit.contain,
+          ),
+        );
+      case 4:
+        return SizedBox(
+          width: size,
+          height: size,
+          child: SvgPicture.asset(
+            'assets/images/icons/user.svg',
+            width: size,
+            height: size,
+            colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+            fit: BoxFit.contain,
+          ),
+        );
+      default:
+        return SizedBox(
+          width: size,
+          height: size,
+          child: SvgPicture.asset(
+            'assets/images/icons/home.svg',
+            width: size,
+            height: size,
+            colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+            fit: BoxFit.contain,
+          ),
+        );
+    }
+  }
+
+  Widget _getActiveIcon(int index, double size, Color color) {
+    switch (index) {
+      case 0:
+        return SizedBox(
+          width: size,
+          height: size,
+          child: SvgPicture.asset(
+            'assets/images/icons/home.svg',
+            width: size,
+            height: size,
+            colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+            fit: BoxFit.contain,
+          ),
+        );
+      case 1:
+        return SizedBox(
+          width: size,
+          height: size,
+          child: SvgPicture.asset(
+            'assets/images/icons/search.svg',
+            width: size,
+            height: size,
+            colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+            fit: BoxFit.contain,
+          ),
+        );
+      case 2:
+        return SizedBox(
+          width: size,
+          height: size,
+          child: SvgPicture.asset(
+            'assets/images/icons/events.svg',
+            width: size,
+            height: size,
+            colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+            fit: BoxFit.contain,
+          ),
+        );
+      case 3:
+        return SizedBox(
+          width: size,
+          height: size,
+          child: SvgPicture.asset(
+            'assets/images/icons/pages.svg',
+            width: size,
+            height: size,
+            colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+            fit: BoxFit.contain,
         ),
       );
-    } else {
-      // Inactive state: just the icon
-      return Icon(
-        icon,
-        size: 30,
-        color: AppColors.textHint,
+      case 4:
+        return SizedBox(
+          width: size,
+          height: size,
+          child: SvgPicture.asset(
+            'assets/images/icons/user.svg',
+            width: size,
+            height: size,
+            colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+            fit: BoxFit.contain,
+          ),
+        );
+      default:
+        return SizedBox(
+          width: size,
+          height: size,
+          child: SvgPicture.asset(
+            'assets/images/icons/home.svg',
+            width: size,
+            height: size,
+            colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+            fit: BoxFit.contain,
+          ),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return BottomNavigationBar(
-      currentIndex: currentIndex,
-      onTap: (index) {
-        if (currentIndex == index) return; // Don't navigate if already on the tab
-        onTabChanged?.call(index);
-      },
-      type: BottomNavigationBarType.fixed,
-      selectedItemColor: AppColors.primary,
-      unselectedItemColor: AppColors.textHint,
-      showSelectedLabels: false,
-      showUnselectedLabels: false,
-      items: [
-        BottomNavigationBarItem(
-          icon: _buildIconWithHighlight(
-            Icons.home_rounded,
-            Icons.home_rounded,
-            currentIndex == 0,
-          ),
-          activeIcon: _buildIconWithHighlight(
-            Icons.home_rounded,
-            Icons.home_rounded,
-            true,
-          ),
-          label: '',
+    ResponsiveUtils.init(context);
+    
+    final responsiveNavBarHeight = ResponsiveUtils.dp(kBottomNavigationBarHeight + 26);
+    
+    // Each icon has its own background that highlights when active
+    return Container(
+      height: responsiveNavBarHeight + MediaQuery.of(context).padding.bottom,
+      decoration: BoxDecoration(
+        color: Colors.white,
+      ),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: List.generate(
+            _tabCount,
+            (index) => Expanded(
+              child: InkWell(
+                onTap: () => widget.onTabChanged?.call(index),
+                child: Container(
+                  height: responsiveNavBarHeight,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Golden background under icon for active tab
+                      if (widget.currentIndex == index)
+                        _zoomAnimation != null
+                            ? AnimatedBuilder(
+                                animation: _zoomAnimation!,
+                                builder: (context, child) {
+                                  return Transform.scale(
+                                    scale: _zoomAnimation!.value,
+                                    child: Stack(
+                                      alignment: Alignment.center,
+                                      children: [
+                                        Container(
+                                          width: ResponsiveUtils.iconSize + ResponsiveUtils.dp(28),
+                                          height: ResponsiveUtils.iconSize + ResponsiveUtils.dp(28),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFB8860B).withOpacity(0.2),
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                        // Dot indicator inside the background circle
+                                        Positioned(
+                                          bottom: ResponsiveUtils.dp(3),
+                                          child: Container(
+                                            width: ResponsiveUtils.dp(6),
+                                            height: ResponsiveUtils.dp(6),
+                                            decoration: BoxDecoration(
+                                              color: const Color.fromARGB(255, 109, 78, 1),
+                                              shape: BoxShape.circle,
         ),
-        BottomNavigationBarItem(
-          icon: _buildIconWithHighlight(
-            Icons.explore_outlined,
-            Icons.explore,
-            currentIndex == 1,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              )
+                            : Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  Container(
+                                    width: ResponsiveUtils.iconSize + ResponsiveUtils.dp(28),
+                                    height: ResponsiveUtils.iconSize + ResponsiveUtils.dp(28),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFB8860B).withOpacity(0.2),
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  // Dot indicator inside the background circle
+                                  Positioned(
+                                    bottom: ResponsiveUtils.dp(3),
+                                    child: Container(
+                                      width: ResponsiveUtils.dp(6),
+                                      height: ResponsiveUtils.dp(6),
+                                      decoration: BoxDecoration(
+                                        color: const Color.fromARGB(255, 109, 78, 1),
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                      // Icon stays centered
+                      widget.currentIndex == index
+                          ? _getActiveIcon(
+                              index,
+                              ResponsiveUtils.iconSize + ResponsiveUtils.dp(8),
+                              const Color.fromARGB(255, 252, 197, 57),
+                            )
+                          : _getInactiveIcon(
+                              index,
+                              ResponsiveUtils.iconSize + ResponsiveUtils.dp(8),
+                              AppColors.textHint,
           ),
-          activeIcon: _buildIconWithHighlight(
-            Icons.explore_outlined,
-            Icons.explore,
-            true,
-          ),
-          label: '',
+                    ],
         ),
-        BottomNavigationBarItem(
-          icon: _buildIconWithHighlight(
-            Icons.calendar_today_outlined,
-            Icons.calendar_today,
-            currentIndex == 2,
+                ),
+              ),
+            ),
           ),
-          activeIcon: _buildIconWithHighlight(
-            Icons.calendar_today_outlined,
-            Icons.calendar_today,
-            true,
-          ),
-          label: '',
         ),
-        BottomNavigationBarItem(
-          icon: _buildIconWithHighlight(
-            Icons.dashboard_outlined,
-            Icons.dashboard,
-            currentIndex == 3,
-          ),
-          activeIcon: _buildIconWithHighlight(
-            Icons.dashboard_outlined,
-            Icons.dashboard,
-            true,
-          ),
-          label: '',
-        ),
-        BottomNavigationBarItem(
-          icon: _buildIconWithHighlight(
-            Icons.account_circle_outlined,
-            Icons.account_circle,
-            currentIndex == 4,
-          ),
-          activeIcon: _buildIconWithHighlight(
-            Icons.account_circle_outlined,
-            Icons.account_circle,
-            true,
-          ),
-          label: '',
-        ),
-      ],
+      ),
     );
   }
 }
+

@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import '../../../core/constants/colors.dart';
 import '../../../data/models/event.dart';
 import '../../../data/repositories/event_repository.dart';
+import '../../../utils/responsive_utils.dart';
 import '../../widgets/event_card.dart';
 import '../../widgets/custom_back_button.dart';
 import 'event_detail_screen.dart';
@@ -9,21 +12,130 @@ import 'event_detail_screen.dart';
 /// Events List Screen - Matches Figma design exactly from Provide Frontend Code
 class EventsListScreen extends StatefulWidget {
   const EventsListScreen({super.key});
+  
+  static final GlobalKey<_EventsListScreenState> globalKey = GlobalKey<_EventsListScreenState>();
 
   @override
   State<EventsListScreen> createState() => _EventsListScreenState();
 }
 
-class _EventsListScreenState extends State<EventsListScreen> {
+class _EventsListScreenState extends State<EventsListScreen> with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   final _eventRepository = EventRepository();
   List<Event> _events = [];
   bool _isLoading = true;
+  late AnimationController _animationController;
+  late Animation<Offset> _bubblesSlideAnimation;
+  late Animation<Offset> _bottomYellowBubbleSlideAnimation;
+  late Animation<Offset> _contentSlideAnimation;
+  late Animation<double> _bubblesFadeAnimation;
+  late Animation<double> _contentFadeAnimation;
+  DateTime? _lastAnimationTime;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadEvents();
+    
+    // Initialize animation controller first
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    
+    // Bubbles animation - coming from outside (top-left)
+    _bubblesSlideAnimation = Tween<Offset>(
+      begin: const Offset(-0.5, -0.5), // Start from top-left outside
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeOutCubic,
+    ));
+    
+    // Bottom yellow bubble animation - coming from right outside
+    _bottomYellowBubbleSlideAnimation = Tween<Offset>(
+      begin: const Offset(0.5, 0.0), // Start from right outside
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeOutCubic,
+    ));
+    
+    _bubblesFadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
+    ));
+    
+    // Content animation - coming from bottom
+    _contentSlideAnimation = Tween<Offset>(
+      begin: const Offset(0.0, 0.3), // Start from below
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: const Interval(0.2, 1.0, curve: Curves.easeOutCubic),
+    ));
+    
+    _contentFadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: const Interval(0.2, 1.0, curve: Curves.easeOut),
+    ));
+    
+    // Don't start animation immediately - wait for restartAnimation() call
+    // This ensures bubbles are hidden initially and only animate when tab is visited
   }
+  
+  // Removed _startVisibilityCheck - animation is now controlled by MainScreen
+  
+  // Public method to restart animation (called from MainScreen)
+  void restartAnimation() {
+    if (!mounted) return;
+    
+    final now = DateTime.now();
+    // Only restart if last animation was more than 200ms ago (debounce)
+    // This ensures animation restarts every time tab becomes visible
+    if (_lastAnimationTime == null || 
+        now.difference(_lastAnimationTime!).inMilliseconds > 200) {
+      _lastAnimationTime = now;
+      
+      // Stop any ongoing animation
+      if (_animationController.isAnimating) {
+        _animationController.stop();
+      }
+      
+      // Reset to beginning (value 0.0) and forward to ensure animation plays
+      _animationController.reset();
+      
+      // Start animation immediately - no delay needed
+      _animationController.forward();
+    }
+  }
+  
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      restartAnimation();
+    }
+  }
+  
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Animation is controlled by MainScreen via restartAnimation() call
+  }
+  
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _animationController.dispose();
+    super.dispose();
+  }
+  
 
   Future<void> _loadEvents() async {
     try {
@@ -150,6 +262,9 @@ class _EventsListScreenState extends State<EventsListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Animation is controlled by MainScreen via restartAnimation() call
+    // No automatic animation start here - bubbles should be hidden initially
+    
     final screenHeight = MediaQuery.of(context).size.height;
     
     return Scaffold(
@@ -157,18 +272,44 @@ class _EventsListScreenState extends State<EventsListScreen> {
       body: Stack(
         clipBehavior: Clip.hardEdge, // Prevent overflow
         children: [
-          // 1. BACKGROUND LAYER - Bubbles with Hero animation (bottom layer)
+          // 1. BACKGROUND LAYER - Top bubbles (black and yellow top) - from top-left
           Positioned(
             left: -218.41,
             top: -280,
-            child: Hero(
-              tag: 'event_bubbles_background',
-              child: SizedBox(
-                width: 900,
-                height: screenHeight + 350,
-                child: CustomPaint(
-                  size: Size(900, screenHeight + 350),
-                  painter: _BubblesPainter(),
+            child: FadeTransition(
+              opacity: _bubblesFadeAnimation,
+              child: SlideTransition(
+                position: _bubblesSlideAnimation,
+                child: Hero(
+                  tag: 'event_bubbles_background',
+                  child: SizedBox(
+                    width: 900,
+                    height: screenHeight + 350,
+                    child: CustomPaint(
+                      size: Size(900, screenHeight + 350),
+                      painter: _TopBubblesPainter(),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          
+          // 2. Bottom yellow bubble - from right
+          Positioned(
+            left: -218.41,
+            top: -280,
+            child: FadeTransition(
+              opacity: _bubblesFadeAnimation,
+              child: SlideTransition(
+                position: _bottomYellowBubbleSlideAnimation,
+                child: SizedBox(
+                  width: 900,
+                  height: screenHeight + 350,
+                  child: CustomPaint(
+                    size: Size(900, screenHeight + 350),
+                    painter: _BottomYellowBubblePainter(),
+                  ),
                 ),
               ),
             ),
@@ -176,157 +317,188 @@ class _EventsListScreenState extends State<EventsListScreen> {
 
           // 2. TIMELINE LINE - Position: left: 69, starts below header area (behind content)
           Positioned(
-            left: 69,
-            top: 200, // Start below the black bubble header
+            left: ResponsiveUtils.dp(69),
+            top: ResponsiveUtils.bh(200), // Start below the black bubble header
             bottom: 0,
             child: Container(
-              width: 2,
+              width: ResponsiveUtils.dp(2),
               color: Colors.black,
             ),
           ),
 
-          // 3. BACK BUTTON - Position: top left (on top layer, routes to home)
+          // Back button - top left
           CustomBackButton(
-            backgroundColor: Colors.black, // Black background area
-            iconSize: 24, // Consistent size
+            backgroundColor: Colors.black, // Dark area (image/shape background)
+            iconSize: 24,
             navigateToHome: true,
           ),
 
-          // 4. "EVENTS" TITLE - Position: left: 69, top: 48, white text on black bubble (on top layer)
-          const Positioned(
-            left: 69,
-            top: 48,
+          // "Events" title - Figma: left: calc(16.67% + 2px), top: 48px
+          Positioned(
+            left: MediaQuery.of(context).size.width * 0.1667 + ResponsiveUtils.dp(2),
+            top: ResponsiveUtils.bh(48),
             child: Text(
               'Events',
               style: TextStyle(
                 fontFamily: 'Raleway',
-                fontWeight: FontWeight.w700,
-                fontSize: 50,
+                fontSize: ResponsiveUtils.dp(50),
+                fontWeight: FontWeight.bold,
                 color: Colors.white,
+                letterSpacing: -ResponsiveUtils.dp(0.52),
                 height: 1.0,
-                letterSpacing: -0.52,
               ),
             ),
           ),
 
           // 5. SCROLLABLE CONTENT LAYER - starts below header area, properly aligned
+          // Animated to slide up from bottom
           Positioned(
-            left: 16, // Left padding for proper alignment
-            top: 200, // Start below the black bubble header to avoid clash
-            right: 16, // Right padding for proper alignment
+            left: 0,
+            right: 0,
+            top: ResponsiveUtils.bh(175),
             bottom: 0,
-            child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(
-                      color: AppColors.primary,
-                    ),
-                  )
-                : _events.isEmpty
-                    ? const Center(
-                        child: Text(
-                          'No events available',
-                          style: TextStyle(
-                            fontFamily: 'Nunito Sans',
-                            fontSize: 16,
-                            color: AppColors.textSecondary,
-                          ),
+            child: FadeTransition(
+              opacity: _contentFadeAnimation,
+              child: SlideTransition(
+                position: _contentSlideAnimation,
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: Padding(
+                    padding: EdgeInsets.only(top: ResponsiveUtils.dp(20)),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(ResponsiveUtils.r(35)),
+                      child: Container(
+                        width: ResponsiveUtils.dp(375),
+                        constraints: BoxConstraints(
+                          maxHeight: MediaQuery.of(context).size.height - ResponsiveUtils.bh(175) - MediaQuery.of(context).padding.bottom - ResponsiveUtils.dp(40),
                         ),
-                      )
-                    : ListView.separated(
-                        padding: const EdgeInsets.only(
-                          top: 0,
-                          bottom: 16,
+                        decoration: BoxDecoration(
+                          color: const Color.fromARGB(255, 0, 0, 0).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(ResponsiveUtils.r(35)),
                         ),
-                        itemCount: _events.length,
-                        separatorBuilder: (context, index) =>
-                            const SizedBox(height: 26),
-                        itemBuilder: (context, index) {
-                          final event = _events[index];
-                          final eventColor = _getEventColor(event);
-                          return SizedBox(
-                            height: 160, // Fixed height matching card height
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Date Badge and Triangle Column - aligned with timeline
-                                SizedBox(
-                                  width: 53, // 69 - 16 = 53 to align with timeline at left: 69
-                                  child: Stack(
-                                    clipBehavior: Clip.none,
-                                    children: [
-                                      // Date Badge (33×33 black circle) - centered on timeline
-                                      Positioned(
-                                        left: 10, // (53 - 33) / 2 = 10 to center 33px circle in 53px column
-                                        top: 64, // Vertically centered (160/2 - 33/2)
-                                        child: Container(
-                                          width: 33,
-                                          height: 33,
-                                          decoration: const BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            color: Colors.black,
-                                          ),
-                                          child: Column(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              Text(
-                                                event.date,
-                                                style: const TextStyle(
-                                                  fontFamily: 'Nunito Sans',
-                                                  fontWeight: FontWeight.w800,
-                                                  fontSize: 8,
-                                                  color: Colors.white,
-                                                  height: 1.0,
-                                                ),
-                                              ),
-                                              Text(
-                                                event.month,
-                                                style: const TextStyle(
-                                                  fontFamily: 'Nunito Sans',
-                                                  fontWeight: FontWeight.w800,
-                                                  fontSize: 8,
-                                                  color: Colors.white,
-                                                  height: 1.0,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
+                        child: _isLoading
+                            ? Center(
+                                child: Padding(
+                                  padding: EdgeInsets.all(ResponsiveUtils.dp(20)),
+                                  child: const CircularProgressIndicator(
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              )
+                            : _events.isEmpty
+                                ? Center(
+                                    child: Padding(
+                                      padding: EdgeInsets.all(ResponsiveUtils.dp(20)),
+                                      child: Text(
+                                        'No events available',
+                                        style: TextStyle(
+                                          fontFamily: 'Nunito Sans',
+                                          fontSize: ResponsiveUtils.bodyMedium,
+                                          color: AppColors.textSecondary,
                                         ),
                                       ),
-
-                                      // Triangle Arrow Indicator - positioned to point at card
-                                      Positioned(
-                                        left: 36, // Aligned to point from timeline to card
-                                        top: 62, // Vertically centered (160/2 - 36/2)
-                                        child: Transform.rotate(
-                                          angle: -1.5708, // 270 degrees (pointing right)
-                                          child: CustomPaint(
-                                            size: const Size(36, 26),
-                                            painter: _TrianglePainter(
-                                              color: eventColor.withOpacity(0.2),
+                                    ),
+                                  )
+                                : SingleChildScrollView(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: ResponsiveUtils.spacingM + ResponsiveUtils.dp(4),
+                                      vertical: ResponsiveUtils.spacingM - ResponsiveUtils.dp(6),
+                                    ),
+                                    child: Column(
+                                      children: _events.asMap().entries.map((entry) {
+                                        final index = entry.key;
+                                        final event = entry.value;
+                                        final eventColor = _getEventColor(event);
+                                        return Padding(
+                                          padding: EdgeInsets.only(
+                                            bottom: index < _events.length - 1 ? ResponsiveUtils.dp(26) : ResponsiveUtils.dp(16),
+                                          ),
+                                          child: SizedBox(
+                                            height: ResponsiveUtils.dp(160),
+                                            child: Row(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                // Date Badge and Triangle Column - aligned with timeline
+                                                SizedBox(
+                                                  width: ResponsiveUtils.dp(53),
+                                                  child: Stack(
+                                                    clipBehavior: Clip.none,
+                                                    children: [
+                                                      // Date Badge (33×33 black circle) - centered on timeline
+                                                      Positioned(
+                                                        left: ResponsiveUtils.dp(10),
+                                                        top: ResponsiveUtils.dp(64),
+                                                        child: Container(
+                                                          width: ResponsiveUtils.dp(33),
+                                                          height: ResponsiveUtils.dp(33),
+                                                          decoration: const BoxDecoration(
+                                                            shape: BoxShape.circle,
+                                                            color: Colors.black,
+                                                          ),
+                                                          child: Column(
+                                                            mainAxisAlignment: MainAxisAlignment.center,
+                                                            children: [
+                                                              Text(
+                                                                event.date,
+                                                                style: TextStyle(
+                                                                  fontFamily: 'Nunito Sans',
+                                                                  fontWeight: FontWeight.w800,
+                                                                  fontSize: ResponsiveUtils.dp(8),
+                                                                  color: Colors.white,
+                                                                  height: 1.0,
+                                                                ),
+                                                              ),
+                                                              Text(
+                                                                event.month,
+                                                                style: TextStyle(
+                                                                  fontFamily: 'Nunito Sans',
+                                                                  fontWeight: FontWeight.w800,
+                                                                  fontSize: ResponsiveUtils.dp(8),
+                                                                  color: Colors.white,
+                                                                  height: 1.0,
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      // Triangle Arrow Indicator
+                                                      Positioned(
+                                                        left: ResponsiveUtils.dp(36),
+                                                        top: ResponsiveUtils.dp(62),
+                                                        child: Transform.rotate(
+                                                          angle: -1.5708,
+                                                          child: CustomPaint(
+                                                            size: Size(ResponsiveUtils.dp(36), ResponsiveUtils.dp(26)),
+                                                            painter: _TrianglePainter(color: eventColor.withOpacity(0.2)),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                                SizedBox(width: ResponsiveUtils.dp(8)),
+                                                // Event Card
+                                                Expanded(
+                                                  child: EventCard(
+                                                    event: event,
+                                                    onTap: () => _openEventDetail(event),
+                                                    onJoinToggle: () => _toggleJoinEvent(event),
+                                                  ),
+                                                ),
+                                              ],
                                             ),
                                           ),
-                                        ),
-                                      ),
-                                    ],
+                                        );
+                                      }).toList(),
+                                    ),
                                   ),
-                                ),
-
-                                const SizedBox(width: 8), // Spacing between timeline and card
-
-                                // Event Card - expands to fill available space
-                                Expanded(
-                                  child: EventCard(
-                                    event: event,
-                                    onTap: () => _openEventDetail(event),
-                                    onJoinToggle: () => _toggleJoinEvent(event),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
                       ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -336,8 +508,8 @@ class _EventsListScreenState extends State<EventsListScreen> {
   }
 }
 
-/// Custom painter for the Bubbles background - exact SVG paths from React Events.tsx
-class _BubblesPainter extends CustomPainter {
+/// Custom painter for top bubbles (black and yellow top) - exact SVG paths from React Events.tsx
+class _TopBubblesPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     // Scale factors to match viewBox="0 0 845 1222"
@@ -403,6 +575,19 @@ class _BubblesPainter extends CustomPainter {
     );
     bubble01Path.close();
     canvas.drawPath(bubble01Path, bubble01Paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// Custom painter for bottom yellow bubble - exact SVG path from React Events.tsx
+class _BottomYellowBubblePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Scale factors to match viewBox="0 0 845 1222"
+    final scaleX = size.width / 845;
+    final scaleY = size.height / 1222;
 
     // Yellow bubble 04 (bottom-right) - p145eec00 path from svg-9qg6fl4iht.ts
     final bubble04Paint = Paint()

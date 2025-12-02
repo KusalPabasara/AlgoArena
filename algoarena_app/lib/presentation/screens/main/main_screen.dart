@@ -55,7 +55,42 @@ class _MainScreenState extends State<MainScreen> {
       setState(() {
         _currentIndex = index;
       });
+      
+      // Trigger animation when switching to tabs with animations
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        switch (index) {
+          case 1: // Search tab
+            final searchScreenState = SearchScreen.globalKey.currentState;
+            if (searchScreenState != null) {
+              searchScreenState.restartAnimation();
+            }
+            break;
+          case 2: // Events tab
+            final eventsScreenState = EventsListScreen.globalKey.currentState;
+            if (eventsScreenState != null) {
+              eventsScreenState.restartAnimation();
+            }
+            break;
+          case 3: // Pages tab
+            final pagesScreenState = PagesScreen.globalKey.currentState;
+            if (pagesScreenState != null) {
+              pagesScreenState.restartAnimation();
+            }
+            break;
+          case 4: // Profile tab
+            final profileScreenState = ProfileScreen.globalKey.currentState;
+            if (profileScreenState != null) {
+              profileScreenState.restartAnimation();
+            }
+            break;
+        }
+      });
     }
+  }
+  
+  // Public method to navigate to a specific tab (used by CustomBackButton)
+  void navigateToTab(int index) {
+    _onTabTapped(index);
   }
   
   // Make this method accessible from child widgets
@@ -74,12 +109,12 @@ class _MainScreenState extends State<MainScreen> {
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
-        children: const [
-          HomeScreen(),
-          SearchScreen(),
-          EventsListScreen(),
-          PagesScreen(),
-          ProfileScreen(),
+        children: [
+          const HomeScreen(),
+          SearchScreen(key: SearchScreen.globalKey),
+          EventsListScreen(key: EventsListScreen.globalKey),
+          PagesScreen(key: PagesScreen.globalKey),
+          ProfileScreen(key: ProfileScreen.globalKey),
         ],
       ),
       bottomNavigationBar: (widget.hideBottomNav || _isMenuOpen) ? null : AppBottomNav(
