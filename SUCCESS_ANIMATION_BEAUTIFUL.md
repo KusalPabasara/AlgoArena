@@ -8,7 +8,7 @@ Successfully implemented a stunning Material Design success animation with multi
 
 ## 🎨 Beautiful Features:
 
-### **1. ✅ Gradient Background**
+### **1. ✅ Gradient Backgrounds**
 ```dart
 LinearGradient(
   begin: Alignment.topLeft,
