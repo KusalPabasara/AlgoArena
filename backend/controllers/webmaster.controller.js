@@ -4,6 +4,7 @@
  */
 
 const firestoreService = require('../services/firestore.service');
+const emailService = require('../services/email.service');
 
 // Generate a unique Leo ID (format: LEO-XXXXX)
 const generateLeoId = () => {
@@ -122,6 +123,24 @@ exports.createLeoId = async (req, res) => {
       assignedClub: clubId || 'leo-club-colombo',
       assignedClubName: clubName || 'Leo Club of Colombo',
     });
+
+    // Send Leo ID via email
+    try {
+      if (user.email) {
+        await emailService.sendLeoIdEmail(
+          user.email,
+          leoId,
+          user.fullName || user.email.split('@')[0]
+        );
+        console.log(`📧 Leo ID email sent to ${user.email} for Leo ID: ${leoId}`);
+      } else {
+        console.warn(`⚠️ User ${userId} has no email address. Leo ID created but email not sent.`);
+      }
+    } catch (emailError) {
+      console.error('❌ Failed to send Leo ID email:', emailError);
+      // Don't fail the request if email fails, but log it
+      // The Leo ID is still created successfully
+    }
 
     res.status(201).json({
       message: 'Leo ID created successfully',

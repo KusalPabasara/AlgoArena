@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const path = require('path');
 const { initializeFirebase } = require('./config/firebase');
 
 // Load environment variables
@@ -41,6 +42,24 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Serve static files from uploads directory (for self-hosted image storage)
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
+  maxAge: '1y', // Cache for 1 year
+  etag: true,
+  setHeaders: (res, filePath) => {
+    // Set proper content type for images
+    if (filePath.endsWith('.jpg') || filePath.endsWith('.jpeg')) {
+      res.setHeader('Content-Type', 'image/jpeg');
+    } else if (filePath.endsWith('.png')) {
+      res.setHeader('Content-Type', 'image/png');
+    } else if (filePath.endsWith('.gif')) {
+      res.setHeader('Content-Type', 'image/gif');
+    } else if (filePath.endsWith('.webp')) {
+      res.setHeader('Content-Type', 'image/webp');
+    }
+  }
+}));
+
 // Trust proxy for cloud deployments (Railway, Render, etc.)
 if (process.env.NODE_ENV === 'production') {
   app.set('trust proxy', 1);
@@ -63,6 +82,35 @@ app.use('/api/clubs', require('./routes/club.routes'));
 app.use('/api/districts', require('./routes/district.routes'));
 app.use('/api/admin', require('./routes/admin.routes'));
 app.use('/api/pages', require('./routes/page.routes'));
+app.use('/api/events', require('./routes/event.routes'));
+app.use('/api/notifications', require('./routes/notification.routes'));
+
+// Scheduled jobs for event notifications
+const cron = require('node-cron');
+const { checkEventsForNotifications } = require('./controllers/notification.controller');
+
+// Run event notification check every hour
+// Cron format: minute hour day month day-of-week
+cron.schedule('0 * * * *', async () => {
+  console.log('⏰ Running scheduled event notification check...');
+  try {
+    await checkEventsForNotifications();
+    console.log('✅ Event notification check completed');
+  } catch (error) {
+    console.error('❌ Error in scheduled event notification check:', error);
+  }
+});
+
+// Also run on server startup (after a short delay to ensure Firebase is initialized)
+setTimeout(async () => {
+  console.log('⏰ Running initial event notification check...');
+  try {
+    await checkEventsForNotifications();
+    console.log('✅ Initial event notification check completed');
+  } catch (error) {
+    console.error('❌ Error in initial event notification check:', error);
+  }
+}, 5000); // Wait 5 seconds after server starts
 
 // Health check
 app.get('/api/health', (req, res) => {

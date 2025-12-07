@@ -107,6 +107,19 @@ class EmailService {
    * Send OTP email for password reset using SendGrid API (HTTPS)
    */
   async sendPasswordResetOTP(email, userName = 'User') {
+    // Check if SendGrid is configured
+    if (!SENDGRID_API_KEY) {
+      console.error('❌ SENDGRID_API_KEY is not configured. Cannot send password reset OTP.');
+      const otp = this.generateOTP();
+      this.storeOTP(email, otp);
+      // Still return OTP for testing, but warn user
+      return {
+        success: false,
+        message: 'Email service is not configured. OTP generated but email not sent. Please configure SENDGRID_API_KEY.',
+        otp // Return OTP so user can still reset password in development
+      };
+    }
+
     const otp = this.generateOTP();
     this.storeOTP(email, otp);
 
@@ -184,6 +197,89 @@ class EmailService {
         message: 'OTP generated. If you don\'t receive the email, check spam folder.',
         otp // Return OTP so user can still reset password
       };
+    }
+  }
+
+  /**
+   * Send Leo ID email to user
+   */
+  async sendLeoIdEmail(email, leoId, userName = 'User') {
+    // Check if SendGrid is configured
+    if (!SENDGRID_API_KEY) {
+      console.error('❌ SENDGRID_API_KEY is not configured. Cannot send Leo ID email.');
+      throw new Error('Email service is not configured. Please set SENDGRID_API_KEY in environment variables.');
+    }
+
+    try {
+      const msg = {
+        to: email,
+        from: {
+          email: FROM_EMAIL,
+          name: 'AlgoArena - Leo Connect'
+        },
+        subject: 'Your Leo ID - AlgoArena',
+        html: `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <style>
+              body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; }
+              .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+              .header { background: linear-gradient(135deg, #B8860B 0%, #DAA520 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+              .header h1 { margin: 0; font-size: 24px; }
+              .content { background: #ffffff; padding: 30px; border-radius: 0 0 10px 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+              .leo-id-box { background: #000; color: #FFD700; font-size: 32px; letter-spacing: 8px; padding: 25px 40px; text-align: center; border-radius: 10px; margin: 25px 0; font-weight: bold; }
+              .info { color: #333; font-size: 15px; line-height: 1.6; }
+              .instructions { background: #f8f9fa; border-left: 4px solid #B8860B; padding: 15px; margin: 20px 0; }
+              .footer { text-align: center; color: #999; font-size: 12px; margin-top: 25px; padding-top: 20px; border-top: 1px solid #eee; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h1>🦁 Your Leo ID</h1>
+              </div>
+              <div class="content">
+                <p class="info">Hello <strong>${userName}</strong>,</p>
+                <p class="info">A Leo ID has been created for your account. Use this ID to verify your account and access webmaster features.</p>
+                
+                <div class="leo-id-box">
+                  ${leoId}
+                </div>
+                
+                <div class="instructions">
+                  <p class="info"><strong>How to verify:</strong></p>
+                  <ol style="color: #333; font-size: 14px; line-height: 1.8;">
+                    <li>Open the AlgoArena app</li>
+                    <li>Go to your Profile tab</li>
+                    <li>Enter your Leo ID in the verification field</li>
+                    <li>Click "Verify" to complete verification</li>
+                  </ol>
+                </div>
+                
+                <p class="info">Once verified, you'll be able to create posts and events for your assigned pages.</p>
+              </div>
+              <div class="footer">
+                <p>© 2025 AlgoArena - Leo Connect</p>
+                <p>This is an automated message, please do not reply.</p>
+              </div>
+            </div>
+          </body>
+          </html>
+        `,
+        text: `Hello ${userName},\n\nYour Leo ID is: ${leoId}\n\nTo verify your account:\n1. Open the AlgoArena app\n2. Go to your Profile tab\n3. Enter your Leo ID in the verification field\n4. Click "Verify"\n\nOnce verified, you'll be able to create posts and events for your assigned pages.\n\n- AlgoArena Team`
+      };
+
+      const response = await sgMail.send(msg);
+      console.log(`📧 Leo ID email sent to ${email} via SendGrid. Status: ${response[0].statusCode}`);
+      
+      return { 
+        success: true, 
+        message: 'Leo ID email sent successfully'
+      };
+    } catch (error) {
+      console.error('❌ SendGrid email error:', error.response?.body || error.message);
+      throw new Error(`Failed to send Leo ID email: ${error.message}`);
     }
   }
 }

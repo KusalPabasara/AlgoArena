@@ -35,6 +35,9 @@ class _ProfileScreenState extends State<ProfileScreen>
   late Animation<double> _bubblesFadeAnimation;
   late Animation<double> _contentFadeAnimation;
   DateTime? _lastAnimationTime;
+  
+  // Save reference to AuthProvider to use in dispose
+  AuthProvider? _authProvider;
 
   @override
   void initState() {
@@ -92,6 +95,43 @@ class _ProfileScreenState extends State<ProfileScreen>
     _loadProfile();
   }
   
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Save reference to AuthProvider when dependencies are available
+    if (_authProvider == null) {
+      _authProvider = Provider.of<AuthProvider>(context, listen: false);
+      _authProvider!.addListener(_onAuthProviderChanged);
+    }
+  }
+  
+  void _onAuthProviderChanged() {
+    if (!mounted) return;
+    if (_authProvider?.user != null && _authProvider!.user != _user) {
+      setState(() {
+        _user = _authProvider!.user;
+        // Update Leo ID controller if user has Leo ID (always sync from provider)
+        if (_authProvider!.user?.leoId != null && _authProvider!.user!.leoId!.isNotEmpty) {
+          _leoIdController.text = _authProvider!.user!.leoId!;
+        } else {
+          // Clear the controller if no Leo ID (user might have logged out or changed)
+          _leoIdController.clear();
+        }
+      });
+    }
+  }
+  
+  @override
+  void dispose() {
+    // Remove listener using saved reference (safe to use in dispose)
+    _authProvider?.removeListener(_onAuthProviderChanged);
+    
+    _scrollController.dispose();
+    _animationController.dispose();
+    _leoIdController.dispose();
+    super.dispose();
+  }
+  
   // Public method to restart animation (called from MainScreen)
   void restartAnimation() {
     if (!mounted) return;
@@ -108,44 +148,66 @@ class _ProfileScreenState extends State<ProfileScreen>
       _animationController.reset();
       _animationController.forward();
     }
-  }
-  
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    _animationController.dispose();
-    _leoIdController.dispose();
-    super.dispose();
+    
+    // Also reload profile data when animation restarts (e.g., when switching to profile tab)
+    _loadProfile();
   }
 
   Future<void> _loadProfile() async {
     try {
-      // First check if user is available from AuthProvider (for Super Admin)
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      User? user = authProvider.user;
-      
-      // If not in AuthProvider, try to get from API
-      if (user == null) {
-        user = await _authRepository.getCurrentUser();
-      }
-      
-      if (mounted) {
-        setState(() {
-          _user = user;
-          _isLoading = false;
-          // Pre-fill Leo ID if already set
-          if (user?.leoClubId != null && user!.leoClubId!.isNotEmpty) {
-            _leoIdController.text = user.leoClubId!;
-          }
-        });
-        // Don't start animation here - wait for restartAnimation() call
+      // Always try to get fresh user data from API first (to get latest role)
+      try {
+        final freshUser = await _authRepository.getCurrentUser();
+        
+        // Debug: Print the role and Leo ID from API
+        print('🔍 Profile Screen - Fresh user from API - role: ${freshUser.role}, displayRole: ${freshUser.displayRole}');
+        print('🔍 Profile Screen - Fresh user leoId: ${freshUser.leoId}');
+        print('🔍 Profile Screen - Fresh user isVerified: ${freshUser.isVerified}');
+        
+        // Update AuthProvider with fresh data
+        _authProvider ??= Provider.of<AuthProvider>(context, listen: false);
+        _authProvider!.updateUser(freshUser);
+        
+        if (mounted) {
+          setState(() {
+            _user = freshUser;
+            _isLoading = false;
+            // Pre-fill Leo ID if already verified (use leoId field, not leoClubId)
+            if (freshUser.leoId != null && freshUser.leoId!.isNotEmpty) {
+              _leoIdController.text = freshUser.leoId!;
+              print('✅ Profile Screen - Set Leo ID controller to: ${freshUser.leoId}');
+            } else {
+              _leoIdController.clear();
+              print('⚠️ Profile Screen - No Leo ID found, cleared controller');
+            }
+          });
+          // Don't start animation here - wait for restartAnimation() call
+          return;
+        }
+      } catch (e) {
+        // If API fails, fall back to AuthProvider user (for Super Admin)
+        _authProvider ??= Provider.of<AuthProvider>(context, listen: false);
+        User? user = _authProvider?.user;
+        
+        if (mounted) {
+          setState(() {
+            _user = user;
+            _isLoading = false;
+            // Pre-fill Leo ID if already verified (use leoId field, not leoClubId)
+            if (user?.leoId != null && user!.leoId!.isNotEmpty) {
+              _leoIdController.text = user.leoId!;
+            }
+          });
+          // Don't start animation here - wait for restartAnimation() call
+          return;
+        }
       }
     } catch (e) {
       // If API fails, still try to use AuthProvider user (for Super Admin)
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      if (authProvider.user != null && mounted) {
+      _authProvider ??= Provider.of<AuthProvider>(context, listen: false);
+      if (_authProvider?.user != null && mounted) {
         setState(() {
-          _user = authProvider.user;
+          _user = _authProvider!.user;
           _isLoading = false;
         });
         // Don't start animation here - wait for restartAnimation() call
@@ -195,18 +257,49 @@ class _ProfileScreenState extends State<ProfileScreen>
       // Call backend to verify and save Leo ID
       final verifiedUser = await _authRepository.verifyLeoId(leoId);
       
-      // Update local user state with verified user from backend
-      setState(() {
-        _user = verifiedUser;
-        _isVerifying = false;
-      });
+      // Debug: Print the role returned from backend
+      print('🔍 Profile Screen - Verified user role: ${verifiedUser.role}');
+      print('🔍 Profile Screen - Verified user isVerified: ${verifiedUser.isVerified}');
+      print('🔍 Profile Screen - Verified user leoId: ${verifiedUser.leoId}');
       
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('🎉 Leo ID verified successfully! You can now create posts.'),
-          backgroundColor: Color(0xFF1CC406),
-        ),
-      );
+      // Update AuthProvider with the verified user (so role change is reflected globally)
+      _authProvider ??= Provider.of<AuthProvider>(context, listen: false);
+      _authProvider!.updateUser(verifiedUser);
+      
+      // Update local user state with verified user from backend
+      if (mounted) {
+        setState(() {
+          _user = verifiedUser;
+          _isVerifying = false;
+          // Pre-fill Leo ID in the controller
+          if (verifiedUser.leoId != null && verifiedUser.leoId!.isNotEmpty) {
+            _leoIdController.text = verifiedUser.leoId!;
+          }
+        });
+        
+        // Show success message with role info
+        final roleMessage = verifiedUser.role.toLowerCase() == 'webmaster' 
+            ? '🎉 Leo ID verified successfully! You are now a Webmaster and can create posts and events.'
+            : '🎉 Leo ID verified successfully! You can now create posts.';
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(roleMessage),
+            backgroundColor: const Color(0xFF1CC406),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+        
+        // Reload profile from backend to ensure we have the latest data (including role)
+        // This ensures the UI reflects any backend updates
+        await _loadProfile();
+        
+        // Debug: Print the role after reload
+        if (mounted && _user != null) {
+          print('🔍 Profile Screen - After reload, user role: ${_user!.role}');
+          print('🔍 Profile Screen - After reload, displayRole: ${_user!.displayRole}');
+        }
+      }
     } catch (e) {
       setState(() => _isVerifying = false);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -221,8 +314,8 @@ class _ProfileScreenState extends State<ProfileScreen>
   Future<void> _logout() async {
     try {
       // Use AuthProvider for logout (handles both Super Admin and regular users)
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      await authProvider.logout();
+      _authProvider ??= Provider.of<AuthProvider>(context, listen: false);
+      await _authProvider!.logout();
       if (mounted) {
         Navigator.pushReplacementNamed(context, '/login');
       }
@@ -621,36 +714,48 @@ class _ProfileScreenState extends State<ProfileScreen>
         color: const Color.fromRGBO(0, 0, 0, 0.05),
         borderRadius: BorderRadius.circular(ResponsiveUtils.dp(59.115)),
       ),
-      child: TextField(
-        controller: _leoIdController,
-        enabled: !_user!.isVerified, // Disable if already verified
-        textAlignVertical: TextAlignVertical.center,
-        style: TextStyle(
-          fontFamily: 'Poppins',
-          fontSize: ResponsiveUtils.dp(14),
-          fontWeight: FontWeight.w500,
-          color: Colors.black,
-        ),
-        decoration: InputDecoration(
-          hintText: 'Enter your Leo ID',
-          hintStyle: TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: ResponsiveUtils.dp(14),
-            fontWeight: FontWeight.w500,
-            color: const Color.fromRGBO(0, 0, 0, 0.4),
-          ),
-          isDense: true,
-          contentPadding: EdgeInsets.symmetric(
-            vertical: ResponsiveUtils.dp(14),
-          ),
-          filled: true,
-          fillColor: Colors.transparent,
-          border: InputBorder.none,
-          enabledBorder: InputBorder.none,
-          focusedBorder: InputBorder.none,
-          disabledBorder: InputBorder.none,
-        ),
-      ),
+      child: _user!.isVerified && _user!.leoId != null && _user!.leoId!.isNotEmpty
+          ? Center(
+              child: Text(
+                _user!.leoId!,
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: ResponsiveUtils.dp(14),
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black,
+                ),
+              ),
+            )
+          : TextField(
+              controller: _leoIdController,
+              enabled: !_user!.isVerified, // Disable if already verified
+              textAlignVertical: TextAlignVertical.center,
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: ResponsiveUtils.dp(14),
+                fontWeight: FontWeight.w500,
+                color: Colors.black,
+              ),
+              decoration: InputDecoration(
+                hintText: 'Enter your Leo ID',
+                hintStyle: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: ResponsiveUtils.dp(14),
+                  fontWeight: FontWeight.w500,
+                  color: const Color.fromRGBO(0, 0, 0, 0.4),
+                ),
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(
+                  vertical: ResponsiveUtils.dp(14),
+                ),
+                filled: true,
+                fillColor: Colors.transparent,
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                disabledBorder: InputBorder.none,
+              ),
+            ),
     );
   }
 

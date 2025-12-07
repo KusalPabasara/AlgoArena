@@ -1,10 +1,12 @@
 import '../models/user.dart';
 import '../services/api_service.dart';
 import '../services/google_auth_service.dart';
+import '../services/apple_auth_service.dart';
 
 class AuthRepository {
   final ApiService _apiService = ApiService();
   final GoogleAuthService _googleAuthService = GoogleAuthService();
+  final AppleAuthService _appleAuthService = AppleAuthService();
   
   // Register new user
   Future<Map<String, dynamic>> register({
@@ -33,10 +35,15 @@ class AuthRepository {
     required String password,
   }) async {
     try {
-      final response = await _apiService.post('/auth/login', {
-        'email': email,
-        'password': password,
-      });
+      // Use a shorter timeout for login (15 seconds - login should be fast)
+      final response = await _apiService.post(
+        '/auth/login',
+        {
+          'email': email,
+          'password': password,
+        },
+        timeout: const Duration(seconds: 15), // Shorter timeout for login
+      );
       
       // Save token if login successful
       if (response['token'] != null) {
@@ -45,7 +52,9 @@ class AuthRepository {
       
       return response;
     } catch (e) {
-      throw Exception('Login failed: $e');
+      // Preserve the original error message
+      final errorMessage = e.toString().replaceAll('Exception: ', '');
+      throw Exception(errorMessage);
     }
   }
   
@@ -148,6 +157,15 @@ class AuthRepository {
       return await _googleAuthService.signInWithGoogle();
     } catch (e) {
       throw Exception('Google Sign-In failed: $e');
+    }
+  }
+
+  // Apple Sign In
+  Future<Map<String, dynamic>> appleSignIn() async {
+    try {
+      return await _appleAuthService.signInWithApple();
+    } catch (e) {
+      throw Exception('Apple Sign-In failed: $e');
     }
   }
 }

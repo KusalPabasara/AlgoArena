@@ -10,7 +10,8 @@ const {
   resendOTP,
   resetPassword,
   verifyLeoId,
-  googleSignIn
+  googleSignIn,
+  appleSignIn
 } = require('../controllers/auth.controller');
 const { protect } = require('../middleware/auth');
 
@@ -24,5 +25,6 @@ router.post('/resend-otp', resendOTP);
 router.post('/reset-password', resetPassword);
 router.post('/verify-leo-id', protect, verifyLeoId);
 router.post('/google-signin', googleSignIn);
+router.post('/apple-signin', appleSignIn);
 
 module.exports = router;

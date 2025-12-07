@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../../data/repositories/page_repository.dart';
+import '../../../data/models/page.dart' as models;
+import '../../../providers/auth_provider.dart';
+import '../../../providers/page_follow_provider.dart';
 import '../../widgets/app_bottom_nav.dart';
-import '../club/club_profile_screen.dart';
+import 'page_detail_screen.dart';
 
 class ClubPagesListScreen extends StatefulWidget {
   const ClubPagesListScreen({super.key});
@@ -10,78 +15,87 @@ class ClubPagesListScreen extends StatefulWidget {
 }
 
 class _ClubPagesListScreenState extends State<ClubPagesListScreen> {
-  // Club pages data from Figma - matching ClubPages.tsx
-  final List<Map<String, dynamic>> _clubPages = [
-    {
-      'name': 'Leo Club of Colombo',
-      'mutuals': 102,
-      'isFollowing': true, // Already following (Unfollow button)
-      'image': 'assets/images/pages/c6d5f9dff52b37a28977be041de113bc88dfa388.png',
-    },
-    {
-      'name': 'Leo Club of Katuwawala',
-      'mutuals': 97,
-      'isFollowing': false,
-      'image': 'assets/images/pages/6cd6f189d2f86fcc32f0d234e0416b42a8dcf4dd.png',
-    },
-    {
-      'name': 'Leo Club of University of Moratuwa',
-      'mutuals': 97,
-      'isFollowing': false,
-      'image': 'assets/images/pages/4cab12f568771ad0b3afa40dc378bc7ed480eb86.png',
-      'isLargeCard': true, // This card is 134px height for two-line name
-    },
-    {
-      'name': 'Leo Club of Katuwawala',
-      'mutuals': 97,
-      'isFollowing': false,
-      'image': 'assets/images/pages/6cd6f189d2f86fcc32f0d234e0416b42a8dcf4dd.png',
-    },
-    {
-      'name': 'Leo Club of Katuwawala',
-      'mutuals': 97,
-      'isFollowing': false,
-      'image': 'assets/images/pages/6cd6f189d2f86fcc32f0d234e0416b42a8dcf4dd.png',
-    },
-    {
-      'name': 'Leo Club of Katuwawala',
-      'mutuals': 97,
-      'isFollowing': false,
-      'image': 'assets/images/pages/6cd6f189d2f86fcc32f0d234e0416b42a8dcf4dd.png',
-    },
-    {
-      'name': 'Leo Club of Katuwawala',
-      'mutuals': 97,
-      'isFollowing': false,
-      'image': 'assets/images/pages/6cd6f189d2f86fcc32f0d234e0416b42a8dcf4dd.png',
-    },
-    {
-      'name': 'Leo Club of Katuwawala',
-      'mutuals': 97,
-      'isFollowing': false,
-      'image': 'assets/images/pages/6cd6f189d2f86fcc32f0d234e0416b42a8dcf4dd.png',
-    },
-  ];
-
-  void _toggleFollow(int index) {
-    setState(() {
-      _clubPages[index]['isFollowing'] = !(_clubPages[index]['isFollowing'] as bool);
-    });
-    
-    final name = _clubPages[index]['name'];
-    final isFollowing = _clubPages[index]['isFollowing'] as bool;
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(isFollowing ? 'Following $name' : 'Unfollowed $name'),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        duration: const Duration(seconds: 2),
-        backgroundColor: isFollowing ? const Color(0xFF8F7902) : Colors.grey,
-      ),
-    );
+  final _pageRepository = PageRepository();
+  List<models.Page> _clubPages = [];
+  bool _isLoading = true;
+  
+  @override
+  void initState() {
+    super.initState();
+    _loadClubPages();
   }
-
+  
+  Future<void> _loadClubPages() async {
+    setState(() => _isLoading = true);
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      if (authProvider.isSuperAdmin) {
+        setState(() {
+          _clubPages = [];
+          _isLoading = false;
+        });
+        return;
+      }
+      
+      final pages = await _pageRepository.getAllPages();
+      if (mounted) {
+        setState(() {
+          _clubPages = pages.where((p) => p.type == 'club').toList();
+          _isLoading = false;
+        });
+        // Load follow statuses using provider
+        final followProvider = Provider.of<PageFollowProvider>(context, listen: false);
+        final pageIds = _clubPages.map((p) => p.id).toList();
+        followProvider.loadFollowStatuses(pageIds);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load club pages: ${e.toString().replaceAll('Exception: ', '')}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+  
+  Future<void> _toggleFollow(models.Page page, int index) async {
+    final followProvider = Provider.of<PageFollowProvider>(context, listen: false);
+    
+    try {
+      final isFollowing = await followProvider.toggleFollow(page.id);
+      // Follower count is already updated by toggleFollow in the provider
+      // No need to reload all pages - UI updates automatically via Consumer widgets
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(isFollowing 
+                ? 'Following ${page.name}' 
+                : 'Unfollowed ${page.name}'),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            duration: const Duration(seconds: 2),
+            backgroundColor: isFollowing 
+                ? const Color(0xFF8F7902) 
+                : Colors.grey,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to toggle follow: ${e.toString().replaceAll('Exception: ', '')}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -141,20 +155,36 @@ class _ClubPagesListScreenState extends State<ClubPagesListScreen> {
                         const SizedBox(height: 12),
                         
                         // Club Pages list - Figma: left:35, top:211, h:644
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 35),
-                          child: ListView.separated(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: _clubPages.length,
-                            separatorBuilder: (_, __) => const SizedBox(height: 11),
-                            itemBuilder: (context, index) {
-                              final page = _clubPages[index];
-                              final isLargeCard = page['isLargeCard'] == true;
-                              return _buildPageCard(page, index, isLargeCard);
-                            },
-                          ),
-                        ),
+                        _isLoading
+                            ? const Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 35),
+                                child: Center(child: CircularProgressIndicator()),
+                              )
+                            : _clubPages.isEmpty
+                                ? const Padding(
+                                    padding: EdgeInsets.symmetric(horizontal: 35),
+                                    child: Center(
+                                      child: Text(
+                                        'No club pages available',
+                                        style: TextStyle(fontSize: 14, color: Colors.grey),
+                                      ),
+                                    ),
+                                  )
+                                : Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 35),
+                                    child: ListView.separated(
+                                      shrinkWrap: true,
+                                      physics: const NeverScrollableScrollPhysics(),
+                                      itemCount: _clubPages.length,
+                                      separatorBuilder: (_, __) => const SizedBox(height: 11),
+                                      itemBuilder: (context, index) {
+                                        final page = _clubPages[index];
+                                        // Check if name is long (2 lines)
+                                        final isLargeCard = page.name.length > 25;
+                                        return _buildPageCard(page, index, isLargeCard);
+                                      },
+                                    ),
+                                  ),
                         
                         const SizedBox(height: 80),
                       ],
@@ -203,40 +233,24 @@ class _ClubPagesListScreenState extends State<ClubPagesListScreen> {
     );
   }
 
-  Widget _buildPageCard(Map<String, dynamic> page, int index, bool isLargeCard) {
-    final isFollowing = page['isFollowing'] as bool;
-    final cardHeight = isLargeCard ? 134.0 : 117.0;
-    final buttonTop = isLargeCard ? 81.0 : 66.0;
+  Widget _buildPageCard(models.Page page, int index, bool isLargeCard) {
+    return Consumer<PageFollowProvider>(
+      builder: (context, followProvider, child) {
+        final isFollowing = followProvider.isFollowing(page.id);
+        final followersCount = followProvider.getFollowerCount(page.id);
+        final isToggling = followProvider.isToggling(page.id);
+        final cardHeight = isLargeCard ? 134.0 : 117.0;
+        final buttonTop = isLargeCard ? 81.0 : 66.0;
+        
+        // Use provider's follower count if available, otherwise use page's
+        final displayCount = followersCount > 0 ? followersCount : page.followersCount;
     
     return GestureDetector(
       onTap: () {
-        Navigator.of(context).push(
-          PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) => ClubProfileScreen(
-              clubName: page['name'] as String,
-              clubLogo: page['image'] as String,
-            ),
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              const begin = Offset(1.0, 0.0);
-              const end = Offset.zero;
-              const curve = Curves.easeInOut;
-              
-              var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-              var offsetAnimation = animation.drive(tween);
-              
-              var fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-                CurvedAnimation(parent: animation, curve: Curves.easeIn),
-              );
-              
-              return SlideTransition(
-                position: offsetAnimation,
-                child: FadeTransition(
-                  opacity: fadeAnimation,
-                  child: child,
-                ),
-              );
-            },
-            transitionDuration: const Duration(milliseconds: 300),
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PageDetailScreen(page: page),
           ),
         );
       },
@@ -272,11 +286,17 @@ class _ClubPagesListScreenState extends State<ClubPagesListScreen> {
                     height: 81,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(15),
-                      image: DecorationImage(
-                        image: AssetImage(page['image'] as String),
-                        fit: BoxFit.cover,
-                      ),
+                      color: Colors.grey[300],
+                      image: page.logo != null
+                          ? DecorationImage(
+                              image: NetworkImage(page.logo!),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
                     ),
+                    child: page.logo == null
+                        ? const Icon(Icons.group, size: 40, color: Colors.grey)
+                        : null,
                   ),
                 ),
               ],
@@ -288,7 +308,7 @@ class _ClubPagesListScreenState extends State<ClubPagesListScreen> {
             left: 121,
             top: 14,
             child: Text(
-              page['name'] as String,
+              page.name,
               style: const TextStyle(
                 fontFamily: 'Nunito Sans',
                 fontSize: 16,
@@ -299,12 +319,12 @@ class _ClubPagesListScreenState extends State<ClubPagesListScreen> {
             ),
           ),
           
-          // Mutuals count - Figma: left:121, top:33 (or 48 for large card)
+          // Followers count - Figma: left:121, top:33 (or 48 for large card)
           Positioned(
             left: 121,
             top: isLargeCard ? 48 : 33,
             child: Text(
-              '${page['mutuals']} mutuals',
+              '$displayCount followers',
               style: const TextStyle(
                 fontFamily: 'Nunito Sans',
                 fontSize: 10,
@@ -320,7 +340,7 @@ class _ClubPagesListScreenState extends State<ClubPagesListScreen> {
             left: 121,
             top: buttonTop,
             child: GestureDetector(
-              onTap: () => _toggleFollow(index),
+              onTap: isToggling ? null : () => _toggleFollow(page, index),
               child: Container(
                 width: 196,
                 height: 39,
@@ -346,6 +366,8 @@ class _ClubPagesListScreenState extends State<ClubPagesListScreen> {
         ],
       ),
       ),
+    );
+      },
     );
   }
 }

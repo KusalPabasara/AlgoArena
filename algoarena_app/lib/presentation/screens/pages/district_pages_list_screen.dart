@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
-import 'leo_district_detail_screen.dart';
+import 'package:provider/provider.dart';
+import '../../../data/repositories/page_repository.dart';
+import '../../../data/models/page.dart' as models;
+import '../../../providers/auth_provider.dart';
+import '../../../providers/page_follow_provider.dart';
 import '../../widgets/app_bottom_nav.dart';
+import 'page_detail_screen.dart';
 
 /// District Pages List Screen - implements exact Figma design from Pages_district folder
 /// Bubbles: left:-189.94, top:-336.1, w:570.671, h:579.191, viewBox 571x580
@@ -16,70 +21,88 @@ class DistrictPagesListScreen extends StatefulWidget {
 }
 
 class _DistrictPagesListScreenState extends State<DistrictPagesListScreen> {
-  // District pages data from Figma DistrictPages.tsx
-  final List<Map<String, dynamic>> _districtPages = [
-    {
-      'name': 'Leo District D1',
-      'mutuals': '102 mutuals',
-      'image': 'assets/images/pages/6417bd0c09713d4aef96b17af8d17856e95bcca9.png',
-      'isFollowing': false,
-      'isLargeCard': false,
-    },
-    {
-      'name': 'Leo District D2',
-      'mutuals': '97 mutuals',
-      'image': 'assets/images/pages/cba507d80d35e8876a479cce78f72f4bb9d95def.png',
-      'isFollowing': false,
-      'isLargeCard': false,
-    },
-    {
-      'name': 'Leo District D3',
-      'mutuals': '97 mutuals',
-      'image': 'assets/images/pages/8337621cebd2c612040ac41416ac02d00a169b85.png',
-      'isFollowing': false,
-      'isLargeCard': true, // This card has height 134px in Figma
-    },
-    {
-      'name': 'Leo District D2',
-      'mutuals': '97 mutuals',
-      'image': 'assets/images/pages/cba507d80d35e8876a479cce78f72f4bb9d95def.png',
-      'isFollowing': false,
-      'isLargeCard': false,
-    },
-    {
-      'name': 'Leo District D2',
-      'mutuals': '97 mutuals',
-      'image': 'assets/images/pages/cba507d80d35e8876a479cce78f72f4bb9d95def.png',
-      'isFollowing': false,
-      'isLargeCard': false,
-    },
-    {
-      'name': 'Leo District D7',
-      'mutuals': '97 mutuals',
-      'image': 'assets/images/pages/cba507d80d35e8876a479cce78f72f4bb9d95def.png',
-      'isFollowing': false,
-      'isLargeCard': false,
-    },
-  ];
-
-  void _toggleFollow(int index) {
-    setState(() {
-      _districtPages[index]['isFollowing'] = !_districtPages[index]['isFollowing'];
-    });
-    
-    final name = _districtPages[index]['name'];
-    final isFollowing = _districtPages[index]['isFollowing'] as bool;
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(isFollowing ? 'Following $name' : 'Unfollowed $name'),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        duration: const Duration(seconds: 2),
-        backgroundColor: isFollowing ? const Color(0xFF8F7902) : Colors.grey,
-      ),
-    );
+  final _pageRepository = PageRepository();
+  List<models.Page> _districtPages = [];
+  bool _isLoading = true;
+  
+  @override
+  void initState() {
+    super.initState();
+    _loadDistrictPages();
   }
+  
+  Future<void> _loadDistrictPages() async {
+    setState(() => _isLoading = true);
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      if (authProvider.isSuperAdmin) {
+        setState(() {
+          _districtPages = [];
+          _isLoading = false;
+        });
+        return;
+      }
+      
+      final pages = await _pageRepository.getAllPages();
+      if (mounted) {
+        setState(() {
+          _districtPages = pages.where((p) => p.type == 'district').toList();
+          _isLoading = false;
+        });
+        // Load follow statuses using provider
+        final followProvider = Provider.of<PageFollowProvider>(context, listen: false);
+        final pageIds = _districtPages.map((p) => p.id).toList();
+        followProvider.loadFollowStatuses(pageIds);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load district pages: ${e.toString().replaceAll('Exception: ', '')}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+  
+  Future<void> _toggleFollow(models.Page page, int index) async {
+    final followProvider = Provider.of<PageFollowProvider>(context, listen: false);
+    
+    try {
+      final isFollowing = await followProvider.toggleFollow(page.id);
+      // Follower count is already updated by toggleFollow in the provider
+      // No need to reload all pages - UI updates automatically via Consumer widgets
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(isFollowing 
+                ? 'Following ${page.name}' 
+                : 'Unfollowed ${page.name}'),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            duration: const Duration(seconds: 2),
+            backgroundColor: isFollowing 
+                ? const Color(0xFF8F7902) 
+                : Colors.grey,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to toggle follow: ${e.toString().replaceAll('Exception: ', '')}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+  
+
 
   @override
   Widget build(BuildContext context) {
@@ -140,20 +163,36 @@ class _DistrictPagesListScreenState extends State<DistrictPagesListScreen> {
                         const SizedBox(height: 12),
                         
                         // District Pages list - Figma: left:35, top:211, h:634
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 35),
-                          child: ListView.separated(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: _districtPages.length,
-                            separatorBuilder: (_, __) => const SizedBox(height: 11),
-                            itemBuilder: (context, index) {
-                              final page = _districtPages[index];
-                              final isLargeCard = page['isLargeCard'] == true;
-                              return _buildPageCard(page, index, isLargeCard);
-                            },
-                          ),
-                        ),
+                        _isLoading
+                            ? const Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 35),
+                                child: Center(child: CircularProgressIndicator()),
+                              )
+                            : _districtPages.isEmpty
+                                ? const Padding(
+                                    padding: EdgeInsets.symmetric(horizontal: 35),
+                                    child: Center(
+                                      child: Text(
+                                        'No district pages available',
+                                        style: TextStyle(fontSize: 14, color: Colors.grey),
+                                      ),
+                                    ),
+                                  )
+                                : Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 35),
+                                    child: ListView.separated(
+                                      shrinkWrap: true,
+                                      physics: const NeverScrollableScrollPhysics(),
+                                      itemCount: _districtPages.length,
+                                      separatorBuilder: (_, __) => const SizedBox(height: 11),
+                                      itemBuilder: (context, index) {
+                                        final page = _districtPages[index];
+                                        // Check if name is long (2 lines)
+                                        final isLargeCard = page.name.length > 25;
+                                        return _buildPageCard(page, index, isLargeCard);
+                                      },
+                                    ),
+                                  ),
                         
                         const SizedBox(height: 80),
                       ],
@@ -205,33 +244,24 @@ class _DistrictPagesListScreenState extends State<DistrictPagesListScreen> {
   // Build page card - matches exact Figma design
   // Normal card: h:117px, w:332px, rounded:20px
   // Large card (D3): h:134px
-  Widget _buildPageCard(Map<String, dynamic> page, int index, bool isLargeCard) {
-    final cardHeight = isLargeCard ? 134.0 : 117.0;
-    final isFollowing = page['isFollowing'] as bool;
-    
-    return GestureDetector(
+  Widget _buildPageCard(models.Page page, int index, bool isLargeCard) {
+    return Consumer<PageFollowProvider>(
+      builder: (context, followProvider, child) {
+        final isFollowing = followProvider.isFollowing(page.id);
+        final followersCount = followProvider.getFollowerCount(page.id);
+        final isToggling = followProvider.isToggling(page.id);
+        final cardHeight = isLargeCard ? 134.0 : 117.0;
+        final buttonTop = isLargeCard ? 81.0 : 66.0;
+        
+        // Use provider's follower count if available, otherwise use page's
+        final displayCount = followersCount > 0 ? followersCount : page.followersCount;
+        
+        return GestureDetector(
       onTap: () {
-        // Navigate to Leo District detail page
         Navigator.push(
           context,
-          PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) => 
-                LeoDistrictDetailScreen(
-                  districtName: page['name'],
-                  mutuals: page['mutuals'],
-                  image: page['image'],
-                ),
-            transitionDuration: const Duration(milliseconds: 400),
-            reverseTransitionDuration: const Duration(milliseconds: 300),
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              return FadeTransition(
-                opacity: CurvedAnimation(
-                  parent: animation,
-                  curve: Curves.easeOut,
-                ),
-                child: child,
-              );
-            },
+          MaterialPageRoute(
+            builder: (context) => PageDetailScreen(page: page),
           ),
         );
       },
@@ -264,10 +294,19 @@ class _DistrictPagesListScreenState extends State<DistrictPagesListScreen> {
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(15),
-                    child: Image.asset(
-                      page['image'],
-                      fit: BoxFit.cover,
-                    ),
+                    child: page.logo != null
+                        ? Image.network(
+                            page.logo!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => Container(
+                              color: Colors.grey[300],
+                              child: const Icon(Icons.group, size: 40, color: Colors.grey),
+                            ),
+                          )
+                        : Container(
+                            color: Colors.grey[300],
+                            child: const Icon(Icons.group, size: 40, color: Colors.grey),
+                          ),
                   ),
                 ),
               ),
@@ -279,7 +318,7 @@ class _DistrictPagesListScreenState extends State<DistrictPagesListScreen> {
             left: 121,
             top: 14,
             child: Text(
-              page['name'],
+              page.name,
               style: const TextStyle(
                 fontFamily: 'NunitoSans',
                 fontSize: 16,
@@ -290,12 +329,12 @@ class _DistrictPagesListScreenState extends State<DistrictPagesListScreen> {
             ),
           ),
           
-          // Mutuals count - Figma: ml:121, mt:33 (or mt:48 for large card), 10px Nunito Sans Regular
+          // Followers count - Figma: ml:121, mt:33 (or mt:48 for large card), 10px Nunito Sans Regular
           Positioned(
             left: 121,
             top: isLargeCard ? 48 : 33,
             child: Text(
-              page['mutuals'],
+              '$displayCount followers',
               style: const TextStyle(
                 fontFamily: 'NunitoSans',
                 fontSize: 10,
@@ -309,9 +348,9 @@ class _DistrictPagesListScreenState extends State<DistrictPagesListScreen> {
           // Follow/Unfollow button - Figma: ml:121, mt:66 (or mt:81 for large card), w:196, h:39
           Positioned(
             left: 121,
-            top: isLargeCard ? 81 : 66,
+            top: buttonTop,
             child: GestureDetector(
-              onTap: () => _toggleFollow(index),
+              onTap: isToggling ? null : () => _toggleFollow(page, index),
               child: Container(
                 width: 196,
                 height: 39,
@@ -320,16 +359,25 @@ class _DistrictPagesListScreenState extends State<DistrictPagesListScreen> {
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Center(
-                  child: Text(
-                    isFollowing ? 'Unfollow' : 'Follow',
-                    style: const TextStyle(
-                      fontFamily: 'NunitoSans',
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFFF3F3F3),
-                      height: 31 / 15,
-                    ),
-                  ),
+                  child: isToggling
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFF3F3F3)),
+                          ),
+                        )
+                      : Text(
+                          isFollowing ? 'Unfollow' : 'Follow',
+                          style: const TextStyle(
+                            fontFamily: 'NunitoSans',
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFFF3F3F3),
+                            height: 31 / 15,
+                          ),
+                        ),
                 ),
               ),
             ),
@@ -337,6 +385,8 @@ class _DistrictPagesListScreenState extends State<DistrictPagesListScreen> {
         ],
       ),
       ),
+    );
+      },
     );
   }
 }

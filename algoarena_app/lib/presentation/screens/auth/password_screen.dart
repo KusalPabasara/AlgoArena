@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/colors.dart';
@@ -28,6 +29,7 @@ class _PasswordScreenState extends State<PasswordScreen> with TickerProviderStat
   bool _isLoading = false;
   bool _obscurePassword = true;
   String? _passwordError; // Store password error message
+  bool _isLoginInProgress = false; // Track if login is in progress
 
   late AnimationController _greetingController;
   late AnimationController _inputController;
@@ -150,7 +152,62 @@ class _PasswordScreenState extends State<PasswordScreen> with TickerProviderStat
     _inputController.dispose();
     _buttonController.dispose();
     _bubbleRotationController.dispose();
+    // Remove listener if it was added
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    authProvider.removeListener(_onAuthProviderChanged);
     super.dispose();
+  }
+  
+  // Listener for AuthProvider changes
+  void _onAuthProviderChanged() {
+    if (!_isLoginInProgress) return; // Only handle if login is in progress
+    
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    
+    // If loading is done, handle the result
+    if (!authProvider.isLoading && _isLoginInProgress) {
+      _isLoginInProgress = false;
+      
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        
+        if (authProvider.isAuthenticated) {
+          // Login successful
+          Navigator.pushReplacementNamed(context, '/home');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(authProvider.isSuperAdmin 
+                  ? 'Welcome, Super Administrator!' 
+                  : AppStrings.loginSuccess),
+              backgroundColor: AppColors.success,
+            ),
+          );
+        } else {
+          // Login failed - show error
+          String errorMessage = authProvider.error ?? 'Invalid email or password';
+          errorMessage = errorMessage.replaceAll('Exception: ', '');
+          errorMessage = errorMessage.replaceAll('Login failed: ', '');
+          errorMessage = errorMessage.replaceAll('INVALID_LOGIN_CREDENTIALS', 'Invalid email or password');
+          if (errorMessage.isEmpty || errorMessage == 'null' || errorMessage.trim().isEmpty) {
+            errorMessage = 'Invalid email or password';
+          }
+          
+          ScaffoldMessenger.of(context).clearSnackBars();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorMessage),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 4),
+              behavior: SnackBarBehavior.floating,
+              margin: const EdgeInsets.all(16),
+            ),
+          );
+          _passwordController.clear();
+        }
+      }
+    }
   }
 
   Future<void> _handleBack() async {
@@ -165,49 +222,90 @@ class _PasswordScreenState extends State<PasswordScreen> with TickerProviderStat
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isLoading = true);
-
+    setState(() {
+      _isLoading = true;
+      _isLoginInProgress = true;
+    });
+    
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    
+    // Add listener to detect when login completes
+    authProvider.addListener(_onAuthProviderChanged);
+    
+    // Start login
     try {
-      // Use AuthProvider for login (handles Super Admin and regular users)
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final success = await authProvider.login(
         widget.email,
         _passwordController.text,
       );
-
-      if (mounted) {
-        if (success) {
-          Navigator.pushReplacementNamed(context, '/home');
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(authProvider.isSuperAdmin 
-                  ? 'Welcome, Super Administrator!' 
-                  : AppStrings.loginSuccess),
-              backgroundColor: AppColors.success,
-            ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Login failed: ${authProvider.error ?? 'Unknown error'}'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
+      
+      // Remove listener
+      authProvider.removeListener(_onAuthProviderChanged);
+      
+      if (!mounted) return;
+      
+      setState(() {
+        _isLoading = false;
+        _isLoginInProgress = false;
+      });
+      
+      if (success) {
+        Navigator.pushReplacementNamed(context, '/home');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Login failed: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            content: Text(authProvider.isSuperAdmin 
+                ? 'Welcome, Super Administrator!' 
+                : AppStrings.loginSuccess),
+            backgroundColor: AppColors.success,
           ),
         );
+      } else {
+        // Login failed - show error
+        String errorMessage = authProvider.error ?? 'Invalid email or password';
+        errorMessage = errorMessage.replaceAll('Exception: ', '');
+        errorMessage = errorMessage.replaceAll('Login failed: ', '');
+        errorMessage = errorMessage.replaceAll('INVALID_LOGIN_CREDENTIALS', 'Invalid email or password');
+        if (errorMessage.isEmpty || errorMessage == 'null' || errorMessage.trim().isEmpty) {
+          errorMessage = 'Invalid email or password';
+        }
+        
+        ScaffoldMessenger.of(context).clearSnackBars();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+        _passwordController.clear();
       }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
+    } catch (e) {
+      // Remove listener on error
+      authProvider.removeListener(_onAuthProviderChanged);
+      
+      if (!mounted) return;
+      
+      setState(() {
+        _isLoading = false;
+        _isLoginInProgress = false;
+      });
+      
+      String errorMessage = e.toString().replaceAll('Exception: ', '');
+      if (errorMessage.isEmpty || errorMessage == 'null') {
+        errorMessage = 'Invalid email or password';
       }
+      
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+      _passwordController.clear();
     }
   }
 

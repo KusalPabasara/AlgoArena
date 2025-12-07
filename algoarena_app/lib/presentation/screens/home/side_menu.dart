@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../../data/models/user.dart';
 import '../../../utils/responsive_utils.dart';
+import '../admin/leo_id_management_screen.dart';
+import '../pages/create_page_screen.dart';
 
 class SideMenu extends StatefulWidget {
   final User? user;
@@ -265,8 +267,56 @@ class _SideMenuState extends State<SideMenu> with SingleTickerProviderStateMixin
                             ),
                           ),
                         ),
-                        
                         const Spacer(),
+                        // Admin menu items (only for super admin) pinned to bottom
+                        if (widget.user?.isSuperAdmin == true)
+                          Padding(
+                            padding: EdgeInsets.only(
+                              right: ResponsiveUtils.spacingL,
+                              left: ResponsiveUtils.dp(40),
+                              bottom: ResponsiveUtils.spacingL,
+                            ),
+                            child: Align(
+                              alignment: Alignment.bottomRight,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  _buildMenuItem(
+                                    context,
+                                    'Manage Leo IDs',
+                                    'assets/images/icons/leo_id_management.svg',
+                                    () {
+                                      if (context.mounted) {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => const LeoIdManagementScreen(),
+                                          ),
+                                        );
+                                      }
+                                    },
+                                  ),
+                                  SizedBox(height: ResponsiveUtils.spacingL),
+                                  _buildMenuItem(
+                                    context,
+                                    'Create Page',
+                                    'assets/images/icons/create_page.svg',
+                                    () {
+                                      if (context.mounted) {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => const CreatePageScreen(),
+                                          ),
+                                        );
+                                      }
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -406,10 +456,14 @@ class _SideMenuState extends State<SideMenu> with SingleTickerProviderStateMixin
                     iconAsset,
                     width: iconAsset == 'assets/images/icons/contact_us.svg' 
                         ? ResponsiveUtils.iconSize + 3
-                        : ResponsiveUtils.iconSize + 6,
+                        : (iconAsset == 'assets/images/icons/leo_id_management.svg' || iconAsset == 'assets/images/icons/create_page.svg')
+                            ? ResponsiveUtils.iconSize + 2
+                            : ResponsiveUtils.iconSize + 6,
                     height: iconAsset == 'assets/images/icons/contact_us.svg'
                         ? ResponsiveUtils.iconSize + 3
-                        : ResponsiveUtils.iconSize + 6,
+                        : (iconAsset == 'assets/images/icons/leo_id_management.svg' || iconAsset == 'assets/images/icons/create_page.svg')
+                            ? ResponsiveUtils.iconSize + 2
+                            : ResponsiveUtils.iconSize + 6,
                     colorFilter: const ColorFilter.mode(Colors.black, BlendMode.srcIn),
                     fit: BoxFit.contain,
                   ),
@@ -421,4 +475,5 @@ class _SideMenuState extends State<SideMenu> with SingleTickerProviderStateMixin
       ),
     );
   }
+
 }

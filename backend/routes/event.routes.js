@@ -9,6 +9,7 @@ const {
   updateEvent,
   deleteEvent,
   toggleParticipation,
+  getEventParticipants,
 } = require('../controllers/event.controller');
 const { protect } = require('../middleware/auth');
 
@@ -38,5 +39,8 @@ router.delete('/:id', deleteEvent);
 
 // Join/Leave event
 router.put('/:id/participate', toggleParticipation);
+
+// Get event participants (webmaster/admin only)
+router.get('/:id/participants', getEventParticipants);
 
 module.exports = router;

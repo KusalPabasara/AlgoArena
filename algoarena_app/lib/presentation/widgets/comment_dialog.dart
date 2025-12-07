@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../data/models/post.dart';
 import '../../data/models/user.dart';
-import '../../services/like_comment_manager.dart';
+import '../../data/repositories/post_repository.dart';
 
 /// Comment Dialog Widget
 /// 
@@ -9,12 +9,12 @@ import '../../services/like_comment_manager.dart';
 /// Features:
 /// - Draggable scrollable sheet
 /// - Keyboard-aware input field
-/// - Instant comment display (frontend only)
-/// - Beautiful comment bubbles
+/// - Instant comment display with backend persistence
+/// - Real-time comment count updates
 class CommentDialogWidget extends StatefulWidget {
   final Post post;
   final User? currentUser;
-  final VoidCallback? onCommentAdded;
+  final Function(Map<String, dynamic>)? onCommentAdded;
 
   const CommentDialogWidget({
     super.key,
@@ -29,15 +29,43 @@ class CommentDialogWidget extends StatefulWidget {
 
 class _CommentDialogWidgetState extends State<CommentDialogWidget> {
   final TextEditingController _commentController = TextEditingController();
-  final LikeCommentManager _likeManager = LikeCommentManager();
   final FocusNode _focusNode = FocusNode();
+  final PostRepository _postRepository = PostRepository();
   
-  List<Map<String, dynamic>> _localComments = [];
+  // Simple list - comments stay here once added, never removed unless error
+  List<Map<String, dynamic>> _comments = [];
+  int _commentsCount = 0;
 
   @override
   void initState() {
     super.initState();
-    _localComments = _likeManager.getLocalComments(widget.post.id);
+    _initializeComments();
+  }
+
+  void _initializeComments() {
+    // Load from backend post
+    final backendComments = widget.post.comments.map((comment) {
+      return {
+        'id': '${comment.userId}_${comment.createdAt.millisecondsSinceEpoch}',
+        'text': comment.text,
+        'authorName': comment.userName,
+        'authorId': comment.userId,
+        'timestamp': comment.createdAt,
+      };
+    }).toList();
+    
+    // Combine and sort (newest first)
+    _comments = backendComments;
+    _commentsCount = _comments.length;
+    _sortComments();
+  }
+
+  void _sortComments() {
+    _comments.sort((a, b) {
+      final timeA = (a['timestamp'] as DateTime).millisecondsSinceEpoch;
+      final timeB = (b['timestamp'] as DateTime).millisecondsSinceEpoch;
+      return timeB.compareTo(timeA); // Newest first
+    });
   }
 
   @override
@@ -47,28 +75,73 @@ class _CommentDialogWidgetState extends State<CommentDialogWidget> {
     super.dispose();
   }
 
-  void _addComment() {
+  void _addComment() async {
     final text = _commentController.text.trim();
     if (text.isEmpty) return;
 
-    final comment = {
-      'userId': widget.currentUser?.id ?? 'guest',
-      'userName': widget.currentUser?.fullName ?? 'Guest User',
-      'userPhoto': widget.currentUser?.profilePhoto,
+    final now = DateTime.now();
+    // Create a unique ID for this comment
+    final commentId = '${widget.currentUser?.id ?? 'user'}_${now.millisecondsSinceEpoch}';
+    
+    // Create new comment object
+    final newComment = {
+      'id': commentId,
       'text': text,
-      'createdAt': DateTime.now().toIso8601String(),
+      'authorName': widget.currentUser?.fullName ?? 'You',
+      'authorId': widget.currentUser?.id ?? '',
+      'timestamp': now,
     };
 
-    _likeManager.addComment(widget.post.id, comment);
-    
+    // Add to UI immediately (at top)
     setState(() {
-      _localComments = _likeManager.getLocalComments(widget.post.id);
+      _comments.insert(0, newComment);
+      _commentsCount = _comments.length;
     });
-    
+
+    // Update parent count immediately
+    widget.onCommentAdded?.call(newComment);
+
+    // Clear input
     _commentController.clear();
     _focusNode.unfocus();
-    
-    widget.onCommentAdded?.call();
+
+    // Save to backend (async - comment already visible)
+    _postRepository.addComment(widget.post.id, text).then((savedComment) {
+      // Update with saved data (in case backend returns different ID)
+      if (mounted) {
+        setState(() {
+          // Find our comment and update it
+          final index = _comments.indexWhere((c) => c['id'] == commentId);
+          if (index != -1) {
+            // Update with saved comment data
+            _comments[index] = {
+              'id': '${savedComment.userId}_${savedComment.createdAt.millisecondsSinceEpoch}',
+              'text': savedComment.text,
+              'authorName': savedComment.userName,
+              'authorId': savedComment.userId,
+              'timestamp': savedComment.createdAt,
+            };
+            _sortComments();
+          }
+        });
+      }
+    }).catchError((e) {
+      // Only remove on error
+      if (mounted) {
+        setState(() {
+          _comments.removeWhere((c) => c['id'] == commentId);
+          _commentsCount = _comments.length;
+        });
+        widget.onCommentAdded?.call({'_remove': true});
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to add comment: ${e.toString().replaceAll('Exception: ', '')}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    });
   }
 
   @override
@@ -105,7 +178,7 @@ class _CommentDialogWidgetState extends State<CommentDialogWidget> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Comments (${widget.post.commentsCount + _localComments.length})',
+                      'Comments (${_commentsCount})',
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -123,34 +196,31 @@ class _CommentDialogWidgetState extends State<CommentDialogWidget> {
               
               // Comments list
               Expanded(
-                child: ListView.builder(
-                  controller: scrollController,
-                  padding: const EdgeInsets.all(16),
-                  itemCount: widget.post.comments.length + _localComments.length,
-                  itemBuilder: (context, index) {
-                    if (index < widget.post.comments.length) {
-                      // Backend comments
-                      final comment = widget.post.comments[index];
-                      return _buildCommentItem(
-                        userName: comment.userName,
-                        userPhoto: comment.userPhoto,
-                        text: comment.text,
-                        createdAt: comment.createdAt,
-                      );
-                    } else {
-                      // Local comments
-                      final localIndex = index - widget.post.comments.length;
-                      final comment = _localComments[localIndex];
-                      return _buildCommentItem(
-                        userName: comment['userName'] ?? 'Unknown',
-                        userPhoto: comment['userPhoto'],
-                        text: comment['text'] ?? '',
-                        createdAt: DateTime.parse(comment['createdAt']),
-                        isLocal: true,
-                      );
-                    }
-                  },
-                ),
+                child: _comments.isEmpty
+                    ? const Center(
+                        child: Text(
+                          'No comments yet.\nBe the first to comment!',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      )
+                    : ListView.builder(
+                        controller: scrollController,
+                        padding: const EdgeInsets.all(16),
+                        itemCount: _comments.length,
+                        itemBuilder: (context, index) {
+                          final comment = _comments[index];
+                          return _buildCommentItem(
+                            userName: comment['authorName'] ?? 'Unknown',
+                            userPhoto: null, // Can be added if needed
+                            text: comment['text'] ?? '',
+                            createdAt: comment['timestamp'] as DateTime,
+                          );
+                        },
+                      ),
               ),
               
               // Input field
@@ -235,7 +305,6 @@ class _CommentDialogWidgetState extends State<CommentDialogWidget> {
     String? userPhoto,
     required String text,
     required DateTime createdAt,
-    bool isLocal = false,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -245,13 +314,13 @@ class _CommentDialogWidgetState extends State<CommentDialogWidget> {
           // User avatar
           CircleAvatar(
             radius: 18,
-            backgroundColor: isLocal ? const Color(0xFFFFD700) : Colors.grey[300],
+            backgroundColor: Colors.grey[300],
             backgroundImage: userPhoto != null ? NetworkImage(userPhoto) : null,
             child: userPhoto == null
                 ? Text(
-                    userName[0].toUpperCase(),
-                    style: TextStyle(
-                      color: isLocal ? Colors.black : Colors.grey[600],
+                    userName.isNotEmpty ? userName[0].toUpperCase() : '?',
+                    style: const TextStyle(
+                      color: Colors.grey,
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
                     ),
@@ -265,39 +334,18 @@ class _CommentDialogWidgetState extends State<CommentDialogWidget> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Text(
-                      userName,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                      ),
-                    ),
-                    if (isLocal) ...[
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFD700).withOpacity(0.3),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Text(
-                          'Just now',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: Color(0xFFB8860B),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
+                Text(
+                  userName,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   text,
-                  style: TextStyle(
-                    color: Colors.grey[800],
+                  style: const TextStyle(
+                    color: Colors.black87,
                     fontSize: 14,
                   ),
                 ),

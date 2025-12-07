@@ -59,6 +59,12 @@ class _MainScreenState extends State<MainScreen> {
       // Trigger animation when switching to tabs with animations
       WidgetsBinding.instance.addPostFrameCallback((_) {
         switch (index) {
+          case 0: // Home tab - refresh feed
+            final homeScreenState = HomeScreen.globalKey.currentState;
+            if (homeScreenState != null) {
+              homeScreenState.refreshFeed();
+            }
+            break;
           case 1: // Search tab
             final searchScreenState = SearchScreen.globalKey.currentState;
             if (searchScreenState != null) {
@@ -110,7 +116,7 @@ class _MainScreenState extends State<MainScreen> {
       body: IndexedStack(
         index: _currentIndex,
         children: [
-          const HomeScreen(),
+          HomeScreen(key: HomeScreen.globalKey),
           SearchScreen(key: SearchScreen.globalKey),
           EventsListScreen(key: EventsListScreen.globalKey),
           PagesScreen(key: PagesScreen.globalKey),

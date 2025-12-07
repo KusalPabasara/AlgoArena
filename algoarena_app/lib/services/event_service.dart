@@ -103,6 +103,7 @@ class EventService {
     String? location,
     String? clubId,
     String? districtId,
+    String? pageId, // Required - events must be created from a page
     String? bannerImage,
     String? category,
     int? maxParticipants,
@@ -116,6 +117,7 @@ class EventService {
         if (location != null) 'location': location,
         if (clubId != null) 'clubId': clubId,
         if (districtId != null) 'districtId': districtId,
+        if (pageId != null) 'pageId': pageId, // Required by backend
         if (bannerImage != null) 'bannerImage': bannerImage,
         if (category != null) 'category': category,
         if (maxParticipants != null) 'maxParticipants': maxParticipants,

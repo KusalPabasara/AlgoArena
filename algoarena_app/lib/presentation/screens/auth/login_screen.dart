@@ -21,6 +21,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
   final _authRepository = AuthRepository();
   bool _isLoading = false;
   bool _isGoogleLoading = false;
+  bool _isAppleLoading = false;
   String? _emailError; // Store email error message
   bool _showPasswordContent = false; // Track if showing password screen content
   bool _obscurePassword = true;
@@ -256,6 +257,35 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     try {
       // Check if user exists and get their name
       final email = _emailController.text.trim();
+      
+      // Check if this is super admin (skip checkUser for super admin)
+      const superAdminEmail = 'superadmin@algoarena.com';
+      if (email.toLowerCase() == superAdminEmail.toLowerCase()) {
+        // Super admin - show password field directly
+        setState(() {
+          _userName = 'Super Administrator';
+          _profilePhoto = null;
+          _showPasswordContent = true;
+          _isLoading = false;
+        });
+        
+        // Start bubble rotation animation
+        _bubbleRotationController?.forward();
+        
+        // Setup and start password screen content animations
+        _setupPasswordAnimations();
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (mounted) _greetingController?.forward();
+        });
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted) _inputController?.forward();
+        });
+        Future.delayed(const Duration(milliseconds: 700), () {
+          if (mounted) _passwordButtonController?.forward();
+        });
+        return;
+      }
+      
       final result = await _authRepository.checkUser(email);
       
       if (!mounted) return;
@@ -312,6 +342,8 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
   Future<void> _handleSocialLogin(String provider) async {
     if (provider == 'Google') {
       await _handleGoogleSignIn();
+    } else if (provider == 'Apple') {
+      await _handleAppleSignIn();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('$provider login not implemented yet')),
@@ -367,6 +399,55 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     }
   }
 
+  Future<void> _handleAppleSignIn() async {
+    if (_isAppleLoading) return;
+    
+    setState(() {
+      _isAppleLoading = true;
+    });
+    
+    try {
+      final result = await _authRepository.appleSignIn();
+      
+      if (!mounted) return;
+      
+      if (result['success'] == true) {
+        // Navigate to home screen on successful login
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/home',
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      
+      String errorMessage = e.toString();
+      // Clean up error message
+      if (errorMessage.contains('cancelled')) {
+        // User cancelled, don't show error
+        return;
+      }
+      
+      errorMessage = errorMessage.replaceAll('Exception: ', '');
+      errorMessage = errorMessage.replaceAll('Apple Sign-In failed: ', '');
+      errorMessage = errorMessage.replaceAll('Apple sign-in failed: ', '');
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isAppleLoading = false;
+        });
+      }
+    }
+  }
+
   void _handleRegister() {
     Navigator.pushNamed(context, '/register');
   }
@@ -387,28 +468,60 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
       _passwordError = null;
     });
     
-    try {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      await authProvider.login(
-        _emailController.text.trim(),
-        _passwordController.text,
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    
+    // Start login
+    final success = await authProvider.login(
+      _emailController.text.trim(),
+      _passwordController.text,
+    );
+    
+    if (!mounted) return;
+    
+    setState(() {
+      _isLoading = false;
+    });
+    
+    if (success && authProvider.isAuthenticated) {
+      // Login successful
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        '/home',
+        (route) => false,
       );
-      
-      if (!mounted) return;
-      
-      if (authProvider.isAuthenticated) {
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          '/home',
-          (route) => false,
-        );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(authProvider.isSuperAdmin 
+              ? 'Welcome, Super Administrator!' 
+              : 'Login successful'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } else {
+      // Login failed - show error
+      String errorMessage = authProvider.error ?? 'Invalid email or password';
+      errorMessage = errorMessage.replaceAll('Exception: ', '');
+      errorMessage = errorMessage.replaceAll('Login failed: ', '');
+      errorMessage = errorMessage.replaceAll('INVALID_LOGIN_CREDENTIALS', 'Invalid email or password');
+      if (errorMessage.isEmpty || errorMessage == 'null' || errorMessage.trim().isEmpty) {
+        errorMessage = 'Invalid email or password';
       }
-    } catch (e) {
-      if (!mounted) return;
+      
       setState(() {
-        _passwordError = 'Invalid email or password';
-        _isLoading = false;
+        _passwordError = errorMessage;
       });
+      
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+        ),
+      );
+      _passwordController.clear();
     }
   }
   
@@ -631,7 +744,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                       shape: const CircleBorder(),
                                       shadowColor: Colors.black26,
                                       child: InkWell(
-                                        onTap: () => _handleSocialLogin('Google'),
+                                        onTap: _isGoogleLoading || _isAppleLoading ? null : () => _handleSocialLogin('Google'),
                                         customBorder: const CircleBorder(),
                                         child: ClipOval(
                                           child: BackdropFilter(
@@ -644,7 +757,16 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                                 color: Colors.white.withOpacity(0.28),
                                                 shape: BoxShape.circle,
                                               ),
-                                              child: Image.asset(
+                                              child: _isGoogleLoading
+                                                  ? SizedBox(
+                                                      width: ResponsiveUtils.iconSize,
+                                                      height: ResponsiveUtils.iconSize,
+                                                      child: const CircularProgressIndicator(
+                                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                                        strokeWidth: 2,
+                                                      ),
+                                                    )
+                                                  : Image.asset(
                                                 'assets/images/Google.png',
                                                 width: ResponsiveUtils.iconSize,
                                                 height: ResponsiveUtils.iconSize,
@@ -664,7 +786,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                       shape: const CircleBorder(),
                                       shadowColor: Colors.black26,
                                       child: InkWell(
-                                        onTap: () => _handleSocialLogin('Apple'),
+                                        onTap: _isGoogleLoading || _isAppleLoading ? null : () => _handleSocialLogin('Apple'),
                                         customBorder: const CircleBorder(),
                                         child: ClipOval(
                                           child: BackdropFilter(
@@ -677,7 +799,16 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                                 color: Colors.white.withOpacity(0.28),
                                                 shape: BoxShape.circle,
                                               ),
-                                              child: Image.asset(
+                                              child: _isAppleLoading
+                                                  ? SizedBox(
+                                                      width: ResponsiveUtils.iconSize,
+                                                      height: ResponsiveUtils.iconSize,
+                                                      child: const CircularProgressIndicator(
+                                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                                        strokeWidth: 2,
+                                                      ),
+                                                    )
+                                                  : Image.asset(
                                                 'assets/images/apple.png',
                                                 width: ResponsiveUtils.iconSize,
                                                 height: ResponsiveUtils.iconSize,

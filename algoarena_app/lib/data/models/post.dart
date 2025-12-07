@@ -5,6 +5,8 @@ class Post {
   final String? authorPhoto;
   final String content;
   final String? pageId; // Page ID if post is for a specific page
+  final String? pageName; // Page name if post is from a page
+  final String? pageLogo; // Page logo if post is from a page
   final List<String> images;
   final List<String> likes;
   final List<Comment> comments;
@@ -18,6 +20,8 @@ class Post {
     this.authorPhoto,
     required this.content,
     this.pageId,
+    this.pageName,
+    this.pageLogo,
     required this.images,
     required this.likes,
     required this.comments,
@@ -29,10 +33,12 @@ class Post {
     return Post(
       id: json['_id'] ?? json['id'] ?? '',
       authorId: json['author']?['_id'] ?? json['author'] ?? '',
-      authorName: json['author']?['fullName'] ?? 'Unknown User',
-      authorPhoto: json['author']?['profilePhoto'],
+      authorName: json['pageName'] ?? json['author']?['fullName'] ?? 'Unknown User',
+      authorPhoto: json['pageLogo'] ?? json['author']?['profilePhoto'],
       content: json['content'] ?? '',
       pageId: json['pageId'],
+      pageName: json['pageName'],
+      pageLogo: json['pageLogo'],
       images: List<String>.from(json['images'] ?? []),
       likes: List<String>.from(json['likes'] ?? []),
       comments: (json['comments'] as List?)

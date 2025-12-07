@@ -73,7 +73,8 @@ class _PostLikeCommentWidgetState extends State<PostLikeCommentWidget>
       builder: (context) => CommentDialogWidget(
         post: widget.post,
         currentUser: widget.currentUser,
-        onCommentAdded: () {
+        onCommentAdded: (comment) {
+          // Update comment count in real-time
           setState(() {});
         },
       ),

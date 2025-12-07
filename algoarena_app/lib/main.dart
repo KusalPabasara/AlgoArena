@@ -27,6 +27,7 @@ import 'presentation/screens/events/event_detail_screen.dart';
 import 'providers/auth_provider.dart';
 import 'providers/post_provider.dart';
 import 'providers/club_provider.dart';
+import 'providers/page_follow_provider.dart';
 
 void main() async {
   // Ensure Flutter bindings are initialized for async operations
@@ -74,6 +75,7 @@ class AlgoArenaApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => PostProvider()),
         ChangeNotifierProvider(create: (_) => ClubProvider()),
+        ChangeNotifierProvider(create: (_) => PageFollowProvider()),
       ],
       child: MaterialApp(
         title: 'AlgoArena',
@@ -150,6 +152,48 @@ class AlgoArenaApp extends StatelessWidget {
               builder: (context) => const PasswordResetSuccessScreen(),
             );
           }
+          
+          // Handle MainScreen routes - prevent duplicate GlobalKey usage
+          if (settings.name == '/home' || settings.name == '/search' || 
+              settings.name == '/events' || settings.name == '/pages' || 
+              settings.name == '/profile') {
+            final existingState = MainScreen.globalKey.currentState;
+            final tabIndex = settings.name == '/home' ? 0 :
+                           settings.name == '/search' ? 1 :
+                           settings.name == '/events' ? 2 :
+                           settings.name == '/pages' ? 3 : 4;
+            
+            // If MainScreen with GlobalKey already exists, navigate to tab instead of creating new
+            if (existingState != null) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                existingState.navigateToTab(tabIndex);
+              });
+              // Return a route that redirects to home (which has the MainScreen)
+              return MaterialPageRoute(
+                builder: (context) {
+                  // Navigate to home route which has MainScreen, then switch tab
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    Navigator.of(context).pushReplacementNamed('/home');
+                    existingState.navigateToTab(tabIndex);
+                  });
+                  return const Scaffold(
+                    body: Center(child: CircularProgressIndicator()),
+                  );
+                },
+              );
+            }
+            
+            // No MainScreen exists - create one
+            // CRITICAL: Only use GlobalKey for /home route to prevent duplicates
+            final useGlobalKey = settings.name == '/home';
+            return MaterialPageRoute(
+              builder: (context) => MainScreen(
+                key: useGlobalKey ? MainScreen.globalKey : null,
+                initialIndex: tabIndex,
+              ),
+            );
+          }
+          
           return null;
         },
         routes: {
@@ -163,11 +207,6 @@ class AlgoArenaApp extends StatelessWidget {
           '/password-recovery': (context) => const PasswordRecoveryScreen(),
           '/register': (context) => const RegisterScreen(),
           '/reset-password': (context) => const ResetPasswordScreen(),
-          '/home': (context) => MainScreen(key: MainScreen.globalKey, initialIndex: 0),
-          '/search': (context) => MainScreen(key: MainScreen.globalKey, initialIndex: 1),
-          '/events': (context) => MainScreen(key: MainScreen.globalKey, initialIndex: 2),
-          '/pages': (context) => MainScreen(key: MainScreen.globalKey, initialIndex: 3),
-          '/profile': (context) => MainScreen(key: MainScreen.globalKey, initialIndex: 4),
           '/create-post': (context) => const CreatePostScreen(),
           '/notifications': (context) => const NotificationsScreen(),
           '/settings': (context) => const SettingsScreen(),

@@ -47,22 +47,35 @@ class ApiService {
     String endpoint,
     Map<String, dynamic> data, {
     bool withAuth = false,
+    Duration? timeout, // Optional custom timeout
   }) async {
     try {
+      final timeoutDuration = timeout ?? const Duration(seconds: 30); // Default 30 seconds
+      
       final response = await http.post(
         Uri.parse('$baseUrl$endpoint'),
         headers: await getHeaders(withAuth: withAuth),
         body: json.encode(data),
+      ).timeout(
+        timeoutDuration,
+        onTimeout: () {
+          throw Exception('Request timeout. Please check your internet connection and try again.');
+        },
       );
       
       return _handleResponse(response);
     } catch (e) {
+      // If it's already an Exception (from _handleResponse or timeout), rethrow it
+      if (e is Exception) {
+        rethrow;
+      }
+      // Only wrap network errors (connection issues, etc.)
       throw Exception('Network error: $e');
     }
   }
   
   // GET request
-  Future<Map<String, dynamic>> get(
+  Future<dynamic> get(
     String endpoint, {
     bool withAuth = false,
   }) async {
@@ -115,20 +128,40 @@ class ApiService {
   }
   
   // Handle API response
-  Map<String, dynamic> _handleResponse(http.Response response) {
+  dynamic _handleResponse(http.Response response) {
+    // Check if response is HTML (common for 404 or server errors)
+    if (response.body.trim().startsWith('<!DOCTYPE') || 
+        response.body.trim().startsWith('<html') ||
+        response.headers['content-type']?.contains('text/html') == true) {
+      throw Exception('Server returned HTML instead of JSON. This usually means the endpoint does not exist (404) or there is a server configuration issue.');
+    }
+    
     if (response.statusCode >= 200 && response.statusCode < 300) {
       try {
-        return json.decode(response.body);
+        final decoded = json.decode(response.body);
+        // Return as dynamic to handle both Map and List responses
+        return decoded;
       } catch (e) {
-        throw Exception('Invalid JSON response from server');
+        throw Exception('Invalid JSON response from server: ${e.toString()}');
       }
     } else {
+      // Handle error response
       try {
-        final error = json.decode(response.body);
-        throw Exception(error['message'] ?? 'An error occurred');
+        final errorBody = json.decode(response.body);
+        final errorMessage = errorBody['message'] ?? 
+                            errorBody['error'] ?? 
+                            'An error occurred';
+        throw Exception(errorMessage);
       } catch (e) {
+        // If it's already an Exception with the message, rethrow it
+        if (e is Exception) {
+          rethrow;
+        }
         // If response body is not valid JSON (e.g., HTML error page)
-        throw Exception('Server error (${response.statusCode}): ${response.body.length > 100 ? response.body.substring(0, 100) : response.body}');
+        final errorText = response.body.length > 100 
+            ? response.body.substring(0, 100) 
+            : response.body;
+        throw Exception('Server error (${response.statusCode}): $errorText');
       }
     }
   }

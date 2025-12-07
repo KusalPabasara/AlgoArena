@@ -17,6 +17,7 @@ class LikeCommentManager {
   
   // Local state for comments
   final Map<String, List<Map<String, dynamic>>> _postComments = {}; // postId -> comments list
+  final Map<String, int> _postCommentsCount = {}; // postId -> commentsCount (for real-time updates)
 
   /// Initialize like state from backend data
   void initializeLikes(List<Post> posts, User? user) {
@@ -29,6 +30,10 @@ class LikeCommentManager {
         }
         if (!_postLikesCount.containsKey(post.id)) {
           _postLikesCount[post.id] = post.likesCount;
+        }
+        // Initialize comment count
+        if (!_postCommentsCount.containsKey(post.id)) {
+          _postCommentsCount[post.id] = post.commentsCount;
         }
       }
     }
@@ -88,18 +93,42 @@ class LikeCommentManager {
 
   /// Get comments count (frontend state takes priority)
   int getPostCommentsCount(Post post) {
+    // Check local comment count first (for real-time updates)
+    if (_postCommentsCount.containsKey(post.id)) {
+      return _postCommentsCount[post.id]!;
+    }
+    // Fall back to local comments list length
     if (_postComments.containsKey(post.id)) {
       return (_postComments[post.id]?.length ?? 0) + post.commentsCount;
     }
+    // Fall back to backend count
     return post.commentsCount;
   }
 
-  /// Add comment (frontend only)
+  /// Update comment count (for real-time updates)
+  void updateCommentCount(String postId, int count) {
+    _postCommentsCount[postId] = count;
+  }
+
+  /// Increment comment count
+  void incrementCommentCount(String postId) {
+    final currentCount = _postCommentsCount[postId] ?? 0;
+    _postCommentsCount[postId] = currentCount + 1;
+  }
+
+  /// Decrement comment count
+  void decrementCommentCount(String postId) {
+    final currentCount = _postCommentsCount[postId] ?? 0;
+    _postCommentsCount[postId] = (currentCount > 0 ? currentCount - 1 : 0);
+  }
+
+  /// Add comment (frontend only - for backward compatibility)
   void addComment(String postId, Map<String, dynamic> comment) {
     if (!_postComments.containsKey(postId)) {
       _postComments[postId] = [];
     }
     _postComments[postId]!.add(comment);
+    incrementCommentCount(postId);
   }
 
   /// Get comments for a post (local comments only)

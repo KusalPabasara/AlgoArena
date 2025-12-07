@@ -1,4 +1,5 @@
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter/services.dart';
 import 'api_service.dart';
 
 class GoogleAuthService {
@@ -63,6 +64,14 @@ class GoogleAuthService {
         'token': response['token'],
         'isNewUser': response['isNewUser'] ?? false,
       };
+    } on PlatformException catch (e) {
+      print('Google sign-in platform error: ${e.code} - ${e.message}');
+      // Provide helpful error messages for common issues
+      final message = e.message ?? '';
+      if (e.code == 'sign_in_failed' || message.contains('ApiException') || message.contains('Api10')) {
+        throw Exception('Google Sign-In failed. Please ensure:\n1. SHA-1 fingerprint is added to Firebase Console\n2. google-services.json is up to date\n3. Google Sign-In is enabled in Firebase Authentication\n\nSee FIX_GOOGLE_SIGNIN.md for detailed instructions.');
+      }
+      rethrow;
     } on Exception catch (e) {
       print('Google sign-in error: $e');
       rethrow;

@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
-import '../club/club_profile_screen.dart';
-import '../pages/leo_district_detail_screen.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../widgets/custom_back_button.dart';
+import '../../../data/repositories/page_repository.dart';
+import '../../../data/repositories/post_repository.dart';
+import '../../../data/models/page.dart' as models;
+import '../../../data/models/post.dart' as post_models;
+import '../pages/page_detail_screen.dart';
 
 /// Search Screen - Exact match to Figma search/src/imports/Search.tsx
 /// Design specs:
@@ -26,16 +30,27 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   String _searchQuery = '';
+  
+  final _pageRepository = PageRepository();
+  final _postRepository = PostRepository();
+  List<models.Page> _allPages = [];
+  bool _isLoadingPages = true;
+  
+  // Posts with images for the grid
+  List<post_models.Post> _postsWithImages = [];
+  bool _isLoadingPosts = true;
 
   @override
   void initState() {
     super.initState();
+    print('🚀 SearchScreen.initState: Called');
     
     // Initialize animation controller
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,
     );
+    print('🚀 SearchScreen.initState: Animation controller initialized');
     
     // Bubbles animation - coming from outside (top-left)
     _bubblesSlideAnimation = Tween<Offset>(
@@ -53,9 +68,142 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
       parent: _animationController,
       curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
     ));
+    print('🚀 SearchScreen.initState: Animations initialized');
     
+    // Load all pages and posts from backend
+    // Use Future.microtask to ensure initState completes first
+    print('🚀 SearchScreen.initState: Scheduling _loadPages() and _loadPosts()');
+    Future.microtask(() {
+      print('🔄 SearchScreen.initState: About to call _loadPages() and _loadPosts()');
+      _loadPages().catchError((error, stackTrace) {
+        print('❌ SearchScreen.initState: Error in _loadPages(): $error');
+        print('📚 SearchScreen.initState: Stack trace: $stackTrace');
+        if (mounted) {
+          setState(() {
+            _isLoadingPages = false;
+          });
+          print('✅ SearchScreen.initState: Set loading state to false after error');
+        }
+      });
+      _loadPosts().catchError((error, stackTrace) {
+        print('❌ SearchScreen.initState: Error in _loadPosts(): $error');
+        if (mounted) {
+          setState(() {
+            _isLoadingPosts = false;
+          });
+        }
+      });
+    });
+    
+    print('🚀 SearchScreen.initState: Completed');
     // Don't start animation immediately - wait for restartAnimation() call
     // This ensures bubbles are hidden initially
+  }
+  
+  Future<void> _loadPages() async {
+    print('🔄 _loadPages: Starting to load pages for search...');
+    print('🔄 _loadPages: Current state - _isLoadingPages: $_isLoadingPages, _allPages.length: ${_allPages.length}');
+    
+    try {
+      // Add timeout to prevent hanging
+      print('🔄 _loadPages: Calling getAllPages()...');
+      final pages = await _pageRepository.getAllPages()
+          .timeout(
+            const Duration(seconds: 15),
+            onTimeout: () {
+              print('⏱️ _loadPages: Timeout loading pages');
+              return <models.Page>[];
+            },
+          );
+      
+      print('📦 _loadPages: Received ${pages.length} pages from repository');
+      if (mounted) {
+        setState(() {
+          _allPages = pages;
+          _isLoadingPages = false;
+        });
+        print('✅ _loadPages: Loaded ${pages.length} pages for search. Loading state: $_isLoadingPages');
+        if (pages.isNotEmpty) {
+          print('📋 _loadPages: Page names: ${pages.map((p) => p.name).join(", ")}');
+        } else {
+          print('⚠️ _loadPages: No pages loaded - this might be an authentication or API issue');
+        }
+      } else {
+        print('⚠️ _loadPages: Widget not mounted, skipping setState');
+      }
+    } catch (e, stackTrace) {
+      print('❌ _loadPages: Error loading pages for search: $e');
+      print('📚 _loadPages: Stack trace: $stackTrace');
+      if (mounted) {
+        setState(() {
+          _allPages = [];
+          _isLoadingPages = false;
+        });
+        print('✅ _loadPages: Set loading state to false after error');
+      } else {
+        print('⚠️ _loadPages: Widget not mounted, cannot set state');
+      }
+    }
+  }
+  
+  Future<void> _loadPosts() async {
+    print('🔄 _loadPosts: Starting to load posts with images...');
+    try {
+      // Fetch feed posts
+      final posts = await _postRepository.getFeed(page: 1, limit: 50)
+          .timeout(
+            const Duration(seconds: 15),
+            onTimeout: () {
+              print('⏱️ _loadPosts: Timeout loading posts');
+              return <post_models.Post>[];
+            },
+          );
+      
+      print('📦 _loadPosts: Received ${posts.length} total posts from feed');
+      
+      // Filter posts that have images (prefer posts with pageId, but include all posts with images)
+      final postsWithImages = posts
+          .where((post) {
+            final hasImages = post.images.isNotEmpty;
+            if (hasImages) {
+              print('  ✓ Post ${post.id}: has ${post.images.length} images, pageId: ${post.pageId}');
+            }
+            return hasImages;
+          })
+          .toList();
+      
+      print('📦 _loadPosts: Found ${postsWithImages.length} posts with images');
+      
+      // Sort by createdAt (newest first)
+      postsWithImages.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      
+      // Take up to 12 posts (matching grid positions)
+      final limitedPosts = postsWithImages.take(12).toList();
+      
+      print('📦 _loadPosts: Selected ${limitedPosts.length} posts for grid display');
+      
+      if (mounted) {
+        setState(() {
+          _postsWithImages = limitedPosts;
+          _isLoadingPosts = false;
+        });
+        print('✅ _loadPosts: Loaded ${limitedPosts.length} posts for grid');
+      }
+    } catch (e, stackTrace) {
+      print('❌ _loadPosts: Error loading posts: $e');
+      print('📚 _loadPosts: Stack trace: $stackTrace');
+      if (mounted) {
+        setState(() {
+          _postsWithImages = [];
+          _isLoadingPosts = false;
+        });
+      }
+    }
+  }
+  
+  // Public method to refresh posts (called when returning from creating a post)
+  void refreshPosts() {
+    _loadPosts();
   }
   
   // Public method to restart animation (called from MainScreen)
@@ -68,60 +216,61 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
     
     _animationController.reset();
     _animationController.forward();
+    
+    // Refresh posts when tab becomes active (to show new posts at top)
+    refreshPosts();
   }
   
-  // Searchable items - Leo Club of Colombo and Leo District 362
-  final List<Map<String, dynamic>> _searchableItems = [
-    {
-      'name': 'Leo Club of Colombo',
-      'type': 'club',
-      'image': 'assets/images/Home/Leo club colombo.png',
-    },
-    {
-      'name': 'Leo District 362',
-      'type': 'district',
-      'image': 'assets/images/pages/cba507d80d35e8876a479cce78f72f4bb9d95def.png',
-      'mutuals': '97 mutuals',
-    },
-  ];
+  // Recent searches - stored locally
+  final List<String> _recentSearches = [];
   
-  // Recent searches from Figma design
-  final List<String> _recentSearches = [
-    'Leo Club of University of Peradeniya',
-    'Colombo Leo',
-    'Leo Ashen',
-    'University of Jayawardenapura',
-    'Moratuwa Leo',
-  ];
-  
-  // Image grid data from Figma - 11 images with positions
+  // Grid layout positions (same as Figma design)
   // Grid layout: 3 columns x varying rows, each cell 112px
-  final List<Map<String, dynamic>> _gridImages = [
+  final List<Map<String, dynamic>> _gridPositions = [
     // Row 1
-    {'image': '5e1dd65ca0c4106010fd33a3f7c80497f02ca5b2.png', 'left': 0, 'top': 0, 'width': 112, 'height': 112},
-    {'image': 'e5d9b8d8ac11fbaed7d6cc23de63bf603678d299.png', 'left': 112, 'top': 56, 'width': 112, 'height': 112},
-    {'image': '2d56f1c4118e0f4442bbdf50c8d39b18e1794de0.png', 'left': 224, 'top': 0, 'width': 112, 'height': 112},
+    {'left': 0, 'top': 0, 'width': 112, 'height': 112},
+    {'left': 112, 'top': 56, 'width': 112, 'height': 112},
+    {'left': 224, 'top': 0, 'width': 112, 'height': 112},
     // Row 2
-    {'image': '237afce60b859bf919b00b17311ef161184b01fe.png', 'left': 0, 'top': 112, 'width': 112, 'height': 112},
-    {'image': '6d81b876706ace03505fb1391671ba47b0073e5e.png', 'left': 224, 'top': 112, 'width': 112, 'height': 140},
+    {'left': 0, 'top': 112, 'width': 112, 'height': 112},
+    {'left': 224, 'top': 112, 'width': 112, 'height': 140},
     // Row 3
-    {'image': '31d07557884264b1b070f971cc49466a561b5a39.png', 'left': 0, 'top': 224, 'width': 112, 'height': 112},
-    {'image': '28144f3b7b31659eca64dd7042213cc7b21abe19.png', 'left': 112, 'top': 168, 'width': 112, 'height': 140},
-    {'image': 'd55abeca497825d9ce40ca4f10173f822afc9c9f.png', 'left': 224, 'top': 252, 'width': 112, 'height': 112},
+    {'left': 0, 'top': 224, 'width': 112, 'height': 112},
+    {'left': 112, 'top': 168, 'width': 112, 'height': 140},
+    {'left': 224, 'top': 252, 'width': 112, 'height': 112},
     // Row 4
-    {'image': '9f8954359f3c93def292b23cee12251aaa490596.png', 'left': 112, 'top': 308, 'width': 112, 'height': 112},
-    {'image': '2150df91f2f6c22cddc53debbf42c2fa7187bd8d.png', 'left': 0, 'top': 336, 'width': 112, 'height': 140},
-    {'image': 'd5f71bfb65c17c551f045f288e5355bedd23b999.png', 'left': 224, 'top': 364, 'width': 112, 'height': 112},
+    {'left': 112, 'top': 308, 'width': 112, 'height': 112},
+    {'left': 0, 'top': 336, 'width': 112, 'height': 140},
+    {'left': 224, 'top': 364, 'width': 112, 'height': 112},
   ];
 
-  // Get filtered search results based on query
-  List<Map<String, dynamic>> get _searchResults {
-    if (_searchQuery.isEmpty) return [];
-    final query = _searchQuery.toLowerCase();
-    return _searchableItems.where((item) {
-      final name = (item['name'] as String).toLowerCase();
+  // Get filtered search results based on query - searches through real pages
+  List<models.Page> get _searchResults {
+    // Allow search even while loading if we have some pages loaded
+    if (_searchQuery.isEmpty) {
+      return [];
+    }
+    
+    // If still loading but we have pages, use them
+    if (_isLoadingPages && _allPages.isEmpty) {
+      return [];
+    }
+    
+    final query = _searchQuery.toLowerCase().trim();
+    if (query.isEmpty) return [];
+    
+    final results = _allPages.where((page) {
+      final name = page.name.toLowerCase();
+      // Search for any keyword in the page name
       return name.contains(query);
     }).toList();
+    
+    print('🔍 Search for "$query": Found ${results.length} results from ${_allPages.length} total pages');
+    if (results.isNotEmpty) {
+      print('📝 Matching pages: ${results.map((p) => p.name).join(", ")}');
+    }
+    
+    return results;
   }
 
   void _removeRecentSearch(int index) {
@@ -130,70 +279,27 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
     });
   }
 
-  void _navigateToResult(Map<String, dynamic> item) {
-    final type = item['type'] as String;
-    final name = item['name'] as String;
+  void _navigateToPage(models.Page page) {
+    final pageName = page.name;
     
-    // Add to recents
-    if (!_recentSearches.contains(name)) {
-      setState(() {
-        _recentSearches.insert(0, name);
-        if (_recentSearches.length > 5) {
-          _recentSearches.removeLast();
-        }
-      });
-    }
+    // Add to recents (move to top if already exists - most recent first)
+    setState(() {
+      // Remove if already exists
+      _recentSearches.remove(pageName);
+      // Insert at the beginning (most recent first)
+      _recentSearches.insert(0, pageName);
+      // Keep only last 5
+      if (_recentSearches.length > 5) {
+        _recentSearches.removeLast();
+      }
+    });
     
-    if (type == 'club') {
-      // Navigate to Club Profile Screen
-      Navigator.of(context).push(
-        PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) => ClubProfileScreen(
-            clubName: name,
-            clubLogo: item['image'] as String,
-          ),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            const begin = Offset(1.0, 0.0);
-            const end = Offset.zero;
-            const curve = Curves.easeInOut;
-            
-            var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-            var offsetAnimation = animation.drive(tween);
-            
-            var fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-              CurvedAnimation(parent: animation, curve: Curves.easeIn),
-            );
-            
-            return SlideTransition(
-              position: offsetAnimation,
-              child: FadeTransition(
-                opacity: fadeAnimation,
-                child: child,
-              ),
-            );
-          },
-          transitionDuration: const Duration(milliseconds: 300),
-        ),
-      );
-    } else if (type == 'district') {
-      // Navigate to Leo District Detail Screen (same as District Pages list)
-      Navigator.of(context).push(
-        PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) => LeoDistrictDetailScreen(
-            districtName: name,
-            mutuals: item['mutuals'] as String? ?? '97 mutuals',
-            image: item['image'] as String,
-          ),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(
-              opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
-              child: child,
-            );
-          },
-          transitionDuration: const Duration(milliseconds: 400),
-        ),
-      );
-    }
+    // Navigate to Page Detail Screen
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => PageDetailScreen(page: page),
+      ),
+    );
     
     // Clear search
     setState(() {
@@ -204,9 +310,13 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
   }
 
   void _onSearchSubmit(String query) {
-    if (query.isNotEmpty && !_recentSearches.contains(query)) {
+    if (query.isNotEmpty) {
       setState(() {
+        // Remove if already exists
+        _recentSearches.remove(query);
+        // Insert at the beginning (most recent first)
         _recentSearches.insert(0, query);
+        // Keep only last 5
         if (_recentSearches.length > 5) {
           _recentSearches.removeLast();
         }
@@ -317,6 +427,19 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
                 // Image Grid - Figma mosaic layout
                 _buildImageGrid(),
                 
+                // Debug: Show post count
+                if (_postsWithImages.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text(
+                      'Showing ${_postsWithImages.length} posts',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                
                 // Bottom padding for nav bar
                 const SizedBox(height: 100),
               ],
@@ -332,25 +455,51 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
           ),
           
           // Search results dropdown - appears when typing
-          if (_searchResults.isNotEmpty)
+          // Positioned after search field to ensure it's on top
+          if (_searchQuery.isNotEmpty && !_isLoadingPages)
             Positioned(
               left: MediaQuery.of(context).size.width * 0.0833 + 1.5,
               right: MediaQuery.of(context).size.width * 0.0833 + 1.5,
-              top: 158, // Adjusted to maintain spacing below search bar
-              child: Material(
-                elevation: 4,
-                borderRadius: BorderRadius.circular(12),
-                color: Colors.white,
-                child: Container(
-                  constraints: const BoxConstraints(maxHeight: 200),
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    itemCount: _searchResults.length,
-                    itemBuilder: (context, index) {
-                      final item = _searchResults[index];
-                      return _buildSearchResultItem(item);
-                    },
+              top: 158, // Adjusted to maintain spacing below search bar (110 + 48 = 158)
+              child: IgnorePointer(
+                ignoring: false,
+                child: Material(
+                  elevation: 12,
+                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.white,
+                  shadowColor: Colors.black.withOpacity(0.3),
+                  child: Container(
+                    constraints: BoxConstraints(
+                      maxHeight: MediaQuery.of(context).size.height * 0.4, // Responsive max height
+                    ),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.grey[300]!,
+                        width: 1,
+                      ),
+                    ),
+                    child: _searchResults.isEmpty
+                        ? Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Text(
+                              'No pages found matching "$_searchQuery"',
+                              style: TextStyle(
+                                fontFamily: 'Poppins',
+                                fontSize: 14,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          )
+                        : ListView.builder(
+                            shrinkWrap: true,
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            itemCount: _searchResults.length,
+                            itemBuilder: (context, index) {
+                              final page = _searchResults[index];
+                              return _buildSearchResultItem(page);
+                            },
+                          ),
                   ),
                 ),
               ),
@@ -385,13 +534,9 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
   }
   
   /// Search result item with icon and name
-  Widget _buildSearchResultItem(Map<String, dynamic> item) {
-    final name = item['name'] as String;
-    final type = item['type'] as String;
-    final image = item['image'] as String;
-    
+  Widget _buildSearchResultItem(models.Page page) {
     return InkWell(
-      onTap: () => _navigateToResult(item),
+      onTap: () => _navigateToPage(page),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
@@ -403,17 +548,37 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: Colors.grey[200],
+                border: Border.all(
+                  color: const Color(0xFF8F7902),
+                  width: 2,
+                ),
               ),
               child: ClipOval(
-                child: Image.asset(
-                  image,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Icon(
-                    type == 'club' ? Icons.groups : Icons.location_city,
-                    color: Colors.grey[600],
-                    size: 20,
-                  ),
-                ),
+                child: page.logo != null
+                    ? CachedNetworkImage(
+                        imageUrl: page.logo!,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => Container(
+                          color: Colors.grey[200],
+                          child: const Center(
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          ),
+                        ),
+                        errorWidget: (_, __, ___) => Icon(
+                          page.type == 'club' ? Icons.groups : Icons.location_city,
+                          color: Colors.grey[600],
+                          size: 20,
+                        ),
+                      )
+                    : Icon(
+                        page.type == 'club' ? Icons.groups : Icons.location_city,
+                        color: Colors.grey[600],
+                        size: 20,
+                      ),
               ),
             ),
             const SizedBox(width: 12),
@@ -423,7 +588,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    name,
+                    page.name,
                     style: const TextStyle(
                       fontFamily: 'Poppins',
                       fontSize: 14,
@@ -432,7 +597,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
                     ),
                   ),
                   Text(
-                    type == 'club' ? 'Club' : 'District',
+                    page.type == 'club' ? 'Club' : 'District',
                     style: TextStyle(
                       fontFamily: 'Poppins',
                       fontSize: 12,
@@ -525,6 +690,14 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
                   setState(() {
                     _searchQuery = value;
                   });
+                  // Debug info after setState
+                  print('🔍 Search query updated: "$_searchQuery"');
+                  print('📊 Total pages loaded: ${_allPages.length}');
+                  print('⏳ Is loading pages: $_isLoadingPages');
+                  print('📋 Search results count: ${_searchResults.length}');
+                  if (_allPages.isNotEmpty) {
+                    print('📝 Available pages: ${_allPages.map((p) => p.name).join(", ")}');
+                  }
                 },
                 onSubmitted: _onSearchSubmit,
               ),
@@ -562,18 +735,22 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          // Search text - Figma: left offset from container
+          // Search text - Figma: left offset from container - Make it clickable
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.only(left: 8),
-              child: Text(
-                text,
-                style: const TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 13.794,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black,
-                  height: 1.4,
+            child: InkWell(
+              onTap: () => _navigateFromRecentSearch(text),
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.only(left: 8, top: 8, bottom: 8),
+                child: Text(
+                  text,
+                  style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 13.794,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black,
+                    height: 1.4,
+                  ),
                 ),
               ),
             ),
@@ -601,8 +778,45 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
       ),
     );
   }
+  
+  /// Navigate to page from recent search text
+  void _navigateFromRecentSearch(String searchText) {
+    // Move clicked recent search to the top (most recent first)
+    setState(() {
+      _recentSearches.remove(searchText);
+      _recentSearches.insert(0, searchText);
+    });
+    
+    // Find matching page from loaded pages
+    final query = searchText.toLowerCase().trim();
+    if (query.isEmpty) return;
+    
+    // Search for matching page (case-insensitive partial match)
+    models.Page? matchingPage;
+    try {
+      matchingPage = _allPages.firstWhere(
+        (page) => page.name.toLowerCase().contains(query),
+      );
+    } catch (e) {
+      // No matching page found
+      matchingPage = null;
+    }
+    
+    if (matchingPage != null) {
+      // Navigate to the page (this will also update recents)
+      _navigateToPage(matchingPage);
+    } else {
+      // If no exact match found, set the search query to show suggestions
+      setState(() {
+        _searchQuery = searchText;
+        _searchController.text = searchText;
+      });
+      // Focus the search field to show suggestions
+      _searchFocusNode.requestFocus();
+    }
+  }
 
-  /// Image grid matching Figma mosaic layout
+  /// Image grid matching Figma mosaic layout with real post images
   /// Frame container: width 336px, images positioned absolutely
   Widget _buildImageGrid() {
     // Calculate scale factor based on screen width
@@ -610,33 +824,155 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
     final containerWidth = screenWidth * 0.8333; // ~336px on 402px screen
     final scale = containerWidth / 336;
     
+    // If loading or no posts, show placeholder or empty
+    if (_isLoadingPosts) {
+      return Container(
+        margin: EdgeInsets.symmetric(horizontal: screenWidth * 0.0833 + 3.5),
+        height: 476 * scale, // Approximate height
+        child: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+    
+    if (_postsWithImages.isEmpty) {
+      print('⚠️ _buildImageGrid: No posts with images to display');
+      return const SizedBox.shrink();
+    }
+    
+    print('🖼️ _buildImageGrid: Building grid with ${_postsWithImages.length} posts');
+    
     // Calculate total height needed (based on furthest bottom image)
-    final maxBottom = _gridImages.map((img) => 
-      (img['top'] as int) + (img['height'] as int)
+    final maxBottom = _gridPositions.map((pos) => 
+      (pos['top'] as int) + (pos['height'] as int)
     ).reduce((a, b) => a > b ? a : b);
     
     return Container(
       margin: EdgeInsets.symmetric(horizontal: screenWidth * 0.0833 + 3.5),
+      width: containerWidth,
       height: maxBottom * scale,
       child: Stack(
-        children: _gridImages.map((imageData) {
+        clipBehavior: Clip.none,
+        children: _gridPositions.asMap().entries.map((entry) {
+          final index = entry.key;
+          final position = entry.value;
+          
+          // Use post image if available, otherwise skip
+          if (index >= _postsWithImages.length) {
+            return const SizedBox.shrink();
+          }
+          
+          final post = _postsWithImages[index];
+          if (post.images.isEmpty) {
+            return const SizedBox.shrink();
+          }
+          
+          final imageUrl = post.images.first; // Use first image from post
+          final leftPos = (position['left'] as int) * scale;
+          final topPos = (position['top'] as int) * scale;
+          final width = (position['width'] as int) * scale;
+          final height = (position['height'] as int) * scale;
+          
+          print('🖼️ _buildImageGrid: Adding image $index at ($leftPos, $topPos) size ${width}x$height: $imageUrl');
+          
           return Positioned(
-            left: (imageData['left'] as int) * scale,
-            top: (imageData['top'] as int) * scale,
-            width: (imageData['width'] as int) * scale,
-            height: (imageData['height'] as int) * scale,
-            child: Image.asset(
-              'assets/images/search/${imageData['image']}',
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
-                color: Colors.grey[300],
-                child: const Icon(Icons.image, color: Colors.grey),
+            left: leftPos,
+            top: topPos,
+            width: width,
+            height: height,
+            child: GestureDetector(
+              onTap: () {
+                print('🖱️ Image tapped for post: ${post.id}');
+                _navigateToPostPage(post);
+              },
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: SizedBox(
+                  width: width,
+                  height: height,
+                  child: CachedNetworkImage(
+                    imageUrl: imageUrl,
+                    fit: BoxFit.cover,
+                    width: width,
+                    height: height,
+                    placeholder: (context, url) => Container(
+                      width: width,
+                      height: height,
+                      color: Colors.grey[300],
+                      child: const Center(
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                    errorWidget: (context, url, error) {
+                      print('❌ Error loading image: $url - $error');
+                      return Container(
+                        width: width,
+                        height: height,
+                        color: Colors.grey[300],
+                        child: const Icon(Icons.image, color: Colors.grey),
+                      );
+                    },
+                  ),
+                ),
               ),
             ),
           );
         }).toList(),
       ),
     );
+  }
+  
+  /// Navigate to page from post
+  void _navigateToPostPage(post_models.Post post) {
+    print('🖱️ _navigateToPostPage: Clicked on post ${post.id}');
+    print('   Post pageId: ${post.pageId}');
+    print('   Total pages loaded: ${_allPages.length}');
+    print('   Page IDs: ${_allPages.map((p) => p.id).join(", ")}');
+    
+    // If post has a pageId, navigate to that page
+    if (post.pageId != null) {
+      // Find the page
+      models.Page? page;
+      try {
+        page = _allPages.firstWhere(
+          (p) => p.id == post.pageId,
+        );
+        print('✅ Found page: ${page.name} (${page.id})');
+      } catch (e) {
+        // Page not found
+        page = null;
+        print('❌ Page not found in cache for post.pageId: ${post.pageId}');
+        print('   Error: $e');
+      }
+      
+      if (page != null) {
+        print('🚀 Navigating to page: ${page.name}');
+        _navigateToPage(page);
+      } else {
+        // If page not found in cache, try to fetch it or show error
+        print('⚠️ Page not found for post: ${post.pageId}');
+        // Show a snackbar to inform the user
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Page not found. Please try again.'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } else {
+      // If post doesn't have a pageId, it's a user post - we can't navigate to a page
+      print('⚠️ Post ${post.id} does not have a pageId - cannot navigate to page');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('This post is not associated with a page.'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
   }
 }
 

@@ -1,19 +1,25 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../services/page_post_service.dart';
+import '../../../data/repositories/page_repository.dart';
 
 /// Create Page Post Screen - For webmasters to create posts on club/district pages
 class CreatePagePostScreen extends StatefulWidget {
-  final String? clubId;
-  final String? districtId;
+  final String? pageId; // Use pageId instead of clubId/districtId
+  final String? clubId; // Keep for backward compatibility
+  final String? districtId; // Keep for backward compatibility
   final String pageName;
+  final String? pageLogo; // Page logo URL
 
   const CreatePagePostScreen({
     super.key,
+    this.pageId,
     this.clubId,
     this.districtId,
     required this.pageName,
+    this.pageLogo,
   });
 
   @override
@@ -25,11 +31,43 @@ class _CreatePagePostScreenState extends State<CreatePagePostScreen> {
   final List<File> _selectedImages = [];
   bool _isLoading = false;
   final _imagePicker = ImagePicker();
+  final _pageRepository = PageRepository();
+  String? _pageLogo; // Store page logo
+  bool _isLoadingPage = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageLogo = widget.pageLogo;
+    // Load page data if pageId is available and logo is not provided
+    if (widget.pageId != null && _pageLogo == null) {
+      _loadPageData();
+    }
+  }
 
   @override
   void dispose() {
     _contentController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadPageData() async {
+    if (widget.pageId == null) return;
+    
+    setState(() => _isLoadingPage = true);
+    try {
+      final page = await _pageRepository.getPageById(widget.pageId!);
+      if (mounted) {
+        setState(() {
+          _pageLogo = page.logo;
+          _isLoadingPage = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingPage = false);
+      }
+    }
   }
 
   Future<void> _pickImages() async {
@@ -108,7 +146,14 @@ class _CreatePagePostScreenState extends State<CreatePagePostScreen> {
     try {
       Map<String, dynamic>? result;
 
-      if (widget.clubId != null) {
+      // Use pageId if available, otherwise fall back to clubId/districtId
+      if (widget.pageId != null) {
+        result = await PagePostService.createPagePost(
+          pageId: widget.pageId!,
+          content: content,
+          images: _selectedImages.isNotEmpty ? _selectedImages : null,
+        );
+      } else if (widget.clubId != null) {
         result = await PagePostService.createClubPost(
           clubId: widget.clubId!,
           content: content,
@@ -120,6 +165,8 @@ class _CreatePagePostScreenState extends State<CreatePagePostScreen> {
           content: content,
           images: _selectedImages.isNotEmpty ? _selectedImages : null,
         );
+      } else {
+        throw Exception('Page ID, Club ID, or District ID is required');
       }
 
       if (result != null && mounted) {
@@ -150,195 +197,401 @@ class _CreatePagePostScreenState extends State<CreatePagePostScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFFAFAFA),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
           icon: Container(
-            width: 36,
-            height: 36,
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: const Color(0xFF02091A),
-              borderRadius: BorderRadius.circular(10),
+              color: Colors.grey[100],
+              shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.close, color: Colors.white, size: 20),
+            child: const Icon(Icons.close, color: Color(0xFF333333), size: 20),
           ),
           onPressed: () => Navigator.pop(context),
         ),
         title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
               'Create Post',
               style: TextStyle(
-                fontFamily: 'Raleway',
-                fontSize: 18,
+                fontFamily: 'Poppins',
+                fontSize: 20,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF02091A),
+                color: Color(0xFF1A1A1A),
+                letterSpacing: -0.5,
               ),
             ),
             Text(
-              widget.pageName,
-              style: const TextStyle(
-                fontFamily: 'Inter',
+              widget.pageName.toLowerCase(),
+              style: TextStyle(
+                fontFamily: 'Poppins',
                 fontSize: 12,
-                color: Color(0xFF666666),
+                fontWeight: FontWeight.w400,
+                color: Colors.grey[600],
               ),
             ),
           ],
         ),
+        centerTitle: true,
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 16),
-            child: TextButton(
-              onPressed: _isLoading ? null : _createPost,
-              style: TextButton.styleFrom(
-                backgroundColor: const Color(0xFFFFD700),
-                foregroundColor: Colors.black,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFFFD700), Color(0xFFFFC107)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                borderRadius: BorderRadius.circular(25),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFFFD700).withOpacity(0.4),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
-              child: _isLoading
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.black,
-                      ),
-                    )
-                  : const Text(
-                      'Post',
-                      style: TextStyle(
-                        fontFamily: 'Raleway',
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: _isLoading ? null : _createPost,
+                  borderRadius: BorderRadius.circular(25),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                    child: _isLoading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Text(
+                            'Post',
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                  ),
+                ),
+              ),
             ),
           ),
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Content input
+            // Page profile section with gradient background
             Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: const Color(0xFFF5F5F5),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFE0E0E0)),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.white,
+                    const Color(0xFFFFD700).withOpacity(0.05),
+                  ],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  // Page logo/avatar with shadow
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: const Color(0xFFFFD700),
+                        width: 2.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFFFD700).withOpacity(0.3),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: ClipOval(
+                      child: _isLoadingPage
+                          ? const Center(
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : _pageLogo != null
+                              ? CachedNetworkImage(
+                                  imageUrl: _pageLogo!,
+                                  fit: BoxFit.cover,
+                                  placeholder: (context, url) => Container(
+                                    color: Colors.grey[200],
+                                    child: const Center(
+                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                    ),
+                                  ),
+                                  errorWidget: (context, url, error) => Container(
+                                    color: Colors.grey[200],
+                                    child: Center(
+                                      child: Text(
+                                        widget.pageName.substring(0, 2).toUpperCase(),
+                                        style: const TextStyle(
+                                          color: Color(0xFF666666),
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 18,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                )
+                              : Container(
+                                  color: Colors.grey[200],
+                                  child: Center(
+                                    child: Text(
+                                      widget.pageName.substring(0, 2).toUpperCase(),
+                                      style: const TextStyle(
+                                        color: Color(0xFF666666),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.pageName,
+                          style: const TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF1A1A1A),
+                            letterSpacing: -0.3,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Posting as ${widget.pageName}',
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 13,
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            // Text input area with modern design
+            Container(
+              margin: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 20,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: TextField(
                 controller: _contentController,
-                maxLines: 6,
-                decoration: const InputDecoration(
+                maxLines: null,
+                minLines: 6,
+                maxLength: 500,
+                style: const TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 16,
+                  color: Color(0xFF1A1A1A),
+                  height: 1.5,
+                ),
+                decoration: InputDecoration(
                   hintText: "What's on your mind?",
                   hintStyle: TextStyle(
-                    color: Color(0xFF999999),
-                    fontFamily: 'Inter',
+                    fontFamily: 'Poppins',
+                    fontSize: 16,
+                    color: Colors.grey[400],
+                    fontWeight: FontWeight.w400,
                   ),
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.all(16),
+                  counterStyle: TextStyle(
+                    fontFamily: 'Poppins',
+                    color: Colors.grey[500],
+                    fontSize: 12,
+                  ),
                 ),
               ),
             ),
-            const SizedBox(height: 20),
-
-            // Image preview
+            
+            // Photo preview grid
             if (_selectedImages.isNotEmpty) ...[
-              const Text(
-                'Photos',
-                style: TextStyle(
-                  fontFamily: 'Raleway',
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF333333),
-                ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                height: 120,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _selectedImages.length,
-                  itemBuilder: (context, index) {
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 12),
-                      child: Stack(
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.04),
+                        blurRadius: 20,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.file(
-                              _selectedImages[index],
-                              width: 120,
-                              height: 120,
-                              fit: BoxFit.cover,
+                          Text(
+                            'Selected Photos',
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[700],
                             ),
                           ),
-                          Positioned(
-                            top: 4,
-                            right: 4,
-                            child: GestureDetector(
-                              onTap: () => _removeImage(index),
-                              child: Container(
-                                width: 24,
-                                height: 24,
-                                decoration: const BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Colors.red,
-                                ),
-                                child: const Icon(
-                                  Icons.close,
-                                  color: Colors.white,
-                                  size: 16,
-                                ),
-                              ),
+                          Text(
+                            '${_selectedImages.length}/5',
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.grey[600],
                             ),
                           ),
                         ],
                       ),
-                    );
-                  },
+                      const SizedBox(height: 12),
+                      GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3,
+                          crossAxisSpacing: 8,
+                          mainAxisSpacing: 8,
+                        ),
+                        itemCount: _selectedImages.length,
+                        itemBuilder: (context, index) {
+                          return Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: Image.file(
+                                  _selectedImages[index],
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                              Positioned(
+                                top: 4,
+                                right: 4,
+                                child: GestureDetector(
+                                  onTap: () => _removeImage(index),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withOpacity(0.6),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.close,
+                                      color: Colors.white,
+                                      size: 16,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 20),
             ],
-
-            // Add photo buttons
-            Row(
-              children: [
-                Expanded(
-                  child: _MediaButton(
-                    icon: Icons.photo_library,
-                    label: 'Gallery',
-                    onTap: _pickImages,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _MediaButton(
-                    icon: Icons.camera_alt,
-                    label: 'Camera',
-                    onTap: _takePhoto,
-                  ),
-                ),
-              ],
-            ),
             
-            const SizedBox(height: 16),
-            Text(
-              '${_selectedImages.length}/5 photos added',
-              style: const TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 12,
-                color: Color(0xFF999999),
+            // Gallery and Camera buttons
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _MediaButton(
+                      icon: Icons.photo_library_rounded,
+                      label: 'Gallery',
+                      onTap: _pickImages,
+                      color: const Color(0xFFFFD700),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _MediaButton(
+                      icon: Icons.camera_alt_rounded,
+                      label: 'Camera',
+                      onTap: _takePhoto,
+                      color: const Color(0xFF8F7902),
+                    ),
+                  ),
+                ],
               ),
             ),
+            
+            // Photo count indicator
+            Padding(
+              padding: const EdgeInsets.only(left: 20, top: 12, bottom: 8),
+              child: Text(
+                '${_selectedImages.length}/5 photos added',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 13,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            
+            const SizedBox(height: 20),
           ],
         ),
       ),
@@ -350,38 +603,66 @@ class _MediaButton extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final Color color;
 
   const _MediaButton({
     required this.icon,
     required this.label,
     required this.onTap,
+    required this.color,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          border: Border.all(color: const Color(0xFFE0E0E0)),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: const Color(0xFFFFD700), size: 24),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: const TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF333333),
-              ),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                color.withOpacity(0.15),
+                color.withOpacity(0.08),
+              ],
             ),
-          ],
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: color.withOpacity(0.3),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: color.withOpacity(0.1),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                color: color,
+                size: 24,
+              ),
+              const SizedBox(width: 10),
+              Text(
+                label,
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
