@@ -308,7 +308,7 @@ class _MinusPainter extends CustomPainter {
   bool shouldRepaint(_MinusPainter oldDelegate) => oldDelegate.color != color;
 }
 
-/// Home icon painter - house shape
+/// Home icon painter - simple house outline matching other icons style
 class _HomePainter extends CustomPainter {
   final Color color;
 
@@ -319,33 +319,25 @@ class _HomePainter extends CustomPainter {
     final paint = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.8
+      ..strokeWidth = 1.5
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
 
-    // Draw house roof (triangle)
+    // Draw house roof (triangle) - simple outline
     final roofPath = Path()
-      ..moveTo(size.width * 0.5, size.height * 0.1)  // Top center
-      ..lineTo(size.width * 0.1, size.height * 0.45) // Bottom left
-      ..lineTo(size.width * 0.9, size.height * 0.45) // Bottom right
+      ..moveTo(size.width * 0.5, size.height * 0.15)  // Top center
+      ..lineTo(size.width * 0.15, size.height * 0.45) // Bottom left
+      ..lineTo(size.width * 0.85, size.height * 0.45) // Bottom right
       ..close();
     canvas.drawPath(roofPath, paint);
 
-    // Draw house body (rectangle)
+    // Draw house body (rectangle) - simple outline
     final bodyPath = Path()
       ..moveTo(size.width * 0.2, size.height * 0.45)
-      ..lineTo(size.width * 0.2, size.height * 0.85)
-      ..lineTo(size.width * 0.8, size.height * 0.85)
+      ..lineTo(size.width * 0.2, size.height * 0.9)
+      ..lineTo(size.width * 0.8, size.height * 0.9)
       ..lineTo(size.width * 0.8, size.height * 0.45);
     canvas.drawPath(bodyPath, paint);
-
-    // Draw door
-    final doorPath = Path()
-      ..moveTo(size.width * 0.4, size.height * 0.85)
-      ..lineTo(size.width * 0.4, size.height * 0.6)
-      ..lineTo(size.width * 0.6, size.height * 0.6)
-      ..lineTo(size.width * 0.6, size.height * 0.85);
-    canvas.drawPath(doorPath, paint);
   }
 
   @override

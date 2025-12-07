@@ -460,7 +460,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen>
                 ),
                 children: [
                   TextSpan(
-                    text: widget.clubName.replaceAll(' ', '_').toLowerCase() + ' ',
+                    text: '${widget.clubName.replaceAll(' ', '_').toLowerCase()} ',
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                   TextSpan(
@@ -490,7 +490,7 @@ class _ClubProfileScreenState extends State<ClubProfileScreen>
   }
 
   Widget _buildDotsMenu() {
-    return Container(
+    return SizedBox(
       width: 36,
       height: 36,
       child: Center(

@@ -5,9 +5,10 @@ import 'dart:io';
 import '../../../core/constants/colors.dart';
 import '../../../core/utils/validators.dart';
 import '../../../data/repositories/auth_repository.dart';
+import '../../../utils/responsive_utils.dart';
 
 class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({Key? key}) : super(key: key);
+  const RegisterScreen({super.key});
 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
@@ -25,6 +26,10 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _nameHasError = false;
+  bool _emailHasError = false;
+  bool _passwordHasError = false;
+  bool _confirmPasswordHasError = false;
   bool _agreeToTerms = false;
   File? _profileImage;
   final _picker = ImagePicker();
@@ -782,12 +787,16 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
 
   @override
   Widget build(BuildContext context) {
+    // Initialize responsive utilities at the start of build
+    ResponsiveUtils.init(context);
+    
     final scale = _getScaleFactor(context);
     // Only apply scaling if screen is smaller (scale < 1.0)
     final shouldScale = scale < 1.0;
     
     return Scaffold(
       backgroundColor: Colors.white,
+      resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
           // Register screen bubbles - only show when not showing success
@@ -797,15 +806,15 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
               animation: _bubble1RotationAnimation,
               builder: (context, child) {
                 return Positioned(
-                  left: -100,
-                  top: -60,
+                  left: ResponsiveUtils.bw(-100),
+                  top: ResponsiveUtils.bh(-60),
                   child: Transform.rotate(
                     angle: _bubble1RotationAnimation.value * (3.14159 / 180),
                     child: ClipPath(
                       clipper: _RegisterBubble02Clipper(),
                       child: Container(
-                        width: 320,
-                        height: 380,
+                        width: ResponsiveUtils.bs(320),
+                        height: ResponsiveUtils.bs(380),
                         decoration: const BoxDecoration(
                           color: Color(0xFFFFD700),
                         ),
@@ -821,15 +830,15 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
               animation: _bubble2RotationAnimation,
               builder: (context, child) {
                 return Positioned(
-                  right: -150,
-                  top: 0,
+                  right: ResponsiveUtils.bw(-150),
+                  top: ResponsiveUtils.bh(0),
                   child: Transform.rotate(
                     angle: _bubble2RotationAnimation.value * (3.14159 / 180),
                     child: ClipPath(
                       clipper: _RegisterBubble01Clipper(),
                       child: Container(
-                        width: 320,
-                        height: 380,
+                        width: ResponsiveUtils.bs(320),
+                        height: ResponsiveUtils.bs(380),
                         decoration: const BoxDecoration(
                           color: Color(0xFF02091A),
                         ),
@@ -867,16 +876,20 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                 ),
                 
                 Expanded(
-                  child: Padding(
+                  child: SingleChildScrollView(
+                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                    physics: const ClampingScrollPhysics(),
+                    child: Padding(
                     padding: EdgeInsets.symmetric(horizontal: shouldScale ? 35 * scale : 35),
                     child: Form(
                       key: _formKey,
+                      autovalidateMode: AutovalidateMode.disabled,
                       child: SlideTransition(
                         position: _contentSlideAnimation,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              SizedBox(height: 0),
+                              const SizedBox(height: 0),
                         
                         // Animated "Create Account" Title
                         FadeTransition(
@@ -887,7 +900,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                               fontFamily: 'Raleway',
                                 fontSize: shouldScale ? 52 * scale : 52,
                                 fontWeight: FontWeight.w700,
-                                color: Color(0xFF202020),
+                                color: const Color(0xFF202020),
                                 letterSpacing: shouldScale ? -0.52 * scale : -0.52,
                                 height: 1.17,
                             ),
@@ -925,40 +938,60 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                       
                       const SizedBox(height: 30),
                       
-                      // Animated Name Input Field - Material Design
+                      // Animated Name Input Field - Material Design 3 Standard
                       FadeTransition(
                         opacity: _field0FadeAnimation,
-                        child: TextFormField(
+                        child: SizedBox(
+                          height: 48, // Material standard height
+                          child: TextFormField(
                             controller: _nameController,
                             keyboardType: TextInputType.name,
+                            textInputAction: TextInputAction.next,
+                            autovalidateMode: AutovalidateMode.onUserInteraction,
                             validator: (value) {
                               if (value == null || value.isEmpty) {
+                                _nameHasError = true;
                                 return 'Name is required';
                               }
                               if (value.length < 2) {
+                                _nameHasError = true;
                                 return 'Name must be at least 2 characters';
                               }
+                              _nameHasError = false;
                               return null;
                             },
-                            style: TextStyle(
-                              fontFamily: 'Nunito Sans',
-                              fontSize: shouldScale ? 19 * scale : 19,
-                              fontWeight: FontWeight.w300,
+                            onChanged: (value) {
+                              setState(() {
+                                if (value.isEmpty || value.length < 2) {
+                                  _nameHasError = true;
+                                } else {
+                                  _nameHasError = false;
+                                }
+                              });
+                            },
+                            style: const TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 16, // Material standard: 16sp
+                              fontWeight: FontWeight.w400,
                               color: Colors.white,
                             ),
                             decoration: InputDecoration(
                               hintText: 'Full Name',
                               hintStyle: TextStyle(
-                                fontFamily: 'Nunito Sans',
-                                fontSize: shouldScale ? 19 * scale : 19,
-                                fontWeight: FontWeight.w300,
-                                color: Colors.white,
+                                fontFamily: 'Poppins',
+                                fontSize: 16, // Material standard: 16sp
+                                fontWeight: FontWeight.w400,
+                                color: Colors.white.withOpacity(0.7),
                               ),
                               filled: true,
-                              fillColor: Colors.black.withOpacity(0.4),
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: shouldScale ? 24 * scale : 24,
-                                vertical: shouldScale ? 14 * scale : 14,
+                              fillColor: _nameHasError
+                                  ? Colors.red.withOpacity(0.5)
+                                  : (_nameController.text.isNotEmpty
+                                      ? Colors.green.withOpacity(0.5)
+                                      : Colors.black.withOpacity(0.4)),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16, // Material standard: 16dp
+                                vertical: 12, // Material standard: 12dp
                               ),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(30),
@@ -980,38 +1013,62 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                                 borderRadius: BorderRadius.circular(30),
                                 borderSide: BorderSide.none,
                               ),
+                              // Hide error text to keep height stable
+                              errorStyle: const TextStyle(
+                                color: Colors.transparent,
+                                fontSize: 0,
+                                height: 0,
+                              ),
                             ),
                           ),
+                        ),
                       ),
                       
-                      SizedBox(height: shouldScale ? 12 * scale : 12),
+                      const SizedBox(height: 16), // Material standard spacing
                       
-                      // Animated Email Input Field - Material Design
+                      // Animated Email Input Field - Material Design 3 Standard
                       FadeTransition(
                         opacity: _field1FadeAnimation,
-                        child: TextFormField(
+                        child: SizedBox(
+                          height: 48, // Material standard height
+                          child: TextFormField(
                             controller: _emailController,
                             keyboardType: TextInputType.emailAddress,
-                            validator: Validators.validateEmail,
-                            style: TextStyle(
-                               fontFamily: 'Nunito Sans',
-                                    fontSize: shouldScale ? 19 * scale : 19,
-                                    fontWeight: FontWeight.w300,
-                                    color: Colors.white, // W
+                            textInputAction: TextInputAction.next,
+                            autovalidateMode: AutovalidateMode.onUserInteraction,
+                            validator: (value) {
+                              final error = Validators.validateEmail(value);
+                              _emailHasError = error != null;
+                              return error;
+                            },
+                            onChanged: (value) {
+                              setState(() {
+                                _emailHasError = Validators.validateEmail(value) != null;
+                              });
+                            },
+                            style: const TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 16, // Material standard: 16sp
+                              fontWeight: FontWeight.w400,
+                              color: Colors.white,
                             ),
                             decoration: InputDecoration(
                               hintText: 'Email',
                               hintStyle: TextStyle(
-                                 fontFamily: 'Nunito Sans',
-                                    fontSize: shouldScale ? 19 * scale : 19,
-                                    fontWeight: FontWeight.w300,
-                                    color: Colors.white, // W
+                                fontFamily: 'Poppins',
+                                fontSize: 16, // Material standard: 16sp
+                                fontWeight: FontWeight.w400,
+                                color: Colors.white.withOpacity(0.7),
                               ),
                               filled: true,
-                              fillColor: Colors.black.withOpacity(0.4),
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: shouldScale ? 24 * scale : 24,
-                                vertical: shouldScale ? 14 * scale : 14,
+                              fillColor: _emailHasError
+                                  ? Colors.red.withOpacity(0.5)
+                                  : (_emailController.text.isNotEmpty
+                                      ? Colors.green.withOpacity(0.5)
+                                      : Colors.black.withOpacity(0.4)),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16, // Material standard: 16dp
+                                vertical: 12, // Material standard: 12dp
                               ),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(30),
@@ -1033,51 +1090,75 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                                 borderRadius: BorderRadius.circular(30),
                                 borderSide: BorderSide.none,
                               ),
+                              // Hide error text to keep height stable; background color indicates error
+                              errorStyle: const TextStyle(
+                                color: Colors.transparent,
+                                fontSize: 0,
+                                height: 0,
+                              ),
                             ),
                           ),
+                        ),
                       ),
                       
-                      SizedBox(height: shouldScale ? 12 * scale : 12),
+                      const SizedBox(height: 16), // Material standard spacing
                       
-                      // Animated Password Input - Material Design
+                      // Animated Password Input - Material Design 3 Standard
                       FadeTransition(
                         opacity: _field2FadeAnimation,
-                        child: TextFormField(
+                        child: SizedBox(
+                          height: 48, // Material standard height
+                          child: TextFormField(
                             controller: _passwordController,
                             obscureText: _obscurePassword,
+                            textInputAction: TextInputAction.next,
+                            autovalidateMode: AutovalidateMode.onUserInteraction,
                             validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Password is required';
-                              }
-                              if (value.length < 6) {
-                                return 'Password must be at least 6 characters';
-                              }
-                              return null;
+                              final error = Validators.validatePassword(value);
+                              _passwordHasError = error != null;
+                              return error;
                             },
-                            style: TextStyle(
-                               fontFamily: 'Nunito Sans',
-                                    fontSize: shouldScale ? 19 * scale : 19,
-                                    fontWeight: FontWeight.w300,
-                                    color: Colors.white, // W
+                            onChanged: (value) {
+                              setState(() {
+                                _passwordHasError =
+                                    Validators.validatePassword(value) != null;
+                                _confirmPasswordHasError =
+                                    Validators.validateConfirmPassword(
+                                          _confirmPasswordController.text,
+                                          value,
+                                        ) !=
+                                        null;
+                              });
+                            },
+                            style: const TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 16, // Material standard: 16sp
+                              fontWeight: FontWeight.w400,
+                              color: Colors.white,
                             ),
                             decoration: InputDecoration(
                               hintText: 'Password',
                               hintStyle: TextStyle(
-                                 fontFamily: 'Nunito Sans',
-                                    fontSize: shouldScale ? 19 * scale : 19,
-                                    fontWeight: FontWeight.w300,
-                                    color: Colors.white, // W
+                                fontFamily: 'Poppins',
+                                fontSize: 16, // Material standard: 16sp
+                                fontWeight: FontWeight.w400,
+                                color: Colors.white.withOpacity(0.7),
                               ),
                               filled: true,
-                              fillColor: Colors.black.withOpacity(0.4),
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: shouldScale ? 24 * scale : 24,
-                                vertical: shouldScale ? 18 * scale : 18,
+                              fillColor: _passwordHasError
+                                  ? Colors.red.withOpacity(0.5)
+                                  : (_passwordController.text.isNotEmpty
+                                      ? Colors.green.withOpacity(0.5)
+                                      : Colors.black.withOpacity(0.4)),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16, // Material standard: 16dp
+                                vertical: 12, // Material standard: 12dp
                               ),
                               suffixIcon: IconButton(
                                 icon: Icon(
                                   _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
                                   color: Colors.white70,
+                                  size: 20, // Material standard icon size
                                 ),
                                 onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                               ),
@@ -1101,48 +1182,89 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                                 borderRadius: BorderRadius.circular(30),
                                 borderSide: BorderSide.none,
                               ),
+                              errorStyle: const TextStyle(
+                                height: 0,
+                                fontSize: 0,
+                              ),
                             ),
                           ),
+                        ),
                       ),
+                      // Live password rules hint (stays outside field so height doesn’t jump)
+                      if (_passwordHasError && _passwordController.text.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            'Password must be at least 8 characters,\ninclude uppercase, lowercase and a number.',
+                            style: const TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 12,
+                              fontWeight: FontWeight.w400,
+                              color: Colors.red,
+                              height: 1.2,
+                            ),
+                          ),
+                        ),
                       
-                      SizedBox(height: shouldScale ? 12 * scale : 12),
+                      const SizedBox(height: 16), // Material standard spacing
                       
-                      // Animated Confirm Password Input - Material Design
+                      // Animated Confirm Password Input - Material Design 3 Standard
                       FadeTransition(
                         opacity: _field3FadeAnimation,
-                        child: TextFormField(
+                        child: SizedBox(
+                          height: 48, // Material standard height
+                          child: TextFormField(
                             controller: _confirmPasswordController,
                             obscureText: _obscureConfirmPassword,
+                            textInputAction: TextInputAction.next,
+                            autovalidateMode: AutovalidateMode.onUserInteraction,
                             validator: (value) {
-                              if (value != _passwordController.text) {
-                                return 'Passwords do not match';
-                              }
-                              return null;
+                              final error = Validators.validateConfirmPassword(
+                                value,
+                                _passwordController.text,
+                              );
+                              _confirmPasswordHasError = error != null;
+                              return error;
                             },
-                            style: TextStyle(
-                               fontFamily: 'Nunito Sans',
-                                    fontSize: shouldScale ? 19 * scale : 19,
-                                    fontWeight: FontWeight.w300,
-                                    color: Colors.white, // W
+                            onChanged: (value) {
+                              setState(() {
+                                _confirmPasswordHasError =
+                                    Validators.validateConfirmPassword(
+                                          value,
+                                          _passwordController.text,
+                                        ) !=
+                                        null;
+                              });
+                            },
+                            style: const TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 16, // Material standard: 16sp
+                              fontWeight: FontWeight.w400,
+                              color: Colors.white,
                             ),
                             decoration: InputDecoration(
                               hintText: 'Confirm Password',
                               hintStyle: TextStyle(
-                                 fontFamily: 'Nunito Sans',
-                                    fontSize: shouldScale ? 19 * scale : 19,
-                                    fontWeight: FontWeight.w300,
-                                    color: Colors.white, // W
+                                fontFamily: 'Poppins',
+                                fontSize: 16, // Material standard: 16sp
+                                fontWeight: FontWeight.w400,
+                                color: Colors.white.withOpacity(0.7),
                               ),
                               filled: true,
-                              fillColor: Colors.black.withOpacity(0.4),
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: shouldScale ? 24 * scale : 24,
-                                vertical: shouldScale ? 18 * scale : 18,
+                              fillColor: _confirmPasswordHasError
+                                  ? Colors.red.withOpacity(0.5)
+                                  : (_confirmPasswordController.text.isNotEmpty
+                                      ? Colors.green.withOpacity(0.5)
+                                      : Colors.black.withOpacity(0.4)),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16, // Material standard: 16dp
+                                vertical: 12, // Material standard: 12dp
                               ),
                               suffixIcon: IconButton(
                                 icon: Icon(
                                   _obscureConfirmPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
                                   color: Colors.white70,
+                                  size: 20, // Material standard icon size
                                 ),
                                 onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
                               ),
@@ -1166,60 +1288,68 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                                 borderRadius: BorderRadius.circular(30),
                                 borderSide: BorderSide.none,
                               ),
+                              errorStyle: const TextStyle(
+                                height: 0,
+                                fontSize: 0,
+                              ),
                             ),
                           ),
+                        ),
                       ),
                       
-                      SizedBox(height: shouldScale ? 12 * scale : 12),
+                      const SizedBox(height: 16), // Material standard spacing
                       
-                      // Animated Phone Number Input - Material Design
+                      // Animated Phone Number Input - Material Design 3 Standard
                       FadeTransition(
                         opacity: _field4FadeAnimation,
-                        child: TextFormField(
+                        child: SizedBox(
+                          height: 48, // Material standard height
+                          child: TextFormField(
                             controller: _phoneController,
                             keyboardType: TextInputType.phone,
-                            style: TextStyle(
-                               fontFamily: 'Nunito Sans',
-                                    fontSize: shouldScale ? 19 * scale : 19,
-                                    fontWeight: FontWeight.w300,
-                                    color: Colors.white, // W
+                            textInputAction: TextInputAction.done,
+                            style: const TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 16, // Material standard: 16sp
+                              fontWeight: FontWeight.w400,
+                              color: Colors.white,
                             ),
                             decoration: InputDecoration(
                               hintText: 'Your number',
                               hintStyle: TextStyle(
-                                fontFamily: 'Nunito Sans',
-                                    fontSize: shouldScale ? 19 * scale : 19,
-                                    fontWeight: FontWeight.w300,
-                                    color: Colors.white, // W
+                                fontFamily: 'Poppins',
+                                fontSize: 16, // Material standard: 16sp
+                                fontWeight: FontWeight.w400,
+                                color: Colors.white.withOpacity(0.7),
                               ),
                               filled: true,
                               fillColor: Colors.black.withOpacity(0.4),
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: shouldScale ? 24 * scale : 24,
-                                vertical: shouldScale ? 18 * scale : 18,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16, // Material standard: 16dp
+                                vertical: 12, // Material standard: 12dp
                               ),
                               prefixIcon: InkWell(
                                 onTap: _showCountryPicker,
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const SizedBox(width: 16),
-                                    Text(_selectedCountryFlag, style: const TextStyle(fontSize: 20)),
+                                    const SizedBox(width: 12),
+                                    Text(_selectedCountryFlag, style: const TextStyle(fontSize: 18)),
                                     const SizedBox(width: 4),
-                                    const Icon(Icons.arrow_drop_down, color: Colors.white70),
+                                    const Icon(Icons.arrow_drop_down, color: Colors.white70, size: 20),
                                     Container(
-                                      margin: const EdgeInsets.only(left: 8, right: 12),
+                                      margin: const EdgeInsets.only(left: 4, right: 8),
                                       width: 1,
-                                      height: 28,
+                                      height: 24,
                                       color: Colors.white38,
                                     ),
                                     Text(
                                       _selectedCountryCode,
                                       style: const TextStyle(
-                                         fontFamily: 'Nunito Sans',
-                                          fontSize: 19,
-                                          fontWeight: FontWeight.w300,
-                                          color: Colors.white, // W
+                                        fontFamily: 'Poppins',
+                                        fontSize: 14, // Slightly smaller for prefix
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.white,
                                       ),
                                     ),
                                     const SizedBox(width: 8),
@@ -1246,20 +1376,22 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                                 borderRadius: BorderRadius.circular(30),
                                 borderSide: BorderSide.none,
                               ),
+                              errorStyle: const TextStyle(height: 0, fontSize: 0),
                             ),
                           ),
+                        ),
                       ),
                       
-                      SizedBox(height: shouldScale ? 10 * scale : 10),
+                      const SizedBox(height: 12), // Slightly less spacing before checkbox
                       
-                      // Animated Checkbox
+                      // Animated Checkbox - Material Design 3 Standard
                       FadeTransition(
                         opacity: _checkboxFadeAnimation,
                         child: Row(
                           children: [
                             SizedBox(
-                              width: shouldScale ? 24 * scale : 24,
-                              height: shouldScale ? 24 * scale : 24,
+                              width: 24, // Material standard checkbox size
+                              height: 24,
                               child: Checkbox(
                                 value: _agreeToTerms,
                                 onChanged: (value) {
@@ -1269,22 +1401,22 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                                 },
                                 activeColor: Colors.black,
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(shouldScale ? 4 * scale : 4),
+                                  borderRadius: BorderRadius.circular(4), // Material standard: 4dp
                                 ),
                               ),
                             ),
-                            SizedBox(width: shouldScale ? 8 * scale : 8),
+                            const SizedBox(width: 8), // Material standard: 8dp spacing
                             Expanded(
                               child: GestureDetector(
                                 onTap: _showTermsAndConditions,
                                 child: RichText(
-                                  text: TextSpan(
+                                  text: const TextSpan(
                                     text: 'I agree All ',
                                     style: TextStyle(
-                                       fontFamily: 'Nunito Sans',
-                                    fontSize: shouldScale ? 16 * scale : 16,
-                                    fontWeight: FontWeight.w300,
-                                    color: Color.fromARGB(255, 0, 0, 0), // W,
+                                      fontFamily: 'Poppins',
+                                      fontSize: 14, // Material standard for helper text
+                                      fontWeight: FontWeight.w400,
+                                      color: Color(0xFF202020),
                                     ),
                                     children: [
                                       TextSpan(
@@ -1293,7 +1425,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                                           color: Color(0xFF0088FF),
                                           decoration: TextDecoration.underline,
                                           fontWeight: FontWeight.w500,
-                                          fontSize: shouldScale ? 16 * scale : 16,
+                                          fontSize: 14, // Material standard
                                         ),
                                       ),
                                     ],
@@ -1305,26 +1437,26 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                         ),
                       ),
                       
-                      SizedBox(height: shouldScale ? 10 * scale : 10),
+                      const SizedBox(height: 24), // Material standard: 24dp before button
                       
-                      // Animated Register Button - Material Design
+                      // Animated Register Button - Material Design 3 Standard
                       FadeTransition(
                         opacity: _checkboxFadeAnimation,
                         child: ScaleTransition(
                           scale: _buttonScaleAnimation,
                           child: SizedBox(
                             width: double.infinity,
-                            height: shouldScale ? 56 * scale : 56,
+                            height: 48, // Material standard button height
                             child: FilledButton(
                               onPressed: _isLoading ? null : _handleRegister,
                               style: FilledButton.styleFrom(
                                 backgroundColor: Colors.black,
                                 foregroundColor: Colors.white,
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(30),
+                                  borderRadius: BorderRadius.circular(24), // Pill-shaped
                                 ),
-                                elevation: 4,
-                                shadowColor: Colors.black.withOpacity(0.3),
+                                elevation: 2,
+                                shadowColor: Colors.black.withOpacity(0.2),
                               ),
                               child: _isLoading
                                   ? const SizedBox(
@@ -1335,11 +1467,11 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                                         strokeWidth: 2.5,
                                       ),
                                     )
-                                    : Text(
+                                  : const Text(
                                       'Register',
                                       style: TextStyle(
                                         fontFamily: 'Poppins',
-                                        fontSize: shouldScale ? 18 * scale : 18,
+                                        fontSize: 16, // Material standard: 14-16sp for buttons
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
@@ -1348,19 +1480,22 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                         ),
                       ),
                       
-                      SizedBox(height: shouldScale ? 5 * scale : 5),
+                      const SizedBox(height: 8), // Material standard spacing
                       
-                      // Animated Cancel Button
+                      // Animated Cancel Button - Material Design 3 Standard
                       FadeTransition(
                         opacity: _checkboxFadeAnimation,
                         child: Center(
                           child: TextButton(
                             onPressed: _handleCancel,
-                            child: Text(
+                            style: TextButton.styleFrom(
+                              minimumSize: const Size(48, 48), // Material touch target
+                            ),
+                            child: const Text(
                               'Cancel',
                               style: TextStyle(
                                 fontFamily: 'Poppins',
-                                fontSize: shouldScale ? 16 * scale : 16,
+                                fontSize: 14, // Material standard for secondary actions
                                 fontWeight: FontWeight.w500,
                                 color: Colors.black,
                               ),
@@ -1369,13 +1504,15 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                         ),
                       ),
                       
-                      
+                      // Add bottom padding for keyboard
+                      SizedBox(height: MediaQuery.of(context).viewInsets.bottom > 0 ? 20 : 0),
                     
                               ],
                             ),
                           ),
                         ),
                       ),
+                    ),
                 ),
                   ],
                 ),
@@ -1391,14 +1528,14 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                   BackdropFilter(
                     filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                     child: Container(
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         gradient: LinearGradient(
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                           colors: [
-                            const Color(0xFFF5F5F5),
-                            const Color(0xFFFFFFFF),
-                            const Color(0xFFF0F9FF),
+                            Color(0xFFF5F5F5),
+                            Color(0xFFFFFFFF),
+                            Color(0xFFF0F9FF),
                           ],
                         ),
                       ),
@@ -1420,15 +1557,15 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                         animation: _successBubble1RotationAnimation,
                         builder: (context, child) {
                           return Positioned(
-                            left: -100,
-                            top: -60,
+                            left: ResponsiveUtils.bw(-100),
+                            top: ResponsiveUtils.bh(-60),
                             child: Transform.rotate(
                               angle: _successBubble1RotationAnimation.value * (3.14159 / 180),
                               child: ClipPath(
                                 clipper: _RegisterBubble02Clipper(),
                                 child: Container(
-                                  width: 320,
-                                  height: 380,
+                                  width: ResponsiveUtils.bs(320),
+                                  height: ResponsiveUtils.bs(380),
                                   decoration: const BoxDecoration(
                                     color: Color(0xFFFFD700),
                                   ),
@@ -1443,15 +1580,15 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                         animation: _successBubble2RotationAnimation,
                         builder: (context, child) {
                           return Positioned(
-                            right: -150,
-                            top: 0,
+                            right: ResponsiveUtils.bw(-150),
+                            top: ResponsiveUtils.bh(0),
                             child: Transform.rotate(
                               angle: _successBubble2RotationAnimation.value * (3.14159 / 180),
                               child: ClipPath(
                                 clipper: _RegisterBubble01Clipper(),
                                 child: Container(
-                                  width: 320,
-                                  height: 380,
+                                  width: ResponsiveUtils.bs(320),
+                                  height: ResponsiveUtils.bs(380),
                                   decoration: const BoxDecoration(
                                     color: Color(0xFF02091A),
                                   ),
@@ -1568,12 +1705,12 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                                   child: Container(
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(28),
-                                      gradient: LinearGradient(
+                                      gradient: const LinearGradient(
                                         begin: Alignment.topLeft,
                                         end: Alignment.bottomRight,
                                         colors: [
                                           Colors.white,
-                                          const Color(0xFFFAFAFA),
+                                          Color(0xFFFAFAFA),
                                         ],
                                       ),
                                       boxShadow: [
@@ -1731,7 +1868,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                                                     borderRadius: BorderRadius.circular(20),
                                                     color: const Color(0xFF4CAF50).withOpacity(0.1),
                                                   ),
-                                                  child: Row(
+                                                  child: const Row(
                                                     mainAxisSize: MainAxisSize.min,
                                                     children: [
                                                       SizedBox(
@@ -1740,12 +1877,12 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                                                         child: CircularProgressIndicator(
                                                           strokeWidth: 2.5,
                                                           valueColor: AlwaysStoppedAnimation<Color>(
-                                                            const Color(0xFF4CAF50),
+                                                            Color(0xFF4CAF50),
                                                           ),
                                                         ),
                                                       ),
-                                                      const SizedBox(width: 12),
-                                                      const Text(
+                                                      SizedBox(width: 12),
+                                                      Text(
                                                         'Redirecting to login...',
                                                         style: TextStyle(
                                                           fontFamily: 'Nunito Sans',
@@ -1785,7 +1922,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
 
 // Success Dialog Widget
 class _SuccessDialog extends StatefulWidget {
-  const _SuccessDialog({Key? key}) : super(key: key);
+  const _SuccessDialog({super.key});
 
   @override
   State<_SuccessDialog> createState() => _SuccessDialogState();
@@ -1830,6 +1967,9 @@ class _SuccessDialogState extends State<_SuccessDialog>
 
   @override
   Widget build(BuildContext context) {
+    // Initialize responsive utilities
+    ResponsiveUtils.init(context);
+    
     return Material(
       color: Colors.transparent,
       child: Stack(
@@ -1843,13 +1983,13 @@ class _SuccessDialogState extends State<_SuccessDialog>
               children: [
                 // Olive/Yellow organic shape top-left
                 Positioned(
-                  top: -150,
-                  left: -100,
+                  top: ResponsiveUtils.bh(-150),
+                  left: ResponsiveUtils.bw(-100),
                   child: ClipPath(
                     clipper: _SuccessDialogOliveShapeClipper(),
                     child: Container(
-                      width: 400,
-                      height: 350,
+                      width: ResponsiveUtils.bs(400),
+                      height: ResponsiveUtils.bs(350),
                       decoration: const BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
@@ -1866,13 +2006,13 @@ class _SuccessDialogState extends State<_SuccessDialog>
 
                 // Black organic shape top-right
                 Positioned(
-                  top: -50,
-                  right: -150,
+                  top: ResponsiveUtils.bh(-50),
+                  right: ResponsiveUtils.bw(-150),
                   child: ClipPath(
                     clipper: _SuccessDialogBlackShapeClipper(),
                     child: Container(
-                      width: 450,
-                      height: 400,
+                      width: ResponsiveUtils.bs(450),
+                      height: ResponsiveUtils.bs(400),
                       decoration: const BoxDecoration(
                         gradient: LinearGradient(
                           colors: [Color(0xFF000000), Color(0xFF1A1A1A)],

@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:provider/provider.dart';
 import '../../../core/constants/colors.dart';
 import '../../../data/models/user.dart';
 import '../../../data/repositories/auth_repository.dart';
+import '../../../providers/auth_provider.dart';
+import '../../../utils/responsive_utils.dart';
 import '../../widgets/loading_indicator.dart';
-import '../../widgets/app_bottom_nav.dart';
+import '../../widgets/custom_back_button.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({Key? key}) : super(key: key);
+  const ProfileScreen({super.key});
+  
+  static final GlobalKey<_ProfileScreenState> globalKey = GlobalKey<_ProfileScreenState>();
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -23,57 +28,192 @@ class _ProfileScreenState extends State<ProfileScreen>
   bool _isLoading = true;
   bool _isVerifying = false;
   
-  late AnimationController _headerController;
-  late Animation<double> _headerFadeAnimation;
-  late Animation<Offset> _headerSlideAnimation;
+  late AnimationController _animationController;
+  late Animation<Offset> _bubblesSlideAnimation;
+  late Animation<Offset> _bottomYellowBubbleSlideAnimation;
+  late Animation<Offset> _contentSlideAnimation;
+  late Animation<double> _bubblesFadeAnimation;
+  late Animation<double> _contentFadeAnimation;
+  DateTime? _lastAnimationTime;
+  
+  // Save reference to AuthProvider to use in dispose
+  AuthProvider? _authProvider;
 
   @override
   void initState() {
     super.initState();
     
-    _headerController = AnimationController(
-      duration: const Duration(milliseconds: 1000),
+    // Initialize animation controller
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
       vsync: this,
     );
     
-    _headerFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _headerController, curve: Curves.easeIn),
-    );
-    
-    _headerSlideAnimation = Tween<Offset>(
-      begin: const Offset(0, -0.2),
+    // Bubbles animation - coming from outside (top-left)
+    _bubblesSlideAnimation = Tween<Offset>(
+      begin: const Offset(-0.5, -0.5), // Start from top-left outside
       end: Offset.zero,
-    ).animate(
-      CurvedAnimation(parent: _headerController, curve: Curves.easeOut),
-    );
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeOutCubic,
+    ));
+    
+    // Bottom yellow bubble animation - coming from right outside
+    _bottomYellowBubbleSlideAnimation = Tween<Offset>(
+      begin: const Offset(0.5, 0.0), // Start from right outside
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeOutCubic,
+    ));
+    
+    _bubblesFadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
+    ));
+    
+    // Content animation - coming from bottom
+    _contentSlideAnimation = Tween<Offset>(
+      begin: const Offset(0.0, 0.3),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: const Interval(0.2, 1.0, curve: Curves.easeOutCubic),
+    ));
+    
+    _contentFadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: const Interval(0.2, 1.0, curve: Curves.easeOut),
+    ));
     
     _loadProfile();
   }
   
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Save reference to AuthProvider when dependencies are available
+    if (_authProvider == null) {
+      _authProvider = Provider.of<AuthProvider>(context, listen: false);
+      _authProvider!.addListener(_onAuthProviderChanged);
+    }
+  }
+  
+  void _onAuthProviderChanged() {
+    if (!mounted) return;
+    if (_authProvider?.user != null && _authProvider!.user != _user) {
+      setState(() {
+        _user = _authProvider!.user;
+        // Update Leo ID controller if user has Leo ID (always sync from provider)
+        if (_authProvider!.user?.leoId != null && _authProvider!.user!.leoId!.isNotEmpty) {
+          _leoIdController.text = _authProvider!.user!.leoId!;
+        } else {
+          // Clear the controller if no Leo ID (user might have logged out or changed)
+          _leoIdController.clear();
+        }
+      });
+    }
+  }
+  
+  @override
   void dispose() {
+    // Remove listener using saved reference (safe to use in dispose)
+    _authProvider?.removeListener(_onAuthProviderChanged);
+    
     _scrollController.dispose();
-    _headerController.dispose();
+    _animationController.dispose();
     _leoIdController.dispose();
     super.dispose();
+  }
+  
+  // Public method to restart animation (called from MainScreen)
+  void restartAnimation() {
+    if (!mounted) return;
+    
+    final now = DateTime.now();
+    if (_lastAnimationTime == null || 
+        now.difference(_lastAnimationTime!).inMilliseconds > 200) {
+      _lastAnimationTime = now;
+      
+      if (_animationController.isAnimating) {
+        _animationController.stop();
+      }
+      
+      _animationController.reset();
+      _animationController.forward();
+    }
+    
+    // Also reload profile data when animation restarts (e.g., when switching to profile tab)
+    _loadProfile();
   }
 
   Future<void> _loadProfile() async {
     try {
-      final user = await _authRepository.getCurrentUser();
-      
-      if (mounted) {
-        setState(() {
-          _user = user;
-          _isLoading = false;
-          // Pre-fill Leo ID if already set
-          if (user.leoClubId != null && user.leoClubId!.isNotEmpty) {
-            _leoIdController.text = user.leoClubId!;
-          }
-        });
-        _headerController.forward();
+      // Always try to get fresh user data from API first (to get latest role)
+      try {
+        final freshUser = await _authRepository.getCurrentUser();
+        
+        // Debug: Print the role and Leo ID from API
+        print('🔍 Profile Screen - Fresh user from API - role: ${freshUser.role}, displayRole: ${freshUser.displayRole}');
+        print('🔍 Profile Screen - Fresh user leoId: ${freshUser.leoId}');
+        print('🔍 Profile Screen - Fresh user isVerified: ${freshUser.isVerified}');
+        
+        // Update AuthProvider with fresh data
+        _authProvider ??= Provider.of<AuthProvider>(context, listen: false);
+        _authProvider!.updateUser(freshUser);
+        
+        if (mounted) {
+          setState(() {
+            _user = freshUser;
+            _isLoading = false;
+            // Pre-fill Leo ID if already verified (use leoId field, not leoClubId)
+            if (freshUser.leoId != null && freshUser.leoId!.isNotEmpty) {
+              _leoIdController.text = freshUser.leoId!;
+              print('✅ Profile Screen - Set Leo ID controller to: ${freshUser.leoId}');
+            } else {
+              _leoIdController.clear();
+              print('⚠️ Profile Screen - No Leo ID found, cleared controller');
+            }
+          });
+          // Don't start animation here - wait for restartAnimation() call
+          return;
+        }
+      } catch (e) {
+        // If API fails, fall back to AuthProvider user (for Super Admin)
+        _authProvider ??= Provider.of<AuthProvider>(context, listen: false);
+        User? user = _authProvider?.user;
+        
+        if (mounted) {
+          setState(() {
+            _user = user;
+            _isLoading = false;
+            // Pre-fill Leo ID if already verified (use leoId field, not leoClubId)
+            if (user?.leoId != null && user!.leoId!.isNotEmpty) {
+              _leoIdController.text = user.leoId!;
+            }
+          });
+          // Don't start animation here - wait for restartAnimation() call
+          return;
+        }
       }
     } catch (e) {
+      // If API fails, still try to use AuthProvider user (for Super Admin)
+      _authProvider ??= Provider.of<AuthProvider>(context, listen: false);
+      if (_authProvider?.user != null && mounted) {
+        setState(() {
+          _user = _authProvider!.user;
+          _isLoading = false;
+        });
+        // Don't start animation here - wait for restartAnimation() call
+        return;
+      }
+      
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -117,18 +257,49 @@ class _ProfileScreenState extends State<ProfileScreen>
       // Call backend to verify and save Leo ID
       final verifiedUser = await _authRepository.verifyLeoId(leoId);
       
-      // Update local user state with verified user from backend
-      setState(() {
-        _user = verifiedUser;
-        _isVerifying = false;
-      });
+      // Debug: Print the role returned from backend
+      print('🔍 Profile Screen - Verified user role: ${verifiedUser.role}');
+      print('🔍 Profile Screen - Verified user isVerified: ${verifiedUser.isVerified}');
+      print('🔍 Profile Screen - Verified user leoId: ${verifiedUser.leoId}');
       
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('🎉 Leo ID verified successfully! You can now create posts.'),
-          backgroundColor: Color(0xFF1CC406),
-        ),
-      );
+      // Update AuthProvider with the verified user (so role change is reflected globally)
+      _authProvider ??= Provider.of<AuthProvider>(context, listen: false);
+      _authProvider!.updateUser(verifiedUser);
+      
+      // Update local user state with verified user from backend
+      if (mounted) {
+        setState(() {
+          _user = verifiedUser;
+          _isVerifying = false;
+          // Pre-fill Leo ID in the controller
+          if (verifiedUser.leoId != null && verifiedUser.leoId!.isNotEmpty) {
+            _leoIdController.text = verifiedUser.leoId!;
+          }
+        });
+        
+        // Show success message with role info
+        final roleMessage = verifiedUser.role.toLowerCase() == 'webmaster' 
+            ? '🎉 Leo ID verified successfully! You are now a Webmaster and can create posts and events.'
+            : '🎉 Leo ID verified successfully! You can now create posts.';
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(roleMessage),
+            backgroundColor: const Color(0xFF1CC406),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+        
+        // Reload profile from backend to ensure we have the latest data (including role)
+        // This ensures the UI reflects any backend updates
+        await _loadProfile();
+        
+        // Debug: Print the role after reload
+        if (mounted && _user != null) {
+          print('🔍 Profile Screen - After reload, user role: ${_user!.role}');
+          print('🔍 Profile Screen - After reload, displayRole: ${_user!.displayRole}');
+        }
+      }
     } catch (e) {
       setState(() => _isVerifying = false);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -142,7 +313,9 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   Future<void> _logout() async {
     try {
-      await _authRepository.logout();
+      // Use AuthProvider for logout (handles both Super Admin and regular users)
+      _authProvider ??= Provider.of<AuthProvider>(context, listen: false);
+      await _authProvider!.logout();
       if (mounted) {
         Navigator.pushReplacementNamed(context, '/login');
       }
@@ -167,9 +340,9 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
 
     if (_user == null) {
-      return Scaffold(
+      return const Scaffold(
         backgroundColor: AppColors.white,
-        body: const Center(
+        body: Center(
           child: Text('Failed to load profile'),
         ),
       );
@@ -179,278 +352,310 @@ class _ProfileScreenState extends State<ProfileScreen>
       backgroundColor: AppColors.white,
       body: Stack(
         children: [
-          // Figma Bubbles with simple fade-in transition
-          // Position: left: -249.4px, top: -294.78px, size: 816.339px x 1238.97px
+          // Top Figma Bubbles - animated to slide in from top-left
           Positioned(
             left: -249.4,
             top: -294.78,
-            child: TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0.0, end: 1.0),
-              duration: const Duration(milliseconds: 600),
-              curve: Curves.easeOut,
-              builder: (context, opacity, child) {
-                return Opacity(
-                  opacity: opacity,
-                  child: child,
-                );
-              },
-              child: SizedBox(
-                width: 816.339,
-                height: 1238.97,
-                child: CustomPaint(
-                  painter: _FigmaBubblesPainter(),
+            child: FadeTransition(
+              opacity: _bubblesFadeAnimation,
+              child: SlideTransition(
+                position: _bubblesSlideAnimation,
+                child: SizedBox(
+                  width: 816.339,
+                  height: 1238.97,
+                  child: CustomPaint(
+                    painter: _TopFigmaBubblesPainter(),
+                  ),
                 ),
               ),
             ),
           ),
           
-          // Main content with animated scroll
-          SafeArea(
-            child: SingleChildScrollView(
-              controller: _scrollController,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header with back button and title - Figma: left: 10px, top: 50px
-                  SlideTransition(
-                    position: _headerSlideAnimation,
-                    child: FadeTransition(
-                      opacity: _headerFadeAnimation,
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 10, top: 2),
-                        child: Row(
-                          children: [
-                            // Back arrow - Figma: 50x53px
-                            GestureDetector(
-                              onTap: () => Navigator.pop(context),
-                              child: Container(
-                                width: 50,
-                                height: 53,
-                                padding: const EdgeInsets.all(8),
-                                child: Image.asset(
-                                  'assets/images/profile/back_arrow.png',
-                                  fit: BoxFit.contain,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 9),
-                            // Profile title - Figma: Raleway Bold 50px, white, tracking: -0.52px
-                            const Text(
-                              'Profile',
-                              style: TextStyle(
-                                fontFamily: 'Raleway',
-                                fontSize: 50,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
-                                letterSpacing: -0.52,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+          // Bottom Yellow Bubble - animated to slide in from right
+          Positioned(
+            left: -249.4,
+            top: -294.78,
+            child: FadeTransition(
+              opacity: _bubblesFadeAnimation,
+              child: SlideTransition(
+                position: _bottomYellowBubbleSlideAnimation,
+                child: SizedBox(
+                  width: 816.339,
+                  height: 1238.97,
+                  child: CustomPaint(
+                    painter: _BottomYellowBubblePainter(),
                   ),
-                  
-                  const SizedBox(height: 25),
-                  
-                  // Profile avatar with gold border - Figma: 127.2px size, border #8F7902 with shadow
-                  FadeTransition(
-                    opacity: _headerFadeAnimation,
-                    child: Center(
-                      child: Column(
-                        children: [
-                          Container(
-                            width: 127.2,
-                            height: 127.2,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: const Color(0xFF8F7902), // Figma: #8F7902 dark gold
-                                width: 3,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.16),
-                                  blurRadius: 5,
-                                  spreadRadius: 0,
-                                ),
-                              ],
+                ),
+              ),
+            ),
+          ),
+          
+          // Main content - animated to slide up from bottom
+          Positioned(
+            left: 0,
+            right: 0,
+            top: ResponsiveUtils.bh(155),
+            bottom: 0,
+            child: FadeTransition(
+              opacity: _contentFadeAnimation,
+              child: SlideTransition(
+                position: _contentSlideAnimation,
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: Padding(
+                    padding: EdgeInsets.only(top: ResponsiveUtils.dp(20)),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(ResponsiveUtils.r(35)),
+                      child: Container(
+                        width: ResponsiveUtils.dp(375),
+                        constraints: BoxConstraints(
+                          maxHeight: MediaQuery.of(context).size.height - ResponsiveUtils.bh(155) - MediaQuery.of(context).padding.bottom - ResponsiveUtils.dp(40),
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color.fromARGB(255, 0, 0, 0).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(ResponsiveUtils.r(35)),
+                        ),
+                        child: SingleChildScrollView(
+                          controller: _scrollController,
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              minWidth: MediaQuery.of(context).size.width,
                             ),
-                            child: ClipOval(
-                              child: _user!.profilePhoto != null
-                                  ? CachedNetworkImage(
-                                      imageUrl: _user!.profilePhoto!,
-                                      fit: BoxFit.cover,
-                                      placeholder: (context, url) => const CircularProgressIndicator(),
-                                      errorWidget: (context, url, error) => Image.asset(
-                                        'assets/images/profile/avatar_artist.png',
-                                        fit: BoxFit.cover,
-                                      ),
-                                    )
-                                  : Image.asset(
-                                      'assets/images/profile/avatar_artist.png',
-                                      fit: BoxFit.cover,
-                                    ),
-                            ),
-                          ),
-                          // Verified badge below avatar
-                          if (_user!.isVerified) ...[
-                            const SizedBox(height: 12),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF15FF00).withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: const Color(0xFF0D9700),
-                                  width: 1.5,
-                                ),
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: ResponsiveUtils.spacingM + ResponsiveUtils.dp(4),
+                                vertical: ResponsiveUtils.spacingM - ResponsiveUtils.dp(6),
                               ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Icon(
-                                    Icons.verified,
-                                    color: const Color(0xFF0D9700),
-                                    size: 18,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  const Text(
-                                    'Verified Leo',
-                                    style: TextStyle(
-                                      fontFamily: 'Poppins',
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: Color(0xFF0D9700),
+                                  SizedBox(height: ResponsiveUtils.dp(20)),
+                  
+                                  // Profile avatar with gold border - Figma: 127.2px size, border #8F7902 with shadow
+                                  Center(
+                                    child: Column(
+                                      children: [
+                                        Container(
+                                          width: ResponsiveUtils.dp(127.2),
+                                          height: ResponsiveUtils.dp(127.2),
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            border: Border.all(
+                                              color: const Color(0xFF8F7902), // Figma: #8F7902 dark gold
+                                              width: ResponsiveUtils.dp(3),
+                                            ),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black.withOpacity(0.16),
+                                                blurRadius: ResponsiveUtils.dp(5),
+                                                spreadRadius: 0,
+                                              ),
+                                            ],
+                                          ),
+                                          child: ClipOval(
+                                            child: _user!.profilePhoto != null
+                                                ? CachedNetworkImage(
+                                                    imageUrl: _user!.profilePhoto!,
+                                                    fit: BoxFit.cover,
+                                                    placeholder: (context, url) => const CircularProgressIndicator(),
+                                                    errorWidget: (context, url, error) => Image.asset(
+                                                      'assets/images/profile/avatar_artist.png',
+                                                      fit: BoxFit.cover,
+                                                    ),
+                                                  )
+                                                : Image.asset(
+                                                    'assets/images/profile/avatar_artist.png',
+                                                    fit: BoxFit.cover,
+                                                  ),
+                                          ),
+                                        ),
+                                        // Verified badge below avatar
+                                        if (_user!.isVerified) ...[
+                                          SizedBox(height: ResponsiveUtils.dp(12)),
+                                          Container(
+                                            padding: EdgeInsets.symmetric(
+                                              horizontal: ResponsiveUtils.dp(16),
+                                              vertical: ResponsiveUtils.dp(6),
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFF15FF00).withOpacity(0.2),
+                                              borderRadius: BorderRadius.circular(ResponsiveUtils.r(20)),
+                                              border: Border.all(
+                                                color: const Color(0xFF0D9700),
+                                                width: ResponsiveUtils.dp(1.5),
+                                              ),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(
+                                                  Icons.verified,
+                                                  color: const Color(0xFF0D9700),
+                                                  size: ResponsiveUtils.dp(18),
+                                                ),
+                                                SizedBox(width: ResponsiveUtils.dp(6)),
+                                                Text(
+                                                  'Verified Leo',
+                                                  style: TextStyle(
+                                                    fontFamily: 'Poppins',
+                                                    fontSize: ResponsiveUtils.bodySmall,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: const Color(0xFF0D9700),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ],
                                     ),
+                                  ),
+                                  
+                                  SizedBox(height: ResponsiveUtils.dp(35)),
+                                    
+                                  // Form fields - Figma: horizontal padding ~8.33% = 33.5px for 402px width
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      // Name field - Figma: top: 252px
+                                      _buildFieldLabel('Name'),
+                                      SizedBox(height: ResponsiveUtils.dp(8)),
+                                      _buildTextField(_user!.fullName),
+                                      
+                                      SizedBox(height: ResponsiveUtils.dp(20)),
+                                      
+                                      // Leo ID field with verify button - Figma: top: 345px
+                                      _buildFieldLabel('Leo ID'),
+                                      SizedBox(height: ResponsiveUtils.dp(8)),
+                                      Row(
+                                        children: [
+                                          // Leo ID input - Figma: 226px wide
+                                          Expanded(
+                                            flex: 7,
+                                            child: _buildLeoIdField(),
+                                          ),
+                                          SizedBox(width: ResponsiveUtils.dp(8)),
+                                          // Verify button - Figma: 98px wide, bg: rgba(0,0,0,0.22)
+                                          Expanded(
+                                            flex: 3,
+                                            child: _buildVerifyButton(),
+                                          ),
+                                        ],
+                                      ),
+                                      
+                                      SizedBox(height: ResponsiveUtils.dp(20)),
+                                      
+                                      // Role field - Figma: top: 438px
+                                      _buildFieldLabel('Role'),
+                                      SizedBox(height: ResponsiveUtils.dp(8)),
+                                      _buildTextField(_user!.displayRole),
+                                      
+                                      SizedBox(height: ResponsiveUtils.dp(20)),
+                                      
+                                      // Email field - Figma: top: 531px
+                                      _buildFieldLabel('email'),
+                                      SizedBox(height: ResponsiveUtils.dp(8)),
+                                      _buildTextField(_user!.email),
+                                      
+                                      SizedBox(height: ResponsiveUtils.dp(40)),
+                                      
+                                      // Edit Profile button - Figma: top: 624px, h: 61px, bg: black, rounded: 20px
+                                      SizedBox(
+                                        width: double.infinity,
+                                        height: ResponsiveUtils.dp(61),
+                                        child: ElevatedButton(
+                                          onPressed: () {
+                                            // Navigate to edit profile
+                                          },
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.black,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(ResponsiveUtils.r(20)),
+                                            ),
+                                            elevation: 0,
+                                          ),
+                                          // Figma: Nunito Sans Regular 20px, color: #F3F3F3
+                                          child: Text(
+                                            'Edit Profile',
+                                            style: TextStyle(
+                                              fontFamily: 'Nunito Sans',
+                                              fontSize: ResponsiveUtils.dp(20),
+                                              fontWeight: FontWeight.w400,
+                                              color: const Color(0xFFF3F3F3),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      
+                                      SizedBox(height: ResponsiveUtils.dp(16)),
+                                      
+                                      // Logout button - Figma: top: 706px, h: 61px, bg: rgba(0,0,0,0.27), rounded: 20px
+                                      SizedBox(
+                                        width: double.infinity,
+                                        height: ResponsiveUtils.dp(61),
+                                        child: ElevatedButton(
+                                          onPressed: _logout,
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: const Color.fromRGBO(0, 0, 0, 0.27),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(ResponsiveUtils.r(20)),
+                                            ),
+                                            elevation: 0,
+                                          ),
+                                          // Figma: Nunito Sans Bold 20px, color: black
+                                          child: Text(
+                                            'Logout',
+                                            style: TextStyle(
+                                              fontFamily: 'Nunito Sans',
+                                              fontSize: ResponsiveUtils.dp(20),
+                                              fontWeight: FontWeight.w700,
+                                              color: Colors.black,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      
+                                      SizedBox(height: ResponsiveUtils.dp(100)),
+                                    ],
                                   ),
                                 ],
                               ),
                             ),
-                          ],
-                        ],
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                  
-                  const SizedBox(height: 35),
-                  
-                  // Form fields - Figma: horizontal padding ~8.33% = 33.5px for 402px width
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 35),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Name field - Figma: top: 252px
-                        _buildFieldLabel('Name'),
-                        const SizedBox(height: 8),
-                        _buildTextField(_user!.fullName),
-                        
-                        const SizedBox(height: 20),
-                        
-                        // Leo ID field with verify button - Figma: top: 345px
-                        _buildFieldLabel('Leo ID'),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            // Leo ID input - Figma: 226px wide
-                            Expanded(
-                              flex: 7,
-                              child: _buildLeoIdField(),
-                            ),
-                            const SizedBox(width: 8),
-                            // Verify button - Figma: 98px wide, bg: rgba(0,0,0,0.22)
-                            Expanded(
-                              flex: 3,
-                              child: _buildVerifyButton(),
-                            ),
-                          ],
-                        ),
-                        
-                        const SizedBox(height: 20),
-                        
-                        // Role field - Figma: top: 438px, value: "Outsider"
-                        _buildFieldLabel('Role'),
-                        const SizedBox(height: 8),
-                        _buildTextField(_user!.role == 'admin' ? 'Administrator' : 'Outsider'),
-                        
-                        const SizedBox(height: 20),
-                        
-                        // Email field - Figma: top: 531px
-                        _buildFieldLabel('email'),
-                        const SizedBox(height: 8),
-                        _buildTextField(_user!.email),
-                        
-                        const SizedBox(height: 40),
-                        
-                        // Edit Profile button - Figma: top: 624px, h: 61px, bg: black, rounded: 20px
-                        SizedBox(
-                          width: double.infinity,
-                          height: 61,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              // Navigate to edit profile
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.black,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              elevation: 0,
-                            ),
-                            // Figma: Nunito Sans Regular 20px, color: #F3F3F3
-                            child: const Text(
-                              'Edit Profile',
-                              style: TextStyle(
-                                fontFamily: 'Nunito Sans',
-                                fontSize: 20,
-                                fontWeight: FontWeight.w400,
-                                color: Color(0xFFF3F3F3),
-                              ),
-                            ),
-                          ),
-                        ),
-                        
-                        const SizedBox(height: 16),
-                        
-                        // Logout button - Figma: top: 706px, h: 61px, bg: rgba(0,0,0,0.27), rounded: 20px
-                        SizedBox(
-                          width: double.infinity,
-                          height: 61,
-                          child: ElevatedButton(
-                            onPressed: _logout,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color.fromRGBO(0, 0, 0, 0.27),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              elevation: 0,
-                            ),
-                            // Figma: Nunito Sans Bold 20px, color: black
-                            child: const Text(
-                              'Logout',
-                              style: TextStyle(
-                                fontFamily: 'Nunito Sans',
-                                fontSize: 20,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.black,
-                              ),
-                            ),
-                          ),
-                        ),
-                        
-                        const SizedBox(height: 100),
-                      ],
-                    ),
-                  ),
-                ],
+                ),
+              ),
+            ),
+          ),
+
+          // Back button - top left
+          CustomBackButton(
+            backgroundColor: Colors.black, // Dark area (image/shape background)
+            iconSize: 24,
+            navigateToHome: true,
+          ),
+
+          // "Profile" title - Figma: left: calc(16.67% + 2px), top: 48px
+          Positioned(
+            left: MediaQuery.of(context).size.width * 0.1667 + ResponsiveUtils.dp(2),
+            top: ResponsiveUtils.bh(48),
+            child: Text(
+              'Profile',
+              style: TextStyle(
+                fontFamily: 'Raleway',
+                fontSize: ResponsiveUtils.dp(50),
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                letterSpacing: -ResponsiveUtils.dp(0.52),
+                height: 1.0,
               ),
             ),
           ),
         ],
       ),
-      bottomNavigationBar: const AppBottomNav(currentIndex: 4),
     );
   }
 
@@ -458,11 +663,11 @@ class _ProfileScreenState extends State<ProfileScreen>
   Widget _buildFieldLabel(String label) {
     return Text(
       label,
-      style: const TextStyle(
+      style: TextStyle(
         fontFamily: 'Nunito Sans',
-        fontSize: 14,
+        fontSize: ResponsiveUtils.dp(14),
         fontWeight: FontWeight.w300,
-        color: Color(0xFF202020),
+        color: const Color(0xFF202020),
       ),
     );
   }
@@ -471,11 +676,14 @@ class _ProfileScreenState extends State<ProfileScreen>
   // Font: Poppins Medium 14px
   Widget _buildTextField(String value, {bool isPlaceholder = false}) {
     return Container(
-      height: 52,
-      padding: const EdgeInsets.symmetric(horizontal: 19.7, vertical: 15.76),
+      height: ResponsiveUtils.dp(52),
+      padding: EdgeInsets.symmetric(
+        horizontal: ResponsiveUtils.dp(19.7),
+        vertical: ResponsiveUtils.dp(15.76),
+      ),
       decoration: BoxDecoration(
         color: const Color.fromRGBO(0, 0, 0, 0.05),
-        borderRadius: BorderRadius.circular(59.115),
+        borderRadius: BorderRadius.circular(ResponsiveUtils.dp(59.115)),
       ),
       child: Align(
         alignment: Alignment.centerLeft,
@@ -483,7 +691,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           value,
           style: TextStyle(
             fontFamily: 'Poppins',
-            fontSize: 14,
+            fontSize: ResponsiveUtils.dp(14),
             fontWeight: FontWeight.w500,
             // Figma: placeholder color rgba(0,0,0,0.4), regular color black
             color: isPlaceholder 
@@ -498,32 +706,56 @@ class _ProfileScreenState extends State<ProfileScreen>
   // Editable Leo ID field
   Widget _buildLeoIdField() {
     return Container(
-      height: 52,
+      height: ResponsiveUtils.dp(52),
+      padding: EdgeInsets.symmetric(
+        horizontal: ResponsiveUtils.dp(19.7),
+      ),
       decoration: BoxDecoration(
         color: const Color.fromRGBO(0, 0, 0, 0.05),
-        borderRadius: BorderRadius.circular(59.115),
+        borderRadius: BorderRadius.circular(ResponsiveUtils.dp(59.115)),
       ),
-      child: TextField(
-        controller: _leoIdController,
-        enabled: !_user!.isVerified, // Disable if already verified
-        style: const TextStyle(
-          fontFamily: 'Poppins',
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-          color: Colors.black,
-        ),
-        decoration: InputDecoration(
-          hintText: 'Enter your Leo ID',
-          hintStyle: const TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: Color.fromRGBO(0, 0, 0, 0.4),
-          ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 19.7, vertical: 15.76),
-          border: InputBorder.none,
-        ),
-      ),
+      child: _user!.isVerified && _user!.leoId != null && _user!.leoId!.isNotEmpty
+          ? Center(
+              child: Text(
+                _user!.leoId!,
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: ResponsiveUtils.dp(14),
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black,
+                ),
+              ),
+            )
+          : TextField(
+              controller: _leoIdController,
+              enabled: !_user!.isVerified, // Disable if already verified
+              textAlignVertical: TextAlignVertical.center,
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: ResponsiveUtils.dp(14),
+                fontWeight: FontWeight.w500,
+                color: Colors.black,
+              ),
+              decoration: InputDecoration(
+                hintText: 'Enter your Leo ID',
+                hintStyle: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: ResponsiveUtils.dp(14),
+                  fontWeight: FontWeight.w500,
+                  color: const Color.fromRGBO(0, 0, 0, 0.4),
+                ),
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(
+                  vertical: ResponsiveUtils.dp(14),
+                ),
+                filled: true,
+                fillColor: Colors.transparent,
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                disabledBorder: InputBorder.none,
+              ),
+            ),
     );
   }
 
@@ -580,43 +812,12 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 }
 
-/// Custom painter for Figma bubbles - exactly matching Profile.tsx SVG paths
-class _FigmaBubblesPainter extends CustomPainter {
+/// Custom painter for top Figma bubbles (black and yellow middle) - exactly matching Profile.tsx SVG paths
+class _TopFigmaBubblesPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final double scaleX = size.width / 817;
     final double scaleY = size.height / 1239;
-    
-    // Yellow bubble 04 (bottom) - Figma path p3141de00
-    // fill: #FFD700
-    final yellowPaint1 = Paint()
-      ..color = const Color(0xFFFFD700)
-      ..style = PaintingStyle.fill;
-    
-    final yellowPath1 = Path();
-    yellowPath1.moveTo(776.561 * scaleX, 1048.32 * scaleY);
-    yellowPath1.cubicTo(
-      906.376 * scaleX, 1138.65 * scaleY,
-      686.375 * scaleX, 1238.97 * scaleY,
-      575.125 * scaleX, 1238.97 * scaleY,
-    );
-    yellowPath1.cubicTo(
-      463.876 * scaleX, 1238.97 * scaleY,
-      373.69 * scaleX, 1153.61 * scaleY,
-      373.69 * scaleX, 1048.32 * scaleY,
-    );
-    yellowPath1.cubicTo(
-      373.69 * scaleX, 943.027 * scaleY,
-      469.395 * scaleX, 893.614 * scaleY,
-      570.814 * scaleX, 885.95 * scaleY,
-    );
-    yellowPath1.cubicTo(
-      672.232 * scaleX, 878.286 * scaleY,
-      646.747 * scaleX, 957.992 * scaleY,
-      776.561 * scaleX, 1048.32 * scaleY,
-    );
-    yellowPath1.close();
-    canvas.drawPath(yellowPath1, yellowPaint1);
     
     // Yellow bubble 02 (middle) - Figma path p193cf500
     // fill: #FFD700
@@ -679,6 +880,49 @@ class _FigmaBubblesPainter extends CustomPainter {
     );
     blackPath.close();
     canvas.drawPath(blackPath, blackPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// Custom painter for bottom yellow bubble - exactly matching Profile.tsx SVG path
+class _BottomYellowBubblePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final double scaleX = size.width / 817;
+    final double scaleY = size.height / 1239;
+    
+    // Yellow bubble 04 (bottom) - Figma path p3141de00
+    // fill: #FFD700
+    final yellowPaint1 = Paint()
+      ..color = const Color(0xFFFFD700)
+      ..style = PaintingStyle.fill;
+    
+    final yellowPath1 = Path();
+    yellowPath1.moveTo(776.561 * scaleX, 1048.32 * scaleY);
+    yellowPath1.cubicTo(
+      906.376 * scaleX, 1138.65 * scaleY,
+      686.375 * scaleX, 1238.97 * scaleY,
+      575.125 * scaleX, 1238.97 * scaleY,
+    );
+    yellowPath1.cubicTo(
+      463.876 * scaleX, 1238.97 * scaleY,
+      373.69 * scaleX, 1153.61 * scaleY,
+      373.69 * scaleX, 1048.32 * scaleY,
+    );
+    yellowPath1.cubicTo(
+      373.69 * scaleX, 943.027 * scaleY,
+      469.395 * scaleX, 893.614 * scaleY,
+      570.814 * scaleX, 885.95 * scaleY,
+    );
+    yellowPath1.cubicTo(
+      672.232 * scaleX, 878.286 * scaleY,
+      646.747 * scaleX, 957.992 * scaleY,
+      776.561 * scaleX, 1048.32 * scaleY,
+    );
+    yellowPath1.close();
+    canvas.drawPath(yellowPath1, yellowPaint1);
   }
 
   @override

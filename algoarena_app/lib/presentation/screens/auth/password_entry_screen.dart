@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import '../../../utils/responsive_utils.dart';
 
 class PasswordEntryScreen extends StatefulWidget {
   final String username;
 
   const PasswordEntryScreen({
-    Key? key,
+    super.key,
     required this.username,
-  }) : super(key: key);
+  });
 
   @override
   State<PasswordEntryScreen> createState() => _PasswordEntryScreenState();
@@ -105,17 +106,21 @@ class _PasswordEntryScreenState extends State<PasswordEntryScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Initialize responsive utilities
+    ResponsiveUtils.init(context);
+    
     return Scaffold(
       backgroundColor: Colors.white,
+      resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
           // Large gray organic shape top-left
           Positioned(
-            top: -150,
-            left: -200,
+            top: ResponsiveUtils.bh(-150),
+            left: ResponsiveUtils.bw(-200),
             child: Container(
-              width: 600,
-              height: 600,
+              width: ResponsiveUtils.bs(600),
+              height: ResponsiveUtils.bs(600),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: const Color(0xFFE0E0E0).withOpacity(0.6),
@@ -125,17 +130,17 @@ class _PasswordEntryScreenState extends State<PasswordEntryScreen>
 
           // Yellow/cream organic shape bottom-right
           Positioned(
-            bottom: -150,
-            right: -100,
+            bottom: ResponsiveUtils.bh(-150),
+            right: ResponsiveUtils.bw(-100),
             child: Container(
-              width: 500,
-              height: 500,
-              decoration: BoxDecoration(
+              width: ResponsiveUtils.bs(500),
+              height: ResponsiveUtils.bs(500),
+              decoration: const BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: LinearGradient(
                   colors: [
-                    const Color(0xFFFFF8DC),
-                    const Color(0xFFFFF4B3),
+                    Color(0xFFFFF8DC),
+                    Color(0xFFFFF4B3),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,

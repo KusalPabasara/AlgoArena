@@ -1,6 +1,6 @@
-# AlgoArena (Leo Connect) - Complete Mobile Application
+# AlgoArena (Leo Connect)
 
-A cross-platform mobile application for Leo Clubs in Sri Lanka and Maldives, built with Flutter and Node.js backend.
+A cross-platform mobile application for Leo Clubs in Sri Lanka and Maldives, built with Flutter and Node.js backend with Firebase.
 
 ## 📱 Project Overview
 
@@ -14,18 +14,23 @@ algoarena/
 │   ├── lib/
 │   │   ├── core/           # Core utilities, constants, themes
 │   │   ├── data/           # Data layer (models, repositories, services)
-│   │   └── presentation/   # UI layer (screens, widgets)
+│   │   ├── presentation/   # UI layer (screens, widgets)
+│   │   ├── providers/      # State management
+│   │   ├── services/       # Business logic services
+│   │   └── utils/          # Utility functions
 │   └── pubspec.yaml
 │
-├── backend/                # Node.js + Express backend
+├── backend/                # Node.js + Express + Firebase backend
+│   ├── config/             # Firebase configuration
 │   ├── controllers/        # Business logic
 │   ├── middleware/         # Auth & upload middleware
-│   ├── models/            # MongoDB schemas
-│   ├── routes/            # API endpoints
-│   └── server.js
+│   ├── routes/             # API endpoints
+│   ├── services/           # Firebase services (Firestore, Auth, Storage)
+│   └── server.js           # Express server entry point
 │
-├── figma/                 # Design files and exports
-└── image sources/         # App assets and images
+├── assets/                 # Shared assets
+├── figma/                  # Design files and exports
+└── image sources/          # App assets and images
 ```
 
 ## ✨ Features
@@ -39,13 +44,12 @@ algoarena/
 - ✅ Search functionality (users, clubs, districts)
 - ✅ Real-time feed updates with pull-to-refresh
 - ✅ Role-based access control (member, admin, super_admin)
-
-### Upcoming Features
-- 📅 Event management
-- 💬 Direct messaging
-- 🔔 Push notifications
-- 📊 Analytics dashboard for admins
-- 🌐 Multi-language support
+- ✅ Events management
+- ✅ Notifications system
+- ✅ Settings and security features
+- ✅ Leo ID Management
+- ✅ Apple Sign-In support
+- ✅ Google Sign-In support
 
 ## 🚀 Getting Started
 
@@ -54,378 +58,354 @@ algoarena/
 #### For Flutter App:
 - Flutter SDK (>=3.0.0)
 - Android Studio / VS Code
-- Android SDK / Xcode (for iOS)
+- Android SDK (for Android development)
+- Xcode (for iOS development, macOS only)
 
 #### For Backend:
-- Node.js (>=16.x)
-- MongoDB (>=5.x)
-- npm or yarn
+- Node.js (>=22.0.0)
+- Firebase project with Firestore, Authentication, and Cloud Storage enabled
+- SendGrid account (for email notifications)
 
 ### Installation
 
-#### 1. Clone the repository
+#### 1. Clone the Repository
+
 ```bash
 git clone <repository-url>
 cd algoarena
 ```
 
-#### 2. Setup Flutter App
+#### 2. Backend Setup
 
-```bash
-cd algoarena_app
-
-# Install dependencies
-flutter pub get
-
-# Run the app
-flutter run
-```
-
-**Configure API endpoint:**
-Update `lib/data/services/api_service.dart`:
-```dart
-static const String baseUrl = 'http://YOUR_IP:5000/api';
-```
-
-#### 3. Setup Backend
-
+**Navigate to backend directory:**
 ```bash
 cd backend
+```
 
-# Install dependencies
+**Install dependencies:**
+```bash
 npm install
-
-# Create .env file
-cp .env.example .env
-
-# Edit .env with your configuration
-# Set MONGODB_URI, JWT_SECRET, etc.
-
-# Create uploads directory
-mkdir uploads
-
-# Start MongoDB (if local)
-mongod
-
-# Run the server
-npm run dev
 ```
 
-The backend will run on `http://localhost:5000`
+**Setup Firebase:**
 
-### 4. Seed Database (Optional but Recommended)
+1. Create Firebase project at https://console.firebase.google.com
+2. Enable Firestore Database, Authentication, and Cloud Storage
+3. Download service account key → save as `serviceAccountKey.json` in backend folder
+4. Create/update `.env` file:
 
-To test with sample data:
+```env
+# Firebase Configuration
+FIREBASE_SERVICE_ACCOUNT_PATH=./serviceAccountKey.json
+FIREBASE_STORAGE_BUCKET=your-project-id.appspot.com
+FIREBASE_WEB_API_KEY=your-firebase-web-api-key
 
+# Server Configuration
+PORT=5000
+NODE_ENV=development
+
+# Email Configuration (SendGrid) - Required for password reset and Leo ID emails
+SENDGRID_API_KEY=your-sendgrid-api-key
+FROM_EMAIL=your-verified-sender-email@example.com
+```
+
+**How to get Firebase Web API Key:**
+1. Go to [Firebase Console](https://console.firebase.google.com)
+2. Select your project
+3. Go to Project Settings (gear icon)
+4. Scroll down to "Your apps" section
+5. If you don't have a Web app, click "Add app" and select Web (</>)
+6. Copy the "apiKey" value from the config (it looks like: `AIzaSy...`)
+7. Add it to your `.env` file as `FIREBASE_WEB_API_KEY`
+
+**How to configure SendGrid for Email:**
+1. Sign up for a free SendGrid account at https://sendgrid.com
+2. Go to Settings → API Keys
+3. Click "Create API Key"
+4. Give it a name (e.g., "AlgoArena Email Service")
+5. Select "Full Access" or "Restricted Access" with "Mail Send" permissions
+6. Copy the API key (you'll only see it once!)
+7. Add it to your `.env` file as `SENDGRID_API_KEY`
+8. Verify your sender email address in SendGrid:
+   - Go to Settings → Sender Authentication
+   - Click "Verify a Single Sender"
+   - Enter your email and complete verification
+   - Use this verified email as `FROM_EMAIL` in your `.env`
+
+**Note:** Without SendGrid configuration, password reset and Leo ID emails will not be sent. The system will still generate OTPs/Leo IDs, but users won't receive email notifications.
+
+**Create Super Admin Account:**
 ```bash
-cd backend
+node create-superadmin.js
+```
+
+This creates the super admin account:
+- **Email:** `superadmin@algoarena.com`
+- **Password:** `AlgoArena@2024!`
+
+**Seed Sample Data (Optional):**
+```bash
 npm run seed
 ```
 
-This creates:
-- 4 test users (1 admin + 3 members)
-- 3 districts
-- 4 clubs
-- 4 sample posts with likes/comments
+This creates test accounts:
+- Admin: `admin@algoarena.com` / `admin123`
+- Users: `john@example.com`, `jane@example.com`, `mike@example.com` / `password123`
 
-**Test accounts:**
-- admin@algoarena.com / admin123
-- john@example.com / password123
-- jane@example.com / password123
-- mike@example.com / password123
-
-## 🧪 Testing in Android Studio
-
-### Quick Test (5 minutes)
-
-**See detailed instructions in:** [QUICK_TEST.md](QUICK_TEST.md)
-
-**Quick steps:**
-
-1. **Start Backend:**
-   ```bash
-   cd backend
-   npm run seed  # First time only
-   npm run dev
-   ```
-
-2. **Open in Android Studio:**
-   - File → Open → Select `algoarena_app` folder
-   - Run `flutter pub get`
-
-3. **Configure API:**
-   - Edit `lib/data/services/api_service.dart`
-   - Change `baseUrl` to `http://10.0.2.2:5000/api` (for emulator)
-
-4. **Run App:**
-   - Click Run button (▶️) or `flutter run`
-
-5. **Test:**
-   - Register new user or login with test account
-   - Create a post
-   - Like posts
-   - Navigate between tabs
-
-✅ **All features should work!**
-
-### Comprehensive Testing
-
-For detailed testing instructions, see [TESTING_GUIDE.md](TESTING_GUIDE.md)
-
-The guide covers:
-- Backend setup and verification
-- Flutter configuration
-- Emulator setup
-- Feature testing (authentication, posts, navigation)
-- Common issues and solutions
-- Performance testing
-
-## 📱 Flutter App Details
-
-### Tech Stack
-- **Framework:** Flutter 3.x
-- **State Management:** Provider
-- **HTTP Client:** Dio + http package
-- **Image Handling:** image_picker, cached_network_image
-- **Secure Storage:** flutter_secure_storage
-- **Navigation:** Named routes
-- **Fonts:** Google Fonts (Poppins)
-
-### Key Packages
-```yaml
-dependencies:
-  provider: ^6.1.1
-  http: ^1.1.2
-  dio: ^5.4.0
-  flutter_secure_storage: ^9.0.0
-  image_picker: ^1.0.5
-  cached_network_image: ^3.3.0
-  google_fonts: ^6.1.0
-  timeago: ^3.6.0
-```
-
-### Screens
-1. **Splash Screen** - Animated logo with auth check
-2. **Authentication Flow**
-   - Login
-   - Register
-   - Reset Password
-3. **Main App**
-   - Home Feed
-   - Search
-   - Pages (Clubs & Districts)
-   - Profile
-   - Create Post
-
-### Design System
-- **Primary Color:** Gold (#FFD700)
-- **Background:** White (#FFFFFF)
-- **Text:** Black (#000000)
-- **Typography:** Poppins font family
-- **Components:** Custom buttons, text fields, post cards
-
-## 🔧 Backend Details
-
-### Tech Stack
-- **Runtime:** Node.js
-- **Framework:** Express.js
-- **Database:** MongoDB with Mongoose
-- **Authentication:** JWT (JSON Web Tokens)
-- **File Upload:** Multer
-- **Password Hashing:** bcryptjs
-
-### API Endpoints
-
-#### Authentication
-```
-POST   /api/auth/register        - Register new user
-POST   /api/auth/login           - Login user
-GET    /api/auth/me              - Get current user
-POST   /api/auth/forgot-password - Request password reset
-POST   /api/auth/reset-password  - Reset password with token
-```
-
-#### Posts
-```
-GET    /api/posts/feed           - Get paginated feed
-POST   /api/posts                - Create post with images
-PUT    /api/posts/:id/like       - Toggle like
-POST   /api/posts/:id/comments   - Add comment
-DELETE /api/posts/:id            - Delete post
-GET    /api/posts/user/:userId   - Get user's posts
-```
-
-#### Clubs & Districts
-```
-GET    /api/clubs                - Get all clubs
-GET    /api/clubs/:id            - Get club details
-GET    /api/districts            - Get all districts
-GET    /api/districts/:id        - Get district details
-```
-
-### Database Models
-
-#### User
-```javascript
-{
-  fullName: String,
-  email: String (unique),
-  password: String (hashed),
-  profilePhoto: String,
-  bio: String,
-  club: ObjectId (ref: Club),
-  district: ObjectId (ref: District),
-  role: String (member|admin|super_admin),
-  isVerified: Boolean
-}
-```
-
-#### Post
-```javascript
-{
-  author: ObjectId (ref: User),
-  content: String,
-  images: [String],
-  likes: [ObjectId],
-  comments: [{
-    author: ObjectId,
-    text: String,
-    createdAt: Date
-  }],
-  createdAt: Date
-}
-```
-
-## 🎨 Design
-
-The app follows the Figma design specifications located in the `figma/` directory:
-- Android screens export
-- iOS screens export
-- SVG design files
-
-**Design Highlights:**
-- Clean, modern interface with gold accent color
-- Intuitive navigation with bottom tabs and side menu
-- Card-based layout for posts
-- Rounded corners throughout
-- Consistent spacing and typography
-
-## 🔐 Security Features
-
-- JWT-based authentication
-- Password hashing with bcrypt
-- Secure token storage on mobile (flutter_secure_storage)
-- Protected API routes
-- Role-based authorization
-- File upload validation
-
-## 📝 Development Workflow
-
-### Running in Development
-
-**Flutter:**
+**Start Backend Server:**
 ```bash
-cd algoarena_app
-flutter run
-```
+# Development mode (with auto-reload)
+npm run dev
 
-**Backend:**
-```bash
-cd backend
-npm run dev  # Uses nodemon for auto-restart
-```
-
-### Building for Production
-
-**Flutter (Android APK):**
-```bash
-flutter build apk --release
-```
-
-**Flutter (iOS):**
-```bash
-flutter build ios --release
-```
-
-**Backend:**
-```bash
+# Production mode
 npm start
 ```
 
-## 🧪 Testing
-
-### Flutter
-```bash
-flutter test
+You should see:
 ```
+✅ Firebase Admin SDK initialized successfully
+📂 Project: your-project-name
+🚀 Server running on port 5000
+📡 API available at http://localhost:5000/api
+🔥 Using Firebase backend
+```
+
+#### 3. Flutter App Setup
+
+**Navigate to app directory:**
+```bash
+cd algoarena_app
+```
+
+**Install dependencies:**
+```bash
+flutter pub get
+```
+
+**Configure environment:**
+- Update `lib/config/environment.dart` with your backend URL
+- Set `EnvironmentType.production` or `EnvironmentType.development` in `lib/main.dart`
+
+**For Android Studio Emulator:**
+The Flutter app is configured to use:
+```
+http://10.0.2.2:5000/api
+```
+This is the correct URL for Android emulator to access localhost on your machine.
+
+**For Physical Devices:**
+Update the `baseUrl` in your Flutter app's `api_service.dart`:
+```dart
+static const String baseUrl = 'http://YOUR_IP:5000/api';
+```
+Replace `YOUR_IP` with your computer's IP address (find it using `ipconfig` on Windows or `ifconfig` on Linux/Mac).
+
+**Run the app:**
+```bash
+flutter run
+```
+
+## 📦 Building the App
+
+### Android APK
+```bash
+cd algoarena_app
+flutter build apk --release
+```
+
+### iOS
+```bash
+cd algoarena_app
+flutter build ios --release
+```
+
+### Get SHA-1 for Google Sign-In (Windows)
+
+Run the PowerShell script to get SHA-1 fingerprint:
+```powershell
+cd algoarena_app
+.\get-sha1.ps1
+```
+
+Then add the SHA-1 to your Firebase Console:
+1. Go to Firebase Console
+2. Select your project
+3. Project Settings → Your apps → Android app
+4. Click "Add fingerprint" and paste SHA-1
+5. Download updated `google-services.json`
+6. Replace `android/app/google-services.json`
+
+## 📡 Backend API Endpoints
+
+### Authentication
+- `POST /api/auth/register` - Register new user
+- `POST /api/auth/login` - Login user
+- `GET /api/auth/me` - Get current user
+- `POST /api/auth/forgot-password` - Request password reset
+- `POST /api/auth/apple-signin` - Apple Sign-In authentication
+
+### Users
+- `GET /api/users/:id` - Get user by ID
+- `PUT /api/users/:id` - Update user profile
+
+### Posts
+- `GET /api/posts/feed` - Get feed posts (paginated)
+- `POST /api/posts` - Create new post (with images)
+- `PUT /api/posts/:id/like` - Toggle like on post
+- `POST /api/posts/:id/comments` - Add comment to post
+- `DELETE /api/posts/:id` - Delete post
+- `GET /api/posts/user/:userId` - Get user's posts
+
+### Clubs
+- `GET /api/clubs` - Get all clubs
+- `GET /api/clubs/:id` - Get club by ID
+- `GET /api/clubs/district/:districtId` - Get clubs by district
+- `POST /api/clubs` - Create new club (admin only)
+
+### Districts
+- `GET /api/districts` - Get all districts
+- `GET /api/districts/:id` - Get district by ID
+- `POST /api/districts` - Create new district (super admin only)
+
+### Events
+- `GET /api/events` - Get all events
+- `POST /api/events` - Create new event
+- `GET /api/events/:id` - Get event by ID
+- `PUT /api/events/:id` - Update event
+- `DELETE /api/events/:id` - Delete event
+
+### Notifications
+- `GET /api/notifications` - Get user notifications
+- `PUT /api/notifications/:id/read` - Mark notification as read
+
+### Pages
+- `GET /api/pages` - Get all pages
+- `POST /api/pages` - Create new page (admin only)
+- `GET /api/pages/:id` - Get page by ID
+
+### Leo Assist & ID Management
+- `POST /api/leo/ask` - Ask Leo Assist question
+- `POST /api/leo/generate-id` - Generate Leo ID
+- `GET /api/leo/my-id` - Get user's Leo ID
+
+## 🛠 Technologies
 
 ### Backend
-```bash
-npm test
+- **Express.js** - Web framework
+- **Firebase Admin SDK** - Backend services
+- **Firestore** - NoSQL database
+- **Firebase Authentication** - User management
+- **Cloud Storage** - File storage
+- **Multer** - File upload handling
+- **Express Validator** - Request validation
+- **SendGrid** - Email service
+
+### Frontend
+- **Flutter** - Cross-platform mobile framework
+- **Dart** - Programming language
+- **Provider** - State management
+- **Firebase** - Authentication and cloud services
+
+## 📁 Backend Project Structure
+
+```
+backend/
+├── config/
+│   └── firebase.js           # Firebase Admin SDK initialization
+├── services/
+│   ├── firestore.service.js  # Firestore database operations
+│   ├── auth.service.js       # Firebase Authentication
+│   └── storage.service.js    # Cloud Storage operations
+├── controllers/              # Request handlers
+│   ├── auth.controller.js
+│   ├── post.controller.js
+│   ├── club.controller.js
+│   ├── district.controller.js
+│   ├── event.controller.js
+│   ├── notification.controller.js
+│   └── leo-assist.controller.js
+├── middleware/
+│   ├── auth.js              # Firebase token verification
+│   └── upload.js            # File upload handling
+├── routes/                  # API routes
+│   ├── auth.routes.js
+│   ├── user.routes.js
+│   ├── post.routes.js
+│   ├── club.routes.js
+│   ├── district.routes.js
+│   ├── event.routes.js
+│   ├── notification.routes.js
+│   └── page.routes.js
+├── .env                     # Environment variables
+├── serviceAccountKey.json   # Firebase credentials (DON'T COMMIT!)
+├── server.js                # Express server entry point
+├── seed-firebase.js         # Database seeding script
+└── package.json             # Dependencies
 ```
 
-## 📦 Deployment
+## 🔒 Security Notes
 
-### Flutter App
-- **Android:** Build APK/AAB and deploy to Google Play Store
-- **iOS:** Build IPA and deploy to Apple App Store
+1. **Never commit `serviceAccountKey.json`** to version control
+2. Add to `.gitignore` (already configured)
+3. For production, use proper Firestore security rules
+4. Set appropriate CORS policies
+5. Keep sensitive environment variables secure
 
-### Backend
-Deploy to platforms like:
-- Heroku
-- AWS EC2
-- DigitalOcean
-- Railway
-- Render
+## 🆘 Troubleshooting
 
-**Environment Variables Required:**
-```
-PORT=5000
-MONGODB_URI=<your-mongodb-connection-string>
-JWT_SECRET=<your-secret-key>
-JWT_EXPIRE=7d
-NODE_ENV=production
-```
+### Firebase credentials error
+- Ensure `serviceAccountKey.json` exists in backend folder
+- Check `FIREBASE_SERVICE_ACCOUNT_PATH` in `.env`
 
-## 👥 Team Roles
+### Port already in use
+- Change `PORT` in `.env`
+- Kill process using port 5000
 
-- **Member:** Regular user with basic access
-- **Admin:** Club administrator with management privileges
-- **Super Admin:** District administrator with full access
+### Cannot connect from emulator
+- Ensure backend is running on `0.0.0.0:5000`
+- Use `http://10.0.2.2:5000/api` in Flutter app
 
-## 📄 License
+### Email not sending
+- Verify SendGrid API key is correct
+- Ensure sender email is verified in SendGrid
+- Check SendGrid account status
 
-This project is proprietary software for Leo Clubs in Sri Lanka and Maldives.
+### Firebase connection issues
+- Verify service account key is valid
+- Check Firebase project settings
+- Ensure Firestore, Authentication, and Storage are enabled
+
+## 📚 Additional Documentation
+
+For detailed setup instructions, see:
+- `backend/README.md` - Detailed backend documentation
+- `backend/README_FIREBASE.md` - Quick Firebase reference
+- `algoarena_app/README.md` - Flutter app documentation
+
+## 🔥 Firebase Features
+
+✅ Fully migrated to Firebase:
+- ✅ MongoDB → Firestore
+- ✅ JWT Auth → Firebase Authentication
+- ✅ Local storage → Firebase Cloud Storage
+- ✅ All endpoints working
+- ✅ Android emulator compatible
+- ✅ Auto-scaling with Firebase
+- ✅ Free tier available for development
+
+## 📝 License
+
+This project is proprietary and confidential.
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+This is a private project. For contributions, please contact the project maintainers.
 
 ## 📞 Support
 
-For issues or questions, please open an issue on the repository.
+For issues and questions, please contact the development team.
 
-## 🎯 Roadmap
+---
 
-### Phase 1 (Completed) ✅
-- User authentication
-- Social feed
-- Profile management
-- Club/District pages
-- Basic search
-
-### Phase 2 (In Progress)
-- Event management
-- Advanced search and filters
-- Notifications system
-
-### Phase 3 (Planned)
-- Direct messaging
-- Analytics dashboard
-- Mobile app performance optimization
-- Multi-language support
-
+**Last Updated:** 2024
+**Version:** 1.0.0

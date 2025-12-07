@@ -331,9 +331,9 @@ class _LeoDistrictDetailScreenState extends State<LeoDistrictDetailScreen> {
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: Colors.black, width: 1.5),
               ),
-              child: Row(
+              child: const Row(
                 mainAxisSize: MainAxisSize.min,
-                children: const [
+                children: [
                   Icon(Icons.add, size: 18, color: Colors.black),
                   SizedBox(width: 6),
                   Text(

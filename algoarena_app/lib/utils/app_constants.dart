@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/environment.dart';
 
 /// App-wide constants and configuration
 class AppConstants {
@@ -7,8 +8,9 @@ class AppConstants {
   static const String appVersion = '1.0.0';
   static const String appDescription = 'Social networking platform for Leo Clubs';
   
-  // API Endpoints
-  static const String baseApiUrl = 'http://localhost:5000/api';
+  // API Endpoints - Now uses Environment config
+  // To switch between dev/prod, update Environment.init() in main.dart
+  static String get baseApiUrl => Environment.apiBaseUrl;
   
   // LeoAssist Chatbot
   static const String chatbotBaseUrl = 'https://v7q4gmwfs544kyun3ta77hgy.agents.do-ai.run';

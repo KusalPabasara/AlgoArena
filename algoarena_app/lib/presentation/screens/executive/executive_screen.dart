@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import '../../widgets/custom_back_button.dart';
 import '../../../core/constants/colors.dart';
 
 class ExecutiveScreen extends StatelessWidget {
-  const ExecutiveScreen({Key? key}) : super(key: key);
+  const ExecutiveScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -86,14 +87,8 @@ class ExecutiveScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header
-                Padding(
-                  padding: const EdgeInsets.only(left: 10, top: 2),
-                  child: IconButton(
-                    icon: const Icon(Icons.arrow_back, size: 28),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ),
+                // Header - Back button handled by CustomBackButton in Stack
+                SizedBox(height: MediaQuery.of(context).padding.top + 48),
                 
                 // Title
                 const Padding(
@@ -244,6 +239,12 @@ class ExecutiveScreen extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+
+          // Back button - top left
+          CustomBackButton(
+            backgroundColor: Colors.white, // White background
+            iconSize: 24,
           ),
         ],
       ),

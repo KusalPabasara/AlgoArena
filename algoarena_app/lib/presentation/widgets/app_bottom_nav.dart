@@ -1,81 +1,324 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../core/constants/colors.dart';
-import '../../core/constants/strings.dart';
-import 'custom_icons.dart';
+import '../../utils/responsive_utils.dart';
 
-class AppBottomNav extends StatelessWidget {
+class AppBottomNav extends StatefulWidget {
   final int currentIndex;
+  final ValueChanged<int>? onTabChanged;
   
   const AppBottomNav({
-    Key? key,
+    super.key,
     required this.currentIndex,
-  }) : super(key: key);
+    this.onTabChanged,
+  });
+
+  @override
+  State<AppBottomNav> createState() => _AppBottomNavState();
+}
+
+class _AppBottomNavState extends State<AppBottomNav> with SingleTickerProviderStateMixin {
+  final int _tabCount = 5;
+  AnimationController? _zoomController;
+  Animation<double>? _zoomAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _zoomController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _zoomAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _zoomController!,
+        curve: Curves.easeOutBack,
+      ),
+    );
+    // Start animation if a tab is already selected
+    if (widget.currentIndex >= 0) {
+      _zoomController?.forward();
+    }
+  }
+
+  @override
+  void didUpdateWidget(AppBottomNav oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.currentIndex != widget.currentIndex) {
+      // Reset and animate when tab changes
+      _zoomController?.reset();
+      _zoomController?.forward();
+    }
+  }
+
+  @override
+  void dispose() {
+    _zoomController?.dispose();
+    super.dispose();
+  }
+
+  Widget _getInactiveIcon(int index, double size, Color color) {
+    switch (index) {
+      case 0:
+        return SizedBox(
+          width: size,
+          height: size,
+          child: SvgPicture.asset(
+            'assets/images/icons/home.svg',
+            width: size,
+            height: size,
+            colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+            fit: BoxFit.contain,
+          ),
+        );
+      case 1:
+        return SizedBox(
+          width: size,
+          height: size,
+          child: SvgPicture.asset(
+            'assets/images/icons/search.svg',
+            width: size,
+            height: size,
+            colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+            fit: BoxFit.contain,
+          ),
+        );
+      case 2:
+        return SizedBox(
+          width: size,
+          height: size,
+          child: SvgPicture.asset(
+            'assets/images/icons/events.svg',
+            width: size,
+            height: size,
+            colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+            fit: BoxFit.contain,
+          ),
+        );
+      case 3:
+        return SizedBox(
+          width: size,
+          height: size,
+          child: SvgPicture.asset(
+            'assets/images/icons/pages.svg',
+            width: size,
+            height: size,
+            colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+            fit: BoxFit.contain,
+          ),
+        );
+      case 4:
+        return SizedBox(
+          width: size,
+          height: size,
+          child: SvgPicture.asset(
+            'assets/images/icons/user.svg',
+            width: size,
+            height: size,
+            colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+            fit: BoxFit.contain,
+          ),
+        );
+      default:
+        return SizedBox(
+          width: size,
+          height: size,
+          child: SvgPicture.asset(
+            'assets/images/icons/home.svg',
+            width: size,
+            height: size,
+            colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+            fit: BoxFit.contain,
+          ),
+        );
+    }
+  }
+
+  Widget _getActiveIcon(int index, double size, Color color) {
+    switch (index) {
+      case 0:
+        return SizedBox(
+          width: size,
+          height: size,
+          child: SvgPicture.asset(
+            'assets/images/icons/home.svg',
+            width: size,
+            height: size,
+            colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+            fit: BoxFit.contain,
+          ),
+        );
+      case 1:
+        return SizedBox(
+          width: size,
+          height: size,
+          child: SvgPicture.asset(
+            'assets/images/icons/search.svg',
+            width: size,
+            height: size,
+            colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+            fit: BoxFit.contain,
+          ),
+        );
+      case 2:
+        return SizedBox(
+          width: size,
+          height: size,
+          child: SvgPicture.asset(
+            'assets/images/icons/events.svg',
+            width: size,
+            height: size,
+            colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+            fit: BoxFit.contain,
+          ),
+        );
+      case 3:
+        return SizedBox(
+          width: size,
+          height: size,
+          child: SvgPicture.asset(
+            'assets/images/icons/pages.svg',
+            width: size,
+            height: size,
+            colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+            fit: BoxFit.contain,
+        ),
+      );
+      case 4:
+        return SizedBox(
+          width: size,
+          height: size,
+          child: SvgPicture.asset(
+            'assets/images/icons/user.svg',
+            width: size,
+            height: size,
+            colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+            fit: BoxFit.contain,
+          ),
+        );
+      default:
+        return SizedBox(
+          width: size,
+          height: size,
+          child: SvgPicture.asset(
+            'assets/images/icons/home.svg',
+            width: size,
+            height: size,
+            colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+            fit: BoxFit.contain,
+          ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return BottomNavigationBar(
-      currentIndex: currentIndex,
-      onTap: (index) {
-        if (currentIndex == index) return; // Don't navigate if already on the tab
-        
-        switch (index) {
-          case 0:
-            Navigator.pushReplacementNamed(context, '/home');
-            break;
-          case 1:
-            Navigator.pushReplacementNamed(context, '/search');
-            break;
-          case 2:
-            Navigator.pushReplacementNamed(context, '/events');
-            break;
-          case 3:
-            Navigator.pushReplacementNamed(context, '/pages');
-            break;
-          case 4:
-            Navigator.pushReplacementNamed(context, '/profile');
-            break;
-        }
-      },
-      type: BottomNavigationBarType.fixed,
-      selectedItemColor: AppColors.primary,
-      unselectedItemColor: AppColors.textHint,
-      items: [
-        BottomNavigationBarItem(
-          icon: CustomIcons.home(
-            size: 24,
-            color: currentIndex == 0 ? AppColors.primary : AppColors.textHint,
-          ),
-          label: AppStrings.home,
+    ResponsiveUtils.init(context);
+    
+    final responsiveNavBarHeight = ResponsiveUtils.dp(kBottomNavigationBarHeight + 26);
+    
+    // Each icon has its own background that highlights when active
+    return Container(
+      height: responsiveNavBarHeight + MediaQuery.of(context).padding.bottom,
+      decoration: BoxDecoration(
+        color: Colors.white,
+      ),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: List.generate(
+            _tabCount,
+            (index) => Expanded(
+              child: InkWell(
+                onTap: () => widget.onTabChanged?.call(index),
+                child: Container(
+                  height: responsiveNavBarHeight,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Golden background under icon for active tab
+                      if (widget.currentIndex == index)
+                        _zoomAnimation != null
+                            ? AnimatedBuilder(
+                                animation: _zoomAnimation!,
+                                builder: (context, child) {
+                                  return Transform.scale(
+                                    scale: _zoomAnimation!.value,
+                                    child: Stack(
+                                      alignment: Alignment.center,
+                                      children: [
+                                        Container(
+                                          width: ResponsiveUtils.iconSize + ResponsiveUtils.dp(28),
+                                          height: ResponsiveUtils.iconSize + ResponsiveUtils.dp(28),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFB8860B).withOpacity(0.2),
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                        // Dot indicator inside the background circle
+                                        Positioned(
+                                          bottom: ResponsiveUtils.dp(3),
+                                          child: Container(
+                                            width: ResponsiveUtils.dp(6),
+                                            height: ResponsiveUtils.dp(6),
+                                            decoration: BoxDecoration(
+                                              color: const Color.fromARGB(255, 109, 78, 1),
+                                              shape: BoxShape.circle,
         ),
-        BottomNavigationBarItem(
-          icon: CustomIcons.search(
-            size: 24,
-            color: currentIndex == 1 ? AppColors.primary : AppColors.textHint,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              )
+                            : Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  Container(
+                                    width: ResponsiveUtils.iconSize + ResponsiveUtils.dp(28),
+                                    height: ResponsiveUtils.iconSize + ResponsiveUtils.dp(28),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFB8860B).withOpacity(0.2),
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  // Dot indicator inside the background circle
+                                  Positioned(
+                                    bottom: ResponsiveUtils.dp(3),
+                                    child: Container(
+                                      width: ResponsiveUtils.dp(6),
+                                      height: ResponsiveUtils.dp(6),
+                                      decoration: BoxDecoration(
+                                        color: const Color.fromARGB(255, 109, 78, 1),
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                      // Icon stays centered
+                      widget.currentIndex == index
+                          ? _getActiveIcon(
+                              index,
+                              ResponsiveUtils.iconSize + ResponsiveUtils.dp(8),
+                              const Color.fromARGB(255, 252, 197, 57),
+                            )
+                          : _getInactiveIcon(
+                              index,
+                              ResponsiveUtils.iconSize + ResponsiveUtils.dp(8),
+                              AppColors.textHint,
           ),
-          label: AppStrings.search,
+                    ],
         ),
-        BottomNavigationBarItem(
-          icon: CustomIcons.calendar(
-            size: 24,
-            color: currentIndex == 2 ? AppColors.primary : AppColors.textHint,
+                ),
+              ),
+            ),
           ),
-          label: 'Events',
         ),
-        BottomNavigationBarItem(
-          icon: CustomIcons.pages(
-            size: 28,
-            color: currentIndex == 3 ? AppColors.primary : const Color(0xFF141B34),
-          ),
-          label: AppStrings.pages,
-        ),
-        BottomNavigationBarItem(
-          icon: CustomIcons.profile(
-            size: 24,
-            color: currentIndex == 4 ? AppColors.primary : AppColors.textHint,
-          ),
-          label: AppStrings.profile,
-        ),
-      ],
+      ),
     );
   }
 }
+

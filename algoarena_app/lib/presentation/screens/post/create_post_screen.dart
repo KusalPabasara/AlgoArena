@@ -6,7 +6,7 @@ import '../../../core/constants/strings.dart';
 import '../../../data/repositories/post_repository.dart';
 
 class CreatePostScreen extends StatefulWidget {
-  const CreatePostScreen({Key? key}) : super(key: key);
+  const CreatePostScreen({super.key});
 
   @override
   State<CreatePostScreen> createState() => _CreatePostScreenState();

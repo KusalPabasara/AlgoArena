@@ -3,6 +3,7 @@ plugins {
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -23,8 +24,8 @@ android {
         applicationId = "com.example.algoarena"
         minSdk = flutter.minSdkVersion
         targetSdk = 36
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
+        versionCode = 2
+        versionName = "1.1.0"
         
         // Enable multidex for large apps
         multiDexEnabled = true
@@ -32,22 +33,43 @@ android {
 
     buildTypes {
         release {
-            // Disable minification for now to ensure stable build
-            isMinifyEnabled = false
-            isShrinkResources = false
+            // Enable code shrinking and obfuscation for smaller APK
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
             // Signing with debug keys for now
             signingConfig = signingConfigs.getByName("debug")
+            
+            // Optimize native libraries
+            ndk {
+                debugSymbolLevel = "SYMBOL_TABLE"
+            }
+        }
+        debug {
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
     
-    // Split APKs by ABI for smaller download size
-    splits {
-        abi {
-            isEnable = false
-            reset()
-            include("armeabi-v7a", "arm64-v8a", "x86_64")
-            isUniversalApk = true
+    // Optimize packaging
+    packaging {
+        resources {
+            excludes += listOf(
+                "META-INF/DEPENDENCIES",
+                "META-INF/LICENSE",
+                "META-INF/LICENSE.txt",
+                "META-INF/NOTICE",
+                "META-INF/NOTICE.txt"
+            )
         }
+    }
+    
+    // Enable build optimizations
+    buildFeatures {
+        buildConfig = true
     }
 }
 

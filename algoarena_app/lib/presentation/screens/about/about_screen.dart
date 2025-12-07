@@ -1,64 +1,119 @@
 import 'package:flutter/material.dart';
+import '../../widgets/custom_back_button.dart';
 import 'dart:math' as math;
+import '../../../utils/responsive_utils.dart';
 
 /// About Screen - Exact Figma implementation from About.tsx
-class AboutScreen extends StatelessWidget {
-  const AboutScreen({Key? key}) : super(key: key);
+class AboutScreen extends StatefulWidget {
+  const AboutScreen({super.key});
+
+  @override
+  State<AboutScreen> createState() => _AboutScreenState();
+}
+
+class _AboutScreenState extends State<AboutScreen> with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<Offset> _bubblesSlideAnimation;
+  late Animation<Offset> _bottomYellowBubbleSlideAnimation;
+  late Animation<Offset> _contentSlideAnimation;
+  late Animation<double> _bubblesFadeAnimation;
+  late Animation<double> _contentFadeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    
+    // Initialize animation controller
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    
+    // Bubbles animation - coming from outside (top-left)
+    _bubblesSlideAnimation = Tween<Offset>(
+      begin: const Offset(-0.5, -0.5),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeOutCubic,
+    ));
+    
+    // Bottom yellow bubble animation - coming from right outside
+    _bottomYellowBubbleSlideAnimation = Tween<Offset>(
+      begin: const Offset(0.5, 0.0), // Start from right outside
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeOutCubic,
+    ));
+    
+    _bubblesFadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
+    ));
+    
+    // Content animation - coming from bottom
+    _contentSlideAnimation = Tween<Offset>(
+      begin: const Offset(0.0, 0.3),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: const Interval(0.2, 1.0, curve: Curves.easeOutCubic),
+    ));
+    
+    _contentFadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: const Interval(0.2, 1.0, curve: Curves.easeOut),
+    ));
+    
+    // Start animation immediately
+    _animationController.forward();
+  }
+  
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    ResponsiveUtils.init(context);
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
         clipBehavior: Clip.none,
         children: [
-          // Bubble 04 - Yellow bubble at bottom right, rotated 110deg
-          // Figma: left: calc(41.67% - 7.92px), top: 495.4px, rotate: 110deg
-          Positioned(
-            left: MediaQuery.of(context).size.width * 0.4167 - 7.92,
-            top: 495.4,
-            child: TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0.0, end: 1.0),
-              duration: const Duration(milliseconds: 600),
-              curve: Curves.easeOut,
-              builder: (context, opacity, child) {
-                return Opacity(opacity: opacity, child: child);
-              },
-              child: Transform.rotate(
-                angle: 110 * math.pi / 180, // 110 degrees
-                child: SizedBox(
-                  width: 353.53,
-                  height: 442.65,
-                  child: CustomPaint(
-                    size: const Size(353.53, 442.65),
-                    painter: _Bubble04Painter(),
-                  ),
-                ),
-              ),
-            ),
-          ),
-
+          // Top bubbles - animated to slide in from top-left
+          FadeTransition(
+            opacity: _bubblesFadeAnimation,
+            child: SlideTransition(
+              position: _bubblesSlideAnimation,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
           // Bubble 02 - Yellow bubble at top left, rotated 235.784deg
           // Figma: left: -115px, top: -254px, rotate: 235.784deg
           Positioned(
-            left: -115,
-            top: -254,
-            child: TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0.0, end: 1.0),
-              duration: const Duration(milliseconds: 600),
-              curve: Curves.easeOut,
-              builder: (context, opacity, child) {
-                return Opacity(opacity: opacity, child: child);
-              },
+                    left: ResponsiveUtils.bw(-115),
+                    top: ResponsiveUtils.bh(-214),
               child: Transform.rotate(
                 angle: 235.784 * math.pi / 180, // 235.784 degrees
                 child: SizedBox(
-                  width: 373.531,
-                  height: 442.65,
+                        width: ResponsiveUtils.bs(373.531),
+                        height: ResponsiveUtils.bs(442.65),
                   child: CustomPaint(
-                    size: const Size(373.531, 442.65),
+                          size: Size(
+                            ResponsiveUtils.bs(373.531),
+                            ResponsiveUtils.bs(442.65),
+                          ),
                     painter: _Bubble02Painter(),
-                  ),
                 ),
               ),
             ),
@@ -67,162 +122,148 @@ class AboutScreen extends StatelessWidget {
           // Bubble 01 - Black bubble at top left, rotated 240deg
           // Figma: left: -148.17px, top: -290.48px, rotate: 240deg
           Positioned(
-            left: -148.17,
-            top: -290.48,
-            child: TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0.0, end: 1.0),
-              duration: const Duration(milliseconds: 600),
-              curve: Curves.easeOut,
-              builder: (context, opacity, child) {
-                return Opacity(opacity: opacity, child: child);
-              },
+                    left: ResponsiveUtils.bw(-148.17),
+                    top: ResponsiveUtils.bh(-250.48),
               child: Transform.rotate(
                 angle: 240 * math.pi / 180, // 240 degrees
                 child: SizedBox(
-                  width: 402.871,
-                  height: 442.65,
+                        width: ResponsiveUtils.bs(402.871),
+                        height: ResponsiveUtils.bs(442.65),
                   child: CustomPaint(
-                    size: const Size(402.871, 442.65),
+                          size: Size(
+                            ResponsiveUtils.bs(402.871),
+                            ResponsiveUtils.bs(442.65),
+                          ),
                     painter: _Bubble01Painter(),
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          // Back button - Figma: left: 10px, top: 50px, size: 50x53
-          Positioned(
-            left: 10,
-            top: 50,
-            child: GestureDetector(
-              onTap: () => Navigator.pop(context),
-              child: const SizedBox(
-                width: 50,
-                height: 53,
-                child: Icon(
-                  Icons.arrow_back,
-                  color: Colors.white,
-                  size: 28,
-                ),
-              ),
-            ),
-          ),
-
-          // "About" title - Figma: left: calc(16.67% + 2px), top: 48px
-          Positioned(
-            left: MediaQuery.of(context).size.width * 0.1667 + 2,
-            top: 48,
-            child: const Text(
-              'About',
-              style: TextStyle(
-                fontFamily: 'Raleway',
-                fontSize: 50,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-                letterSpacing: -0.52,
-              ),
-            ),
-          ),
-
-          // Scrollable Frame - Figma: left: calc(8.33% - 10.5px), top: 155px, h: 680px, w: 355px
-          Positioned(
-            left: MediaQuery.of(context).size.width * 0.0833 - 10.5,
-            top: 155,
-            child: SizedBox(
-              width: 355,
-              height: 680,
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // About District 306 section
-                    _buildAboutDistrictSection(),
-                    const SizedBox(height: 22),
-
-                    // Our Mission section
-                    _buildMissionSection(),
-                    const SizedBox(height: 22),
-
-                    // Our Vision section
-                    _buildVisionSection(),
-                    const SizedBox(height: 22),
-
-                    // What We Do section
-                    _buildWhatWeDoSection(),
-                    const SizedBox(height: 22),
-
-                    // Our Structure section
-                    _buildStructureSection(),
-                    const SizedBox(height: 22),
-
-                    // Our Clubs section
-                    _buildClubsSection(),
-                    const SizedBox(height: 22),
-
-                    // Why Join Us section
-                    _buildWhyJoinSection(),
-                    const SizedBox(height: 30),
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          // App version box - Figma: left: calc(8.33% + 4.5px), top: 879px
-          Positioned(
-            left: MediaQuery.of(context).size.width * 0.0833 + 4.5,
-            top: 845,
-            child: Container(
-              width: 332,
-              height: 48,
-              padding: const EdgeInsets.symmetric(horizontal: 56, vertical: 8),
-              decoration: BoxDecoration(
-                color: const Color(0x1A000000),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'App version',
-                    style: TextStyle(
-                      fontFamily: 'Nunito Sans',
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                      height: 1.0,
-                    ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    '1.00.0',
-                    style: TextStyle(
-                      fontFamily: 'Nunito Sans',
-                      fontSize: 12,
-                      fontWeight: FontWeight.w300,
-                      color: Colors.black,
-                      height: 1.0,
+                        ),
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
           ),
-
-          // Bottom bar - Figma: left: calc(33.33% - 3px), top: 863px
+          
+          // Bubble 04 - Yellow bubble at bottom right, rotated 110deg
+          // This bubble comes from right outside (separate from top bubbles)
           Positioned(
-            left: MediaQuery.of(context).size.width * 0.3333 - 3,
-            bottom: 10,
-            child: Container(
-              width: 145.848,
-              height: 5.442,
-              decoration: BoxDecoration(
-                color: Colors.black,
-                borderRadius: BorderRadius.circular(34),
+            left: ResponsiveUtils.bw(MediaQuery.of(context).size.width * 0.4167 - 7.92),
+            top: ResponsiveUtils.bh(495.4),
+            child: FadeTransition(
+              opacity: _bubblesFadeAnimation,
+              child: SlideTransition(
+                position: _bottomYellowBubbleSlideAnimation,
+                child: Transform.rotate(
+                  angle: 110 * math.pi / 180, // 110 degrees
+                  child: SizedBox(
+                    width: ResponsiveUtils.bs(353.53),
+                    height: ResponsiveUtils.bs(442.65),
+                    child: CustomPaint(
+                      size: Size(
+                        ResponsiveUtils.bs(353.53),
+                        ResponsiveUtils.bs(442.65),
+                      ),
+                      painter: _Bubble04Painter(),
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
+
+          // Back button - top left
+          CustomBackButton(
+            backgroundColor: Colors.black, // Dark area (image/shape background)
+            iconSize: ResponsiveUtils.iconSize,
+          ),
+
+          // "About" title - Figma: left: calc(16.67% + 2px), top: 48px
+          Positioned(
+            left: MediaQuery.of(context).size.width * 0.1667 + ResponsiveUtils.dp(2),
+            top: ResponsiveUtils.bh(48),
+            child: Text(
+              'About',
+              style: TextStyle(
+                fontFamily: 'Raleway',
+                fontSize: ResponsiveUtils.sp(50),
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                letterSpacing: -ResponsiveUtils.dp(0.52),
+              ),
+            ),
+          ),
+
+          // Scrollable Frame - animated to slide up from bottom
+          Positioned(
+            left: 0,
+            right: 0,
+            top: ResponsiveUtils.bh(155),
+            child: FadeTransition(
+              opacity: _contentFadeAnimation,
+              child: SlideTransition(
+                position: _contentSlideAnimation,
+                child: Center(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(ResponsiveUtils.r(35)),
+                    child: Container(
+                      width: ResponsiveUtils.dp(375),
+                      height: ResponsiveUtils.bh(750),
+                      decoration: BoxDecoration(
+                        color: const Color.fromARGB(255, 0, 0, 0).withOpacity(0.1), // Transparent white background
+                        borderRadius: BorderRadius.circular(ResponsiveUtils.r(35)),
+                      ),
+              child: SingleChildScrollView(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minWidth: MediaQuery.of(context).size.width,
+                        ),
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: ResponsiveUtils.spacingM + 4,
+                            vertical: ResponsiveUtils.spacingM - 6,
+                          ),
+                child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // About District 306 section
+                    _buildAboutDistrictSection(),
+                    SizedBox(height: ResponsiveUtils.dp(22)),
+
+                    // Our Mission section
+                    _buildMissionSection(),
+                    SizedBox(height: ResponsiveUtils.dp(22)),
+
+                    // Our Vision section
+                    _buildVisionSection(),
+                    SizedBox(height: ResponsiveUtils.dp(22)),
+
+                    // What We Do section
+                    _buildWhatWeDoSection(),
+                    SizedBox(height: ResponsiveUtils.dp(22)),
+
+                    // Our Structure section
+                    _buildStructureSection(),
+                    SizedBox(height: ResponsiveUtils.dp(22)),
+
+                    // Our Clubs section
+                    _buildClubsSection(),
+                    SizedBox(height: ResponsiveUtils.dp(22)),
+
+                    // Why Join Us section
+                    _buildWhyJoinSection(),
+                    SizedBox(height: ResponsiveUtils.dp(30)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+              ),
+            ),
+          ),
+              ),
+            ),
+          ),
+
         ],
       ),
     );
@@ -233,35 +274,35 @@ class AboutScreen extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.only(left: 10),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 0),
           child: Text(
             'About District 306',
             style: TextStyle(
               fontFamily: 'Raleway',
-              fontSize: 12,
+              fontSize: ResponsiveUtils.bodySmall,
               fontWeight: FontWeight.bold,
               color: Colors.black,
-              height: 2.58,
+              height: ResponsiveUtils.dp(2.58),
             ),
           ),
         ),
         Container(
-          width: 353,
-          padding: const EdgeInsets.all(10),
+          width: double.infinity,
+          padding: EdgeInsets.all(ResponsiveUtils.spacingM - 6),
           decoration: BoxDecoration(
             color: const Color(0x1A000000),
-            borderRadius: BorderRadius.circular(15),
+            borderRadius: BorderRadius.circular(ResponsiveUtils.r(15)),
           ),
-          child: const Text(
+          child: Text(
             'LEO District 306 is a leading youth-led service community in Sri Lanka, uniting passionate young leaders committed to personal growth, community service, and positive impact.\n Built on Leadership, Experience, and Opportunity, we empower Leos to develop real leadership skills and contribute meaningfully through humanitarian and youth development initiatives.',
             textAlign: TextAlign.justify,
             style: TextStyle(
               fontFamily: 'Raleway',
-              fontSize: 12,
+              fontSize: ResponsiveUtils.bodySmall,
               fontWeight: FontWeight.w500,
               color: Colors.black,
-              height: 1.33,
+              height: ResponsiveUtils.dp(1.33),
             ),
           ),
         ),
@@ -274,35 +315,35 @@ class AboutScreen extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.only(left: 10),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 0),
           child: Text(
             'Our Mission',
             style: TextStyle(
               fontFamily: 'Raleway',
-              fontSize: 12,
+              fontSize: ResponsiveUtils.bodySmall,
               fontWeight: FontWeight.bold,
               color: Colors.black,
-              height: 2.58,
+              height: ResponsiveUtils.dp(2.58),
             ),
           ),
         ),
         Container(
-          width: 353,
-          padding: const EdgeInsets.all(10),
+          width: double.infinity,
+          padding: EdgeInsets.all(ResponsiveUtils.spacingM - 6),
           decoration: BoxDecoration(
             color: const Color(0x1A000000),
-            borderRadius: BorderRadius.circular(15),
+            borderRadius: BorderRadius.circular(ResponsiveUtils.r(15)),
           ),
-          child: const Text(
+          child: Text(
             'To empower young individuals to become responsible leaders who create sustainable and meaningful change in their communities.',
             textAlign: TextAlign.justify,
             style: TextStyle(
               fontFamily: 'Raleway',
-              fontSize: 12,
+              fontSize: ResponsiveUtils.bodySmall,
               fontWeight: FontWeight.w500,
               color: Colors.black,
-              height: 1.33,
+              height: ResponsiveUtils.dp(1.33),
             ),
           ),
         ),
@@ -315,35 +356,35 @@ class AboutScreen extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.only(left: 10),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 0),
           child: Text(
             'Our Vision',
             style: TextStyle(
               fontFamily: 'Raleway',
-              fontSize: 12,
+              fontSize: ResponsiveUtils.bodySmall,
               fontWeight: FontWeight.bold,
               color: Colors.black,
-              height: 2.58,
+              height: ResponsiveUtils.dp(2.58),
             ),
           ),
         ),
         Container(
-          width: 353,
-          padding: const EdgeInsets.all(10),
+          width: double.infinity,
+          padding: EdgeInsets.all(ResponsiveUtils.spacingM - 6),
           decoration: BoxDecoration(
             color: const Color(0x1A000000),
-            borderRadius: BorderRadius.circular(15),
+            borderRadius: BorderRadius.circular(ResponsiveUtils.r(15)),
           ),
-          child: const Text(
+          child: Text(
             'A generation of youth equipped with compassion, leadership, and skills to build a better future for Sri Lanka and the world.',
             textAlign: TextAlign.justify,
             style: TextStyle(
               fontFamily: 'Raleway',
-              fontSize: 12,
+              fontSize: ResponsiveUtils.bodySmall,
               fontWeight: FontWeight.w500,
               color: Colors.black,
-              height: 1.33,
+              height: ResponsiveUtils.dp(1.33),
             ),
           ),
         ),
@@ -356,57 +397,57 @@ class AboutScreen extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.only(left: 10),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 0),
           child: Text(
             'What We Do',
             style: TextStyle(
               fontFamily: 'Raleway',
-              fontSize: 12,
+              fontSize: ResponsiveUtils.bodySmall,
               fontWeight: FontWeight.bold,
               color: Colors.black,
-              height: 2.58,
+              height: ResponsiveUtils.dp(2.58),
             ),
           ),
         ),
         Container(
-          width: 353,
-          padding: const EdgeInsets.all(10),
+          width: double.infinity,
+          padding: EdgeInsets.all(ResponsiveUtils.spacingM - 6),
           decoration: BoxDecoration(
             color: const Color(0x1A000000),
-            borderRadius: BorderRadius.circular(15),
+            borderRadius: BorderRadius.circular(ResponsiveUtils.r(15)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
+            children: [
               Text(
                 'District 306 carries out:',
                 textAlign: TextAlign.justify,
                 style: TextStyle(
                   fontFamily: 'Raleway',
-                  fontSize: 12,
+                  fontSize: ResponsiveUtils.bodySmall,
                   fontWeight: FontWeight.w500,
                   color: Colors.black,
-                  height: 1.33,
+                  height: ResponsiveUtils.dp(1.33),
                 ),
               ),
-              SizedBox(height: 4),
+              SizedBox(height: ResponsiveUtils.spacingXS),
               _BulletPoint('Community service projects that uplift underserved communities'),
               _BulletPoint('Youth leadership and skill-building programs'),
               _BulletPoint('Environmental protection and sustainability initiatives'),
               _BulletPoint('Health and wellness campaigns'),
               _BulletPoint('Fundraisers and charity drives'),
               _BulletPoint('District-wide conventions, training sessions, and competitions'),
-              SizedBox(height: 8),
+              SizedBox(height: ResponsiveUtils.spacingS),
               Text(
                 'These activities help Leos enhance teamwork, public speaking, project management, and organizational skills.',
                 textAlign: TextAlign.justify,
                 style: TextStyle(
                   fontFamily: 'Raleway',
-                  fontSize: 12,
+                  fontSize: ResponsiveUtils.bodySmall,
                   fontWeight: FontWeight.w500,
                   color: Colors.black,
-                  height: 1.33,
+                  height: ResponsiveUtils.dp(1.33),
                 ),
               ),
             ],
@@ -421,54 +462,54 @@ class AboutScreen extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.only(left: 10),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 0),
           child: Text(
             'Our Structure',
             style: TextStyle(
               fontFamily: 'Raleway',
-              fontSize: 12,
+              fontSize: ResponsiveUtils.bodySmall,
               fontWeight: FontWeight.bold,
               color: Colors.black,
-              height: 2.58,
+              height: ResponsiveUtils.dp(2.58),
             ),
           ),
         ),
         Container(
-          width: 353,
-          padding: const EdgeInsets.all(10),
+          width: double.infinity,
+          padding: EdgeInsets.all(ResponsiveUtils.spacingM - 6),
           decoration: BoxDecoration(
             color: const Color(0x1A000000),
-            borderRadius: BorderRadius.circular(15),
+            borderRadius: BorderRadius.circular(ResponsiveUtils.r(15)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
+            children: [
               Text(
                 'The district is guided by:',
                 textAlign: TextAlign.justify,
                 style: TextStyle(
                   fontFamily: 'Raleway',
-                  fontSize: 12,
+                  fontSize: ResponsiveUtils.bodySmall,
                   fontWeight: FontWeight.w500,
                   color: Colors.black,
-                  height: 1.33,
+                  height: ResponsiveUtils.dp(1.33),
                 ),
               ),
-              SizedBox(height: 4),
+              SizedBox(height: ResponsiveUtils.spacingXS),
               _BulletPoint('District President & Executive Committee'),
               _BulletPoint('Regional and Zone Chairpersons'),
               _BulletPoint('Advisors, Coordinators, and Club Officers'),
-              SizedBox(height: 8),
+              SizedBox(height: ResponsiveUtils.spacingS),
               Text(
                 'Together, they support all Leo clubs within District 306, ensuring smooth operations, strong collaboration, and impactful project outcomes.',
                 textAlign: TextAlign.justify,
                 style: TextStyle(
                   fontFamily: 'Raleway',
-                  fontSize: 12,
+                  fontSize: ResponsiveUtils.bodySmall,
                   fontWeight: FontWeight.w500,
                   color: Colors.black,
-                  height: 1.33,
+                  height: ResponsiveUtils.dp(1.33),
                 ),
               ),
             ],
@@ -483,35 +524,35 @@ class AboutScreen extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.only(left: 10),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 0),
           child: Text(
             'Our Clubs',
             style: TextStyle(
               fontFamily: 'Raleway',
-              fontSize: 12,
+              fontSize: ResponsiveUtils.bodySmall,
               fontWeight: FontWeight.bold,
               color: Colors.black,
-              height: 2.58,
+              height: ResponsiveUtils.dp(2.58),
             ),
           ),
         ),
         Container(
-          width: 353,
-          padding: const EdgeInsets.all(10),
+          width: double.infinity,
+          padding: EdgeInsets.all(ResponsiveUtils.spacingM - 6),
           decoration: BoxDecoration(
             color: const Color(0x1A000000),
-            borderRadius: BorderRadius.circular(15),
+            borderRadius: BorderRadius.circular(ResponsiveUtils.r(15)),
           ),
-          child: const Text(
+          child: Text(
             'District 306 is composed of multiple Leo clubs across different cities and regions. Each club carries out unique service activities while contributing to the district\'s common goals.',
             textAlign: TextAlign.justify,
             style: TextStyle(
               fontFamily: 'Raleway',
-              fontSize: 12,
+              fontSize: ResponsiveUtils.bodySmall,
               fontWeight: FontWeight.w500,
               color: Colors.black,
-              height: 1.33,
+              height: ResponsiveUtils.dp(1.33),
             ),
           ),
         ),
@@ -524,56 +565,56 @@ class AboutScreen extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.only(left: 10),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 0),
           child: Text(
             'Why Join Us?',
             style: TextStyle(
               fontFamily: 'Raleway',
-              fontSize: 12,
+              fontSize: ResponsiveUtils.bodySmall,
               fontWeight: FontWeight.bold,
               color: Colors.black,
-              height: 2.58,
+              height: ResponsiveUtils.dp(2.58),
             ),
           ),
         ),
         Container(
-          width: 353,
-          padding: const EdgeInsets.all(10),
+          width: double.infinity,
+          padding: EdgeInsets.all(ResponsiveUtils.spacingM - 6),
           decoration: BoxDecoration(
             color: const Color(0x1A000000),
-            borderRadius: BorderRadius.circular(15),
+            borderRadius: BorderRadius.circular(ResponsiveUtils.r(15)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
+            children: [
               Text(
                 'Being a Leo means:',
                 textAlign: TextAlign.justify,
                 style: TextStyle(
                   fontFamily: 'Raleway',
-                  fontSize: 12,
+                  fontSize: ResponsiveUtils.bodySmall,
                   fontWeight: FontWeight.w500,
                   color: Colors.black,
-                  height: 1.33,
+                  height: ResponsiveUtils.dp(1.33),
                 ),
               ),
-              SizedBox(height: 4),
+              SizedBox(height: ResponsiveUtils.spacingXS),
               _BulletPoint('Becoming a leader'),
               _BulletPoint('Gaining real-world experience'),
               _BulletPoint('Meeting inspiring youth'),
               _BulletPoint('Serving communities that need help'),
               _BulletPoint('Being part of an international movement'),
-              SizedBox(height: 8),
+              SizedBox(height: ResponsiveUtils.spacingS),
               Text(
                 'District 306 is more than a youth organization - it\'s a family of passionate changemakers.',
                 textAlign: TextAlign.justify,
                 style: TextStyle(
                   fontFamily: 'Raleway',
-                  fontSize: 12,
+                  fontSize: ResponsiveUtils.bodySmall,
                   fontWeight: FontWeight.w500,
                   color: Colors.black,
-                  height: 1.33,
+                  height: ResponsiveUtils.dp(1.33),
                 ),
               ),
             ],
@@ -592,15 +633,18 @@ class _BulletPoint extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(left: 18, bottom: 2),
+      padding: EdgeInsets.only(
+        left: ResponsiveUtils.dp(18),
+        bottom: ResponsiveUtils.dp(2),
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             '• ',
             style: TextStyle(
               fontFamily: 'Raleway',
-              fontSize: 12,
+              fontSize: ResponsiveUtils.bodySmall,
               fontWeight: FontWeight.w500,
               color: Colors.black,
             ),
@@ -609,12 +653,12 @@ class _BulletPoint extends StatelessWidget {
             child: Text(
               text,
               textAlign: TextAlign.justify,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: 'Raleway',
-                fontSize: 12,
+                fontSize: ResponsiveUtils.bodySmall,
                 fontWeight: FontWeight.w500,
                 color: Colors.black,
-                height: 1.33,
+                height: ResponsiveUtils.dp(1.33),
               ),
             ),
           ),

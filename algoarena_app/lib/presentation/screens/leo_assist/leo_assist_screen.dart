@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:math' as math;
 import '../../../services/leo_assist_service.dart';
+import '../../../providers/auth_provider.dart';
+import '../../widgets/custom_back_button.dart';
+import '../../../utils/responsive_utils.dart';
 
 /// Leo Assist Screen - Exact Figma Implementation with CATMS API Integration
 /// Source: Leo assist/src/imports/LeoAssist.tsx with svg-2y6j7mrshz.ts
@@ -13,16 +18,68 @@ class LeoAssistScreen extends StatefulWidget {
   State<LeoAssistScreen> createState() => _LeoAssistScreenState();
 }
 
-class _LeoAssistScreenState extends State<LeoAssistScreen> {
+class _LeoAssistScreenState extends State<LeoAssistScreen> with SingleTickerProviderStateMixin {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final LeoAssistService _chatService = LeoAssistService();
   final List<ChatMessage> _messages = [];
   bool _isLoading = false;
+  // Track feedback state for each message (index -> 'like', 'dislike', or null)
+  final Map<int, String?> _messageFeedback = {};
+  
+  late AnimationController _animationController;
+  late Animation<Offset> _bubblesSlideAnimation;
+  late Animation<Offset> _contentSlideAnimation;
+  late Animation<double> _bubblesFadeAnimation;
+  late Animation<double> _contentFadeAnimation;
 
   @override
   void initState() {
     super.initState();
+    
+    // Initialize animation controller
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    
+    // Bubbles animation - coming from outside (top-left)
+    _bubblesSlideAnimation = Tween<Offset>(
+      begin: const Offset(-0.5, -0.5),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeOutCubic,
+    ));
+    
+    _bubblesFadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
+    ));
+    
+    // Content animation - coming from bottom
+    _contentSlideAnimation = Tween<Offset>(
+      begin: const Offset(0.0, 0.3),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: const Interval(0.2, 1.0, curve: Curves.easeOutCubic),
+    ));
+    
+    _contentFadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: const Interval(0.2, 1.0, curve: Curves.easeOut),
+    ));
+    
+    // Start animation immediately
+    _animationController.forward();
+    
     // Add initial greeting
     _messages.add(ChatMessage(
       text: 'Hello! How can I help you today?',
@@ -35,6 +92,7 @@ class _LeoAssistScreenState extends State<LeoAssistScreen> {
   void dispose() {
     _messageController.dispose();
     _scrollController.dispose();
+    _animationController.dispose();
     super.dispose();
   }
 
@@ -98,26 +156,27 @@ class _LeoAssistScreenState extends State<LeoAssistScreen> {
     _sendMessage(tag);
   }
 
-  void _copyMessage(String text) {
-    Clipboard.setData(ClipboardData(text: text));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Message copied to clipboard'),
-        duration: Duration(seconds: 2),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
+    ResponsiveUtils.init(context);
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
       backgroundColor: Colors.white,
+      resizeToAvoidBottomInset: true,
       body: SizedBox(
         width: screenWidth,
         height: screenHeight,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            // Bubbles - animated to slide in from outside
+            FadeTransition(
+              opacity: _bubblesFadeAnimation,
+              child: SlideTransition(
+                position: _bubblesSlideAnimation,
         child: Stack(
           clipBehavior: Clip.none,
           children: [
@@ -125,13 +184,6 @@ class _LeoAssistScreenState extends State<LeoAssistScreen> {
             Positioned(
               left: -131.97,
               top: -205.67,
-              child: TweenAnimationBuilder<double>(
-                tween: Tween(begin: 0.0, end: 1.0),
-                duration: const Duration(milliseconds: 600),
-                curve: Curves.easeOut,
-                builder: (context, value, child) {
-                  return Opacity(
-                    opacity: value,
                     child: Transform.rotate(
                       angle: 158 * math.pi / 180,
                       child: SizedBox(
@@ -141,9 +193,6 @@ class _LeoAssistScreenState extends State<LeoAssistScreen> {
                           painter: _Bubble02Painter(),
                         ),
                       ),
-                    ),
-                  );
-                },
               ),
             ),
 
@@ -151,13 +200,6 @@ class _LeoAssistScreenState extends State<LeoAssistScreen> {
             Positioned(
               left: 283.73,
               top: 41,
-              child: TweenAnimationBuilder<double>(
-                tween: Tween(begin: 0.0, end: 1.0),
-                duration: const Duration(milliseconds: 600),
-                curve: Curves.easeOut,
-                builder: (context, value, child) {
-                  return Opacity(
-                    opacity: value,
                     child: SizedBox(
                       width: 243.628,
                       height: 266.77,
@@ -165,75 +207,127 @@ class _LeoAssistScreenState extends State<LeoAssistScreen> {
                         painter: _Bubble01Painter(),
                       ),
                     ),
-                  );
-                },
-              ),
-            ),
-
-            // Header with Logo and Brand Name
-            Positioned(
-              left: 2,
-              top: 120,
-              child: Row(
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
                     ),
-                    child: CustomPaint(
-                      painter: _WappGPTLogoPainter(),
-                    ),
-                  ),
-                  const SizedBox(width: 9),
-                  const Text(
-                    'LeoAssist',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Back button
-            Positioned(
-              left: 10,
-              top: 50,
-              child: GestureDetector(
-                onTap: () => Navigator.pop(context),
-                child: SizedBox(
-                  width: 49.568,
-                  height: 53,
-                  child: Image.asset(
-                    'assets/images/leo_assist/back_button.png',
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(25),
-                        ),
-                        child: const Center(
-                          child: Icon(Icons.arrow_back, color: Colors.white, size: 24),
-                        ),
-                      );
-                    },
-                  ),
+                  ],
                 ),
               ),
             ),
 
-            // Chat messages area
+            // Back button - top left
+            CustomBackButton(
+              backgroundColor: Colors.white, // White background, so button will be black
+              iconSize: 24,
+            ),
+
+            // "Leo Assist" title - Figma: left: calc(16.67% + 2px), top: 48px
             Positioned(
-              left: 11,
-              top: 180,
-              right: 11,
-              bottom: 180,
+              left: MediaQuery.of(context).size.width * 0.1667 + ResponsiveUtils.dp(2),
+              top: ResponsiveUtils.bh(48),
+              child: Text(
+                'Leo Assist',
+                style: TextStyle(
+                  fontFamily: 'Raleway',
+                  fontSize: ResponsiveUtils.dp(50),
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                  letterSpacing: -ResponsiveUtils.dp(0.52),
+                  height: 1.0,
+                ),
+              ),
+            ),
+
+            // Small attractive topic with icon background - positioned between title and chat box
+            Positioned(
+              left: ResponsiveUtils.spacingM,
+              top: ResponsiveUtils.bh(120), // Between title (48) and chat box (185)
+              child: Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: ResponsiveUtils.dp(16),
+                  vertical: ResponsiveUtils.dp(10),
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFD700).withOpacity(0.2), // Light yellow background
+                  borderRadius: BorderRadius.circular(25),
+                  border: Border.all(
+                    color: const Color(0xFFFFD700).withOpacity(0.5),
+                    width: 1.5,
+                  ),
+                ),
+              child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                children: [
+                    // Icon background circle
+                  Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFD700),
+                      shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFFFD700).withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                    ),
+                      child: Center(
+                        child: ClipOval(
+                          child: Image.asset(
+                            'assets/images/logo.png',
+                            width: 32,
+                            height: 32,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                    ),
+                  ),
+                    const SizedBox(width: 10),
+                    // Text
+                  const Text(
+                    'LeoAssist',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      color: Colors.black,
+                        letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
+                ),
+              ),
+            ),
+
+            // Chat messages area - animated to slide up from bottom
+            Positioned(
+              left: 0,
+              right: 0,
+              // Positioned below the topic pill (which is at 120 + ~50 height = ~170)
+              top: ResponsiveUtils.bh(200),
+              // Space for input section (footer) on all screen sizes
+              bottom: ResponsiveUtils.bh(200),
+              child: FadeTransition(
+                opacity: _contentFadeAnimation,
+                child: SlideTransition(
+                  position: _contentSlideAnimation,
+                  child: Center(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(ResponsiveUtils.r(35)),
+                      child: Container(
+                        width: ResponsiveUtils.dp(375),
+                        constraints: BoxConstraints(
+                          maxHeight: MediaQuery.of(context).size.height - ResponsiveUtils.bh(380), // Account for top and bottom spacing
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color.fromARGB(255, 0, 0, 0).withOpacity(0.1), // Transparent background
+                          borderRadius: BorderRadius.circular(ResponsiveUtils.r(35)),
+                        ),
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: ResponsiveUtils.spacingM + ResponsiveUtils.dp(4),
+                            vertical: ResponsiveUtils.spacingM - ResponsiveUtils.dp(6),
+                          ),
               child: ListView.builder(
                 controller: _scrollController,
                 itemCount: _messages.length + (_isLoading ? 1 : 0),
@@ -241,129 +335,149 @@ class _LeoAssistScreenState extends State<LeoAssistScreen> {
                   if (index == _messages.length && _isLoading) {
                     return _buildLoadingIndicator();
                   }
-                  return _buildMessageBubble(_messages[index]);
+                              return _buildMessageBubble(_messages[index], index);
                 },
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
 
             // Footer with tags and text area
             Positioned(
-              left: 2,
-              bottom: 35,
-              child: Container(
-                width: screenWidth - 4,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: const BorderRadius.only(
-                    bottomLeft: Radius.circular(20),
-                    bottomRight: Radius.circular(20),
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: SafeArea(
+                child: Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: ResponsiveUtils.spacingM,
+                    vertical: ResponsiveUtils.dp(8),
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.08),
-                      blurRadius: 16,
-                      offset: const Offset(0, -4),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Tag container
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: [
-                          _buildTag('What is LeoAssist?'),
-                          const SizedBox(width: 8),
-                          _buildTag('What is Leo club?'),
-                          const SizedBox(width: 8),
-                          _buildTag('FAQs'),
-                        ],
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.08),
+                        blurRadius: ResponsiveUtils.dp(16),
+                        offset: Offset(0, -ResponsiveUtils.dp(4)),
                       ),
-                    ),
-                    const SizedBox(height: 6),
-
-                    // Text area
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE8EBF0),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: const Color(0xFFF3F5F6),
-                          width: 1,
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Tag container
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            _buildTag('What is LeoAssist?'),
+                            SizedBox(width: ResponsiveUtils.dp(8)),
+                            _buildTag('What is Leo club?'),
+                            SizedBox(width: ResponsiveUtils.dp(8)),
+                            _buildTag('FAQs'),
+                          ],
                         ),
                       ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _messageController,
-                              decoration: const InputDecoration(
-                                hintText: 'Type your message here...',
-                                hintStyle: TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.normal,
-                                  color: Color(0xFF444444),
-                                ),
-                                border: InputBorder.none,
-                                contentPadding: EdgeInsets.zero,
-                              ),
-                              style: const TextStyle(
-                                fontFamily: 'Inter',
-                                fontSize: 16,
-                                color: Colors.black,
-                              ),
-                              maxLines: 3,
-                              minLines: 1,
-                              onSubmitted: _sendMessage,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          GestureDetector(
-                            onTap: () => _sendMessage(_messageController.text),
-                            child: Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF8F7902),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Center(
-                                child: Icon(
-                                  Icons.send_rounded,
-                                  color: Colors.white,
-                                  size: 20,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+                      SizedBox(height: ResponsiveUtils.dp(8)),
 
-            // Bottom bar
-            Positioned(
-              left: screenWidth * 0.3333 - 2,
-              bottom: 10,
-              child: Container(
-                width: 145.848,
-                height: 5.442,
-                decoration: BoxDecoration(
-                  color: Colors.black,
-                  borderRadius: BorderRadius.circular(34),
+                      // Text input area with attractive design
+                      Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: ResponsiveUtils.dp(12),
+                          vertical: ResponsiveUtils.dp(6),
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.transparent,
+                          borderRadius: BorderRadius.circular(ResponsiveUtils.r(25)),
+                          border: Border.all(
+                            color: const Color(0xFFE0E0E0),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _messageController,
+                                decoration: InputDecoration(
+                                  hintText: 'Type your message here...',
+                                  hintStyle: TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontSize: ResponsiveUtils.bodyMedium,
+                                    fontWeight: FontWeight.normal,
+                                    color: const Color(0xFF888888),
+                                  ),
+                                  filled: true,
+                                  fillColor: Colors.transparent,
+                                  border: InputBorder.none,
+                                  enabledBorder: InputBorder.none,
+                                  focusedBorder: InputBorder.none,
+                                  disabledBorder: InputBorder.none,
+                                  errorBorder: InputBorder.none,
+                                  focusedErrorBorder: InputBorder.none,
+                                  contentPadding: EdgeInsets.symmetric(
+                                    horizontal: ResponsiveUtils.dp(4),
+                                    vertical: ResponsiveUtils.dp(6),
+                                  ),
+                                ),
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: ResponsiveUtils.bodyMedium,
+                                  color: Colors.black,
+                                ),
+                                maxLines: 3,
+                                minLines: 1,
+                                textCapitalization: TextCapitalization.sentences,
+                                onSubmitted: _sendMessage,
+                              ),
+                            ),
+                            SizedBox(width: ResponsiveUtils.dp(8)),
+                            GestureDetector(
+                              onTap: () => _sendMessage(_messageController.text),
+                              child: Container(
+                                width: ResponsiveUtils.dp(40),
+                                height: ResponsiveUtils.dp(40),
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      Color(0xFFFFD700),
+                                      Color(0xFF8F7902),
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(ResponsiveUtils.r(24)),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFFFFD700).withOpacity(0.3),
+                                      blurRadius: ResponsiveUtils.dp(8),
+                                      offset: Offset(0, ResponsiveUtils.dp(2)),
+                                    ),
+                                  ],
+                                ),
+                                child: Center(
+                                  child: Icon(
+                                    Icons.send_rounded,
+                                    color: Colors.white,
+                                    size: ResponsiveUtils.iconSize,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -373,15 +487,35 @@ class _LeoAssistScreenState extends State<LeoAssistScreen> {
     );
   }
 
-  Widget _buildMessageBubble(ChatMessage message) {
-    return Padding(
+  Widget _buildMessageBubble(ChatMessage message, int messageIndex) {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final user = authProvider.user;
+    final profilePhoto = user?.profilePhoto;
+    
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: message.isBot 
+                ? Offset(-30 * (1 - value), 0) 
+                : Offset(30 * (1 - value), 0),
+            child: Transform.scale(
+              scale: 0.8 + (0.2 * value),
+              child: Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Column(
         crossAxisAlignment:
             message.isBot ? CrossAxisAlignment.start : CrossAxisAlignment.end,
         children: [
           if (message.isBot) ...[
-            // Bot message with bubble tail
+                      // Bot message with bubble tail pointing down-left
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
@@ -394,27 +528,29 @@ class _LeoAssistScreenState extends State<LeoAssistScreen> {
                     shape: BoxShape.circle,
                   ),
                   child: Center(
-                    child: SizedBox(
+                        child: ClipOval(
+                          child: Image.asset(
+                            'assets/images/logo.png',
                       width: 24,
-                      height: 25,
-                      child: CustomPaint(
-                        painter: _WappGPTLogoSmallPainter(),
+                            height: 24,
+                            fit: BoxFit.cover,
                       ),
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Flexible(
+                                child: Stack(
+                                  clipBehavior: Clip.none,
+                                  children: [
+                                    // Message bubble with tail
+                                    ClipPath(
+                                      clipper: _BubbleClipper(tailDirection: TailDirection.downLeft),
                   child: Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF8F7902).withValues(alpha: 0.77),
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(4),
-                        topRight: Radius.circular(16),
-                        bottomRight: Radius.circular(16),
-                        bottomLeft: Radius.circular(16),
-                      ),
+                                          color: const Color(0xFF8F7902), // Golden-brown color
+                                          borderRadius: BorderRadius.circular(16),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -427,55 +563,114 @@ class _LeoAssistScreenState extends State<LeoAssistScreen> {
                             color: Colors.white,
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
+                                            const SizedBox(height: 4),
+                                            // Timestamp
                             Text(
                               message.time,
                               style: TextStyle(
                                 fontFamily: 'Inter',
                                 fontSize: 10,
                                 color: Colors.white.withValues(alpha: 0.7),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          // Like and Unlike buttons below the bubble - aligned to right side of bubble
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              const SizedBox(width: 44), // Spacer to align with bubble (avatar + spacing)
+                              Flexible(
+                                child: Container(),
+                              ),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        if (_messageFeedback[messageIndex] == 'like') {
+                                          _messageFeedback[messageIndex] = null; // Toggle off
+                                        } else {
+                                          _messageFeedback[messageIndex] = 'like';
+                                        }
+                                      });
+                                    },
+                                    child: AnimatedContainer(
+                                      duration: const Duration(milliseconds: 200),
+                                      curve: Curves.easeInOut,
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: BoxDecoration(
+                                        color: _messageFeedback[messageIndex] == 'like'
+                                            ? const Color(0xFF4CAF50) // Green when selected
+                                            : const Color(0xFFFFD700), // Yellow when not selected
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(
+                                        Icons.thumb_up,
+                                        size: 16,
+                                        color: _messageFeedback[messageIndex] == 'like'
+                                            ? Colors.white
+                                            : Colors.black,
+                                      ),
                               ),
                             ),
                             const SizedBox(width: 12),
-                            // Action buttons
                             GestureDetector(
-                              onTap: () => _copyMessage(message.text),
-                              child: Container(
-                                padding: const EdgeInsets.all(4),
+                                    onTap: () {
+                                      setState(() {
+                                        if (_messageFeedback[messageIndex] == 'dislike') {
+                                          _messageFeedback[messageIndex] = null; // Toggle off
+                                        } else {
+                                          _messageFeedback[messageIndex] = 'dislike';
+                                        }
+                                      });
+                                    },
+                                    child: AnimatedContainer(
+                                      duration: const Duration(milliseconds: 200),
+                                      curve: Curves.easeInOut,
+                                      padding: const EdgeInsets.all(6),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFFFD700),
-                                  borderRadius: BorderRadius.circular(4),
+                                        color: _messageFeedback[messageIndex] == 'dislike'
+                                            ? const Color(0xFFF44336) // Red when selected
+                                            : const Color(0xFFFFD700), // Yellow when not selected
+                                        shape: BoxShape.circle,
                                 ),
-                                child: const Icon(
-                                  Icons.copy,
-                                  size: 12,
-                                  color: Colors.black,
+                                      child: Icon(
+                                        Icons.thumb_down,
+                                        size: 16,
+                                        color: _messageFeedback[messageIndex] == 'dislike'
+                                            ? Colors.white
+                                            : Colors.black,
                                 ),
                               ),
                             ),
                           ],
                         ),
                       ],
-                    ),
-                  ),
                 ),
               ],
             ),
           ] else ...[
-            // User message
-            Container(
+                      // User message with profile photo
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          Flexible(
+                            child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFF031B4E),
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(16),
-                  topRight: Radius.circular(4),
-                  bottomRight: Radius.circular(16),
-                  bottomLeft: Radius.circular(16),
-                ),
+                                color: Colors.black,
+                                borderRadius: BorderRadius.circular(16),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
@@ -499,10 +694,46 @@ class _LeoAssistScreenState extends State<LeoAssistScreen> {
                   ),
                 ],
               ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // User profile photo
+                          Container(
+                            width: 36,
+                            height: 36,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                            ),
+                            child: ClipOval(
+                              child: profilePhoto != null && profilePhoto.isNotEmpty
+                                  ? CachedNetworkImage(
+                                      imageUrl: profilePhoto,
+                                      fit: BoxFit.cover,
+                                      placeholder: (context, url) => Image.asset(
+                                        'assets/images/profile/avatar_artist.png',
+                                        fit: BoxFit.cover,
+                                      ),
+                                      errorWidget: (context, url, error) => Image.asset(
+                                        'assets/images/profile/avatar_artist.png',
+                                        fit: BoxFit.cover,
+                                      ),
+                                    )
+                                  : Image.asset(
+                                      'assets/images/profile/avatar_artist.png',
+                                      fit: BoxFit.cover,
+                                    ),
+                            ),
+                          ),
+                        ],
             ),
           ],
         ],
+                ),
+              ),
+            ),
       ),
+        );
+      },
     );
   }
 
@@ -520,11 +751,12 @@ class _LeoAssistScreenState extends State<LeoAssistScreen> {
               shape: BoxShape.circle,
             ),
             child: Center(
-              child: SizedBox(
+              child: ClipOval(
+                child: Image.asset(
+                  'assets/images/logo.png',
                 width: 24,
-                height: 25,
-                child: CustomPaint(
-                  painter: _WappGPTLogoSmallPainter(),
+                  height: 24,
+                  fit: BoxFit.cover,
                 ),
               ),
             ),
@@ -573,25 +805,25 @@ class _LeoAssistScreenState extends State<LeoAssistScreen> {
     return GestureDetector(
       onTap: () => _handleTagTap(text),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: EdgeInsets.symmetric(
+          horizontal: ResponsiveUtils.dp(16),
+          vertical: ResponsiveUtils.dp(8),
+        ),
         decoration: BoxDecoration(
           color: const Color(0xFFF3F5F6),
-          borderRadius: BorderRadius.circular(10),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.12),
-              blurRadius: 0,
-              offset: const Offset(0, 1),
-            ),
-          ],
+          borderRadius: BorderRadius.circular(ResponsiveUtils.r(20)),
+          border: Border.all(
+            color: const Color(0xFFE0E0E0),
+            width: 1,
+          ),
         ),
         child: Text(
           text,
           style: TextStyle(
             fontFamily: 'Inter',
-            fontSize: 12,
+            fontSize: ResponsiveUtils.bodySmall,
             fontWeight: FontWeight.w600,
-            color: const Color(0xFF444444).withValues(alpha: 0.9),
+            color: const Color(0xFF444444),
           ),
         ),
       ),
@@ -696,170 +928,90 @@ class _Bubble01Painter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-/// WappGPT Logo Painter - Main logo in header
-class _WappGPTLogoPainter extends CustomPainter {
+// Removed _WappGPTLogoPainter and _WappGPTLogoSmallPainter - now using Image.asset('assets/images/logo.png')
+
+/// Bubble Clipper - Creates a bubble shape with a tail
+class _BubbleClipper extends CustomClipper<Path> {
+  final TailDirection tailDirection;
+
+  _BubbleClipper({required this.tailDirection});
+
   @override
-  void paint(Canvas canvas, Size size) {
-    final whitePaint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill;
+  Path getClip(Size size) {
+    final path = Path();
+    final radius = 16.0;
+    final tailSize = 12.0;
 
-    final darkBluePaint = Paint()
-      ..color = const Color(0xFF162550)
-      ..style = PaintingStyle.fill;
+    switch (tailDirection) {
+      case TailDirection.downLeft:
+        // Rounded rectangle with tail pointing down-left
+        path.moveTo(radius, 0);
+        path.lineTo(size.width - radius, 0);
+        path.quadraticBezierTo(size.width, 0, size.width, radius);
+        path.lineTo(size.width, size.height - radius);
+        path.quadraticBezierTo(size.width, size.height, size.width - radius, size.height);
+        // Tail pointing down-left
+        path.lineTo(tailSize + radius, size.height);
+        path.lineTo(tailSize, size.height + tailSize);
+        path.lineTo(0, size.height);
+        path.quadraticBezierTo(0, size.height, 0, size.height - radius);
+        path.lineTo(0, radius);
+        path.quadraticBezierTo(0, 0, radius, 0);
+        break;
+      case TailDirection.downRight:
+        path.moveTo(radius, 0);
+        path.lineTo(size.width - radius, 0);
+        path.quadraticBezierTo(size.width, 0, size.width, radius);
+        path.lineTo(size.width, size.height - radius);
+        path.quadraticBezierTo(size.width, size.height, size.width - radius, size.height);
+        path.lineTo(size.width - tailSize - radius, size.height);
+        path.lineTo(size.width - tailSize, size.height + tailSize);
+        path.lineTo(size.width, size.height);
+        path.lineTo(size.width, size.height - radius);
+        path.lineTo(size.width, radius);
+        path.lineTo(size.width - radius, 0);
+        path.lineTo(radius, 0);
+        path.quadraticBezierTo(0, 0, 0, radius);
+        path.lineTo(0, size.height - radius);
+        path.quadraticBezierTo(0, size.height, radius, size.height);
+        path.close();
+        break;
+      case TailDirection.upLeft:
+        path.moveTo(radius, 0);
+        path.lineTo(tailSize + radius, 0);
+        path.lineTo(tailSize, -tailSize);
+        path.lineTo(0, 0);
+        path.quadraticBezierTo(0, 0, 0, radius);
+        path.lineTo(0, size.height - radius);
+        path.quadraticBezierTo(0, size.height, radius, size.height);
+        path.lineTo(size.width - radius, size.height);
+        path.quadraticBezierTo(size.width, size.height, size.width, size.height - radius);
+        path.lineTo(size.width, radius);
+        path.quadraticBezierTo(size.width, 0, size.width - radius, 0);
+        path.close();
+        break;
+      case TailDirection.upRight:
+        path.moveTo(radius, 0);
+        path.lineTo(size.width - radius, 0);
+        path.quadraticBezierTo(size.width, 0, size.width, radius);
+        path.lineTo(size.width, size.height - radius);
+        path.quadraticBezierTo(size.width, size.height, size.width - radius, size.height);
+        path.lineTo(radius, size.height);
+        path.quadraticBezierTo(0, size.height, 0, size.height - radius);
+        path.lineTo(0, radius);
+        path.quadraticBezierTo(0, 0, radius, 0);
+        path.close();
+        break;
+    }
 
-    final cyanPaint = Paint()
-      ..color = const Color(0xFF04FED1)
-      ..style = PaintingStyle.fill;
-
-    final scale = size.width / 48;
-
-    final mainPath = Path();
-    mainPath.moveTo(33.9145 * scale, 25.0886 * scale);
-    mainPath.cubicTo(31.2154 * scale, 26.1708 * scale, 28.302 * scale, 26.8383 * scale, 25.2548 * scale, 27.0112 * scale);
-    mainPath.cubicTo(24.7292 * scale, 27.041 * scale, 24.1997 * scale, 27.0562 * scale, 23.6667 * scale, 27.0562 * scale);
-    mainPath.cubicTo(23.1336 * scale, 27.0562 * scale, 22.6041 * scale, 27.041 * scale, 22.0786 * scale, 27.0112 * scale);
-    mainPath.cubicTo(19.0306 * scale, 26.8382 * scale, 16.1165 * scale, 26.1705 * scale, 13.4169 * scale, 25.0878 * scale);
-    mainPath.cubicTo(7.75158 * scale, 22.8158 * scale, 3.03083 * scale, 18.7165 * scale, 0 * scale, 13.5281 * scale);
-    mainPath.cubicTo(4.72407 * scale, 5.44098 * scale, 13.5537 * scale, 0 * scale, 23.6667 * scale, 0 * scale);
-    mainPath.cubicTo(33.7796 * scale, 0 * scale, 42.6093 * scale, 5.44098 * scale, 47.3333 * scale, 13.5281 * scale);
-    mainPath.cubicTo(44.3022 * scale, 18.7171 * scale, 39.5807 * scale, 22.8167 * scale, 33.9145 * scale, 25.0886 * scale);
-    mainPath.close();
-    canvas.drawPath(mainPath, whitePaint);
-
-    final visorRect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(12.2546 * scale, 10.0675 * scale, 22.8741 * scale, 8.08988 * scale),
-      Radius.circular(4.04494 * scale),
-    );
-    canvas.drawRRect(visorRect, darkBluePaint);
-
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(29.9997 * scale, 14.0675 * scale),
-        width: 2.99542 * scale,
-        height: 2.9663 * scale,
-      ),
-      cyanPaint,
-    );
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(17.6553 * scale, 14.0675 * scale),
-        width: 2.99542 * scale,
-        height: 2.9663 * scale,
-      ),
-      cyanPaint,
-    );
-
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(23.6455 * scale, 34.0224 * scale),
-        width: 2.99542 * scale,
-        height: 2.9663 * scale,
-      ),
-      darkBluePaint,
-    );
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(17.6553 * scale, 34.0224 * scale),
-        width: 2.99542 * scale,
-        height: 2.9663 * scale,
-      ),
-      darkBluePaint,
-    );
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(29.637 * scale, 34.0224 * scale),
-        width: 2.99542 * scale,
-        height: 2.9663 * scale,
-      ),
-      darkBluePaint,
-    );
+    return path;
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
 }
 
-/// WappGPT Logo Small Painter - Logo in chat bubble
-class _WappGPTLogoSmallPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final whitePaint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill;
+/// Bubble Tail Direction
+enum TailDirection { downLeft, downRight, upLeft, upRight }
 
-    final darkBluePaint = Paint()
-      ..color = const Color(0xFF162550)
-      ..style = PaintingStyle.fill;
-
-    final cyanPaint = Paint()
-      ..color = const Color(0xFF04FED1)
-      ..style = PaintingStyle.fill;
-
-    final scale = size.width / 33;
-
-    final mainPath = Path();
-    mainPath.moveTo(23.0895 * scale, 17.2484 * scale);
-    mainPath.cubicTo(21.2519 * scale, 17.9924 * scale, 19.2684 * scale, 18.4513 * scale, 17.1938 * scale, 18.5702 * scale);
-    mainPath.cubicTo(16.836 * scale, 18.5907 * scale, 16.4755 * scale, 18.6011 * scale, 16.1126 * scale, 18.6011 * scale);
-    mainPath.cubicTo(15.7497 * scale, 18.6011 * scale, 15.3892 * scale, 18.5907 * scale, 15.0314 * scale, 18.5702 * scale);
-    mainPath.cubicTo(12.9563 * scale, 18.4513 * scale, 10.9724 * scale, 17.9922 * scale, 9.13444 * scale, 17.2479 * scale);
-    mainPath.cubicTo(5.27739 * scale, 15.6859 * scale, 2.06343 * scale, 12.8676 * scale, 0 * scale, 9.30056 * scale);
-    mainPath.cubicTo(3.21622 * scale, 3.74067 * scale, 9.22758 * scale, 0 * scale, 16.1126 * scale, 0 * scale);
-    mainPath.cubicTo(22.9977 * scale, 0 * scale, 29.009 * scale, 3.74067 * scale, 32.2252 * scale, 9.30056 * scale);
-    mainPath.cubicTo(30.1616 * scale, 12.868 * scale, 26.9471 * scale, 15.6865 * scale, 23.0895 * scale, 17.2484 * scale);
-    mainPath.close();
-    canvas.drawPath(mainPath, whitePaint);
-
-    final visorRect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(8.34305 * scale, 6.92138 * scale, 15.573 * scale, 5.5618 * scale),
-      Radius.circular(2.7809 * scale),
-    );
-    canvas.drawRRect(visorRect, darkBluePaint);
-
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(20.4241 * scale, 9.67142 * scale),
-        width: 2.03932 * scale,
-        height: 2.03932 * scale,
-      ),
-      cyanPaint,
-    );
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(12.0201 * scale, 9.67142 * scale),
-        width: 2.03932 * scale,
-        height: 2.03932 * scale,
-      ),
-      cyanPaint,
-    );
-
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(16.098 * scale, 23.3904 * scale),
-        width: 2.03932 * scale,
-        height: 2.03932 * scale,
-      ),
-      darkBluePaint,
-    );
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(12.0201 * scale, 23.3904 * scale),
-        width: 2.03932 * scale,
-        height: 2.03932 * scale,
-      ),
-      darkBluePaint,
-    );
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(20.1772 * scale, 23.3904 * scale),
-        width: 2.03932 * scale,
-        height: 2.03932 * scale,
-      ),
-      darkBluePaint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
+// Removed _BubbleTailPainter - now using _BubbleClipper for bubble shape with tail

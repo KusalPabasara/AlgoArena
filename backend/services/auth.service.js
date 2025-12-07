@@ -1,9 +1,13 @@
 const { getAuth } = require('../config/firebase');
 const jwt = require('jsonwebtoken');
+const axios = require('axios');
 
 // JWT secret for session tokens (in production, use env variable)
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 const JWT_EXPIRE = '7d';
+
+// Firebase Web API key for password verification
+const FIREBASE_WEB_API_KEY = process.env.FIREBASE_WEB_API_KEY;
 
 class AuthService {
   constructor() {
@@ -194,6 +198,55 @@ class AuthService {
       return { success: true };
     } catch (error) {
       throw new Error(`Error enabling user: ${error.message}`);
+    }
+  }
+
+  /**
+   * Verify password using Firebase REST API
+   * This is necessary because Firebase Admin SDK cannot verify passwords directly
+   */
+  async verifyPassword(email, password) {
+    try {
+      if (!FIREBASE_WEB_API_KEY) {
+        throw new Error('FIREBASE_WEB_API_KEY is not configured. Please set it in your .env file.');
+      }
+
+      const url = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${FIREBASE_WEB_API_KEY}`;
+      
+      const response = await axios.post(url, {
+        email: email,
+        password: password,
+        returnSecureToken: true
+      });
+
+      if (response.data && response.data.localId) {
+        return {
+          success: true,
+          uid: response.data.localId,
+          idToken: response.data.idToken
+        };
+      }
+
+      throw new Error('Invalid response from Firebase');
+    } catch (error) {
+      if (error.response) {
+        // Firebase API error response
+        const errorCode = error.response.data?.error?.message;
+        // Handle all invalid credential errors
+        if (errorCode === 'INVALID_PASSWORD' || 
+            errorCode === 'EMAIL_NOT_FOUND' || 
+            errorCode === 'INVALID_LOGIN_CREDENTIALS' ||
+            errorCode === 'INVALID_EMAIL') {
+          throw new Error('Invalid email or password');
+        } else if (errorCode === 'USER_DISABLED') {
+          throw new Error('This account has been disabled');
+        } else if (errorCode === 'TOO_MANY_ATTEMPTS_TRY_LATER') {
+          throw new Error('Too many failed attempts. Please try again later');
+        }
+        // Default to user-friendly message
+        throw new Error('Invalid email or password');
+      }
+      throw new Error(`Error verifying password: ${error.message}`);
     }
   }
 }

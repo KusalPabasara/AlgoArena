@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/constants/strings.dart';
 import '../../../data/repositories/auth_repository.dart';
+import '../../../utils/responsive_utils.dart';
 
 /// SMS Verification Screen - Enter 4-digit code
 /// Figma node: 117:378
@@ -11,10 +12,10 @@ class VerifySmsScreen extends StatefulWidget {
   final String? phoneNumber;
 
   const VerifySmsScreen({
-    Key? key,
+    super.key,
     this.email,
     this.phoneNumber,
-  }) : super(key: key);
+  });
 
   @override
   State<VerifySmsScreen> createState() => _VerifySmsScreenState();
@@ -123,14 +124,17 @@ class _VerifySmsScreenState extends State<VerifySmsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Initialize responsive utilities
+    ResponsiveUtils.init(context);
+    
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
         children: [
           // Yellow and black bubbles at top with fade-in transition
           Positioned(
-            left: -8.43,
-            top: -297.58,
+            left: ResponsiveUtils.bw(-8.43),
+            top: ResponsiveUtils.bh(-297.58),
             child: TweenAnimationBuilder<double>(
               tween: Tween(begin: 0.0, end: 1.0),
               duration: const Duration(milliseconds: 600),
@@ -140,15 +144,15 @@ class _VerifySmsScreenState extends State<VerifySmsScreen> {
               },
               child: Image.asset(
                 'assets/images/bubbles.png',
-                width: 566.388,
-                height: 620.085,
+                width: ResponsiveUtils.bs(566.388),
+                height: ResponsiveUtils.bs(620.085),
                 errorBuilder: (context, error, stackTrace) {
                   return Container(
-                    width: 566.388,
-                    height: 620.085,
+                    width: ResponsiveUtils.bs(566.388),
+                    height: ResponsiveUtils.bs(620.085),
                     decoration: BoxDecoration(
                       color: const Color(0xFFFFD700),
-                      borderRadius: BorderRadius.circular(500),
+                      borderRadius: BorderRadius.circular(ResponsiveUtils.bs(500)),
                     ),
                   );
                 },

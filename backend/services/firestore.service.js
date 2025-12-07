@@ -118,10 +118,25 @@ class FirestoreService {
 
   /**
    * Query documents with custom conditions
+   * Supports two formats:
+   * 1. query(collection, conditions) - where conditions is an array
+   * 2. query(collection, field, operator, value) - single condition
    */
-  async query(collection, conditions) {
+  async query(collection, conditionsOrField, operator, value) {
     try {
       let query = this.db.collection(collection);
+      let conditions;
+
+      // Handle both formats
+      if (Array.isArray(conditionsOrField)) {
+        // Format 1: query(collection, [{field, operator, value}, ...])
+        conditions = conditionsOrField;
+      } else if (operator && value !== undefined) {
+        // Format 2: query(collection, field, operator, value)
+        conditions = [{ field: conditionsOrField, operator, value }];
+      } else {
+        throw new Error('Invalid query parameters');
+      }
 
       conditions.forEach(condition => {
         query = query.where(condition.field, condition.operator, condition.value);
@@ -132,6 +147,14 @@ class FirestoreService {
     } catch (error) {
       throw new Error(`Error querying ${collection}: ${error.message}`);
     }
+  }
+
+  /**
+   * Query documents with custom conditions (alias for query)
+   * This method exists for backward compatibility
+   */
+  async queryCollection(collection, conditions) {
+    return await this.query(collection, conditions);
   }
 
   /**
@@ -210,13 +233,14 @@ class FirestoreService {
    */
   async addComment(postId, commentData) {
     try {
+      const createdAt = Timestamp.now();
       const commentRef = await this.db
         .collection('posts')
         .doc(postId)
         .collection('comments')
         .add({
           ...commentData,
-          createdAt: Timestamp.now()
+          createdAt: createdAt
         });
 
       // Increment comment count on post
@@ -224,7 +248,12 @@ class FirestoreService {
         commentsCount: FieldValue.increment(1)
       });
 
-      return { id: commentRef.id, ...commentData };
+      // Return the comment with the createdAt timestamp
+      return { 
+        id: commentRef.id, 
+        ...commentData,
+        createdAt: createdAt
+      };
     } catch (error) {
       throw new Error(`Error adding comment: ${error.message}`);
     }
@@ -245,6 +274,50 @@ class FirestoreService {
       return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (error) {
       throw new Error(`Error getting comments: ${error.message}`);
+    }
+  }
+
+  /**
+   * Update a comment
+   */
+  async updateComment(postId, commentId, text) {
+    try {
+      await this.db
+        .collection('posts')
+        .doc(postId)
+        .collection('comments')
+        .doc(commentId)
+        .update({
+          text: text,
+          updatedAt: Timestamp.now()
+        });
+
+      return { id: commentId, text: text };
+    } catch (error) {
+      throw new Error(`Error updating comment: ${error.message}`);
+    }
+  }
+
+  /**
+   * Delete a comment
+   */
+  async deleteComment(postId, commentId) {
+    try {
+      await this.db
+        .collection('posts')
+        .doc(postId)
+        .collection('comments')
+        .doc(commentId)
+        .delete();
+
+      // Decrement comment count on post
+      await this.db.collection('posts').doc(postId).update({
+        commentsCount: FieldValue.increment(-1)
+      });
+
+      return { success: true };
+    } catch (error) {
+      throw new Error(`Error deleting comment: ${error.message}`);
     }
   }
 

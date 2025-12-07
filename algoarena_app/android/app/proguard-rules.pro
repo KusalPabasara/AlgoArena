@@ -47,3 +47,14 @@
 -keepclassmembers,allowobfuscation class * {
   @com.google.gson.annotations.SerializedName <fields>;
 }
+
+# Google Play Core - Suppress missing class warnings (not needed for APK builds)
+-dontwarn com.google.android.play.core.splitcompat.SplitCompatApplication
+-dontwarn com.google.android.play.core.splitinstall.**
+-dontwarn com.google.android.play.core.tasks.**
+
+# Keep Flutter deferred components (but ignore missing Play Core)
+-keep class io.flutter.embedding.engine.deferredcomponents.** { *; }
+
+# Additional Flutter embedding rules
+-keep class io.flutter.embedding.** { *; }
